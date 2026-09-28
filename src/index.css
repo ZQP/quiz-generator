@@ -38,8 +38,8 @@ body {
 }
 
 @keyframes puzzle-snap {
-  0% { transform: scale(0.96); }
-  50% { transform: scale(1.02); }
+  0% { transform: scale(0.97); }
+  50% { transform: scale(1.015); }
   100% { transform: scale(1); }
 }
 
@@ -51,7 +51,7 @@ body {
 .jigsaw-card {
   position: relative;
   overflow: visible;
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 /* Custom sleek ZQP scrollbar for fixed-height quiz viewport */
@@ -80,71 +80,88 @@ body {
 }
 
 /* ==============================================================
-   2D PAPERCUT CARD & PIECE STYLES (ZQP CRAFT LOOK)
+   2D PAPERCUT CARD & PIECE STYLES (AUTHENTISCHER PAPIERSCHNITT)
    ============================================================== */
 
-/* Base Papercut Card: thick cardboard bottom edge, inner rim light, tactile feel */
+/* Base Papercut Card:
+   - Warmer Elfenbein-/Büttenton statt reinem Digitalweiß
+   - Mikroskopisch feine Papierfaser-Textur per SVG-Rauschfilter
+   - Feine Skalpell-Schnittkante (1px) ohne klobigen 3D-Balken
+   - Zarter Doppelbogen-/Passepartout-Unterleger (1.5px warm cardstock)
+   - Extrem weicher, warmer Kontaktschatten (unter 4px)
+*/
 .zqp-papercut-card {
   position: relative;
-  background-color: #ffffff;
-  border: 1.5px solid #bbd1cd;
-  border-bottom: 3.5px solid #a3beba;
-  border-radius: 0.875rem;
+  background-color: #fdfbf7;
+  background-image: 
+    radial-gradient(ellipse at 50% 20%, rgba(255, 255, 255, 0.85) 0%, rgba(248, 244, 237, 0.6) 100%),
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.032'/%3E%3C/svg%3E");
+  border: 1px solid #e2ddd5;
+  border-radius: 0.75rem;
   box-shadow: 
-    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.95),
-    0 3px 6px -1px rgba(0, 0, 0, 0.05),
-    0 2px 4px -2px rgba(36, 122, 109, 0.06);
-  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1),
-              box-shadow 0.14s cubic-bezier(0.2, 0.8, 0.2, 1),
-              border-color 0.14s ease,
-              background-color 0.14s ease;
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 1px 0 0 rgba(255, 255, 255, 0.6),
+    1.5px 1.5px 0 #ede8df,
+    0 2px 4px -1px rgba(50, 42, 30, 0.04);
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.15s ease,
+              background-color 0.15s ease;
   user-select: none;
 }
 
-/* Hover: slight paper lift */
+/* Hover: zartes Anheben des Papiers (nur 1px) mit warmem Kontaktschatten */
 .zqp-papercut-card:hover:not(.locked) {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
   border-color: #247a6d;
-  border-bottom-color: #1b5c53;
   box-shadow: 
-    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.95),
-    0 6px 12px -2px rgba(36, 122, 109, 0.15),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 1px 0 0 rgba(255, 255, 255, 0.7),
+    2px 2px 0 rgba(36, 122, 109, 0.18),
+    0 3px 6px -1px rgba(50, 42, 30, 0.06);
 }
 
-/* Active / Pressed: tactile click into the surface */
+/* Active / Gedrückt: Papier liegt flach auf Unterlage */
 .zqp-papercut-card:active:not(.locked) {
-  transform: translateY(2px);
-  border-bottom-width: 1.5px;
+  transform: translateY(1px);
   box-shadow: 
     inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 1px 2px rgba(0, 0, 0, 0.08);
+    0.5px 0.5px 0 #ede8df,
+    0 1px 2px rgba(50, 42, 30, 0.03);
 }
 
-/* Selected papercut card */
+/* Ausgewählte Papierkarte: Feines ZQP-Tonpapier mit präziser Schnittkante */
 .zqp-papercut-selected {
-  background-color: #f3f8f7 !important;
+  background-color: #f2f8f6 !important;
   border-color: #247a6d !important;
-  border-bottom: 3.5px solid #00473d !important;
   box-shadow: 
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.9),
-    0 0 0 2px rgba(36, 122, 109, 0.3),
-    0 4px 10px rgba(36, 122, 109, 0.14) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 1px 0 0 rgba(255, 255, 255, 0.7),
+    2px 2px 0 #1b5c53,
+    0 2px 6px rgba(36, 122, 109, 0.12) !important;
   transform: translateY(-1px);
 }
 
-/* Matched puzzle pair (Papercut badge with cut-out interlocking notch) */
+/* Richtig zugeordnetes Paar: Eingefasster Papier-Inlay-Look */
 .zqp-papercut-matched {
-  border-bottom-width: 3px !important;
+  border-color: #a3beba !important;
   box-shadow: 
-    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.8),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    1px 1px 0 #dbe6e4,
+    0 1px 3px rgba(50, 42, 30, 0.03) !important;
 }
 
-/* Papercut badge / tag */
+/* Washi-Tape / Papierstreifen-Label */
 .zqp-papercut-tag {
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-bottom: 2px solid rgba(0, 0, 0, 0.15);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  position: relative;
+  border: 1px solid rgba(60, 50, 40, 0.12);
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    0 1px 2px rgba(50, 42, 30, 0.03);
 }
 
+/* Papier-Schnittlinie (Perforierte Trennlinie) */
+.zqp-paper-perforation {
+  background-image: radial-gradient(#bbd1cd 1.2px, transparent 1.2px);
+  background-size: 8px 8px;
+}

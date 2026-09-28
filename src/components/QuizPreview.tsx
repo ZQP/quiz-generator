@@ -407,10 +407,12 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
                     <div className="grid grid-cols-2 gap-2">
                       {/* Left: Threats */}
+                      {/* Left: Threats / Terms */}
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block px-1">
-                          ⚠️ Gefahrenquelle
-                        </span>
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded zqp-papercut-tag bg-[#fef8eb] border border-amber-300/80 text-amber-900 text-[10px] font-bold uppercase tracking-wider shadow-xs mb-0.5">
+                          <span>⚠️</span>
+                          <span>Gefahrenquelle</span>
+                        </div>
                         {currentStation.matchingPairs.map((pair, idx) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedThreat?.id === pair.id;
@@ -429,7 +431,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                               } ${canAdvance ? "locked pointer-events-none" : ""}`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded zqp-papercut-tag bg-amber-50 text-amber-900 border-amber-300">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded zqp-papercut-tag bg-[#fef4e8] text-amber-950 border-amber-300/80">
                                   Teil A-{idx + 1}
                                 </span>
                                 {isMatched ? (
@@ -439,9 +441,11 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                   </span>
                                 ) : isSelected ? (
                                   <span className="text-[9px] font-bold text-[#247a6d]">Wählen ➔</span>
-                                ) : null}
+                                ) : (
+                                  <span className="text-[9px] text-[#8e8578] font-mono">Puzzleteil</span>
+                                )}
                               </div>
-                              <p className="text-[11px] sm:text-xs font-semibold text-[#444] leading-tight">
+                              <p className="text-[11px] sm:text-xs font-semibold text-[#3a352d] leading-tight">
                                 {pair.threatOrTerm}
                               </p>
                             </div>
@@ -451,9 +455,10 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
                       {/* Right: Shuffled Solutions */}
                       <div className="space-y-2">
-                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block px-1">
-                          🛡️ Schutzmaßnahme
-                        </span>
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded zqp-papercut-tag bg-[#edf7f4] border border-emerald-300/80 text-emerald-900 text-[10px] font-bold uppercase tracking-wider shadow-xs mb-0.5">
+                          <span>🛡️</span>
+                          <span>Schutzmaßnahme</span>
+                        </div>
                         {shuffledSolutions.map((pair, idx) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedSolution?.id === pair.id;
@@ -472,7 +477,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                               } ${canAdvance ? "locked pointer-events-none" : ""}`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded zqp-papercut-tag bg-emerald-50 text-emerald-900 border-emerald-300">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded zqp-papercut-tag bg-[#eef7f4] text-emerald-950 border-emerald-300/80">
                                   Teil B-{idx + 1}
                                 </span>
                                 {isMatched ? (
@@ -482,9 +487,11 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                   </span>
                                 ) : isSelected ? (
                                   <span className="text-[9px] font-bold text-[#247a6d]">Wählen ➔</span>
-                                ) : null}
+                                ) : (
+                                  <span className="text-[9px] text-[#8e8578] font-mono">Gegenstück</span>
+                                )}
                               </div>
-                              <p className="text-[11px] sm:text-xs font-semibold text-[#444] leading-tight">
+                              <p className="text-[11px] sm:text-xs font-semibold text-[#3a352d] leading-tight">
                                 {pair.solutionOrDef}
                               </p>
                             </div>
@@ -511,14 +518,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           <div
                             key={step.id}
                             className={`zqp-papercut-card p-2.5 sm:p-3 flex items-center justify-between text-xs relative ${
-                              canAdvance ? "border-emerald-500 border-b-emerald-700 bg-emerald-50/50 locked" : ""
+                              canAdvance ? "border-emerald-500 bg-[#edf7f4] locked" : ""
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="w-6 h-6 rounded-md bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs zqp-papercut-tag shrink-0">
+                              <span className="w-6 h-6 rounded-md bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs zqp-papercut-tag shrink-0 shadow-xs">
                                 #{idx + 1}
                               </span>
-                              <span className="font-semibold text-[#444] text-xs leading-snug truncate">
+                              <span className="font-semibold text-[#3a352d] text-xs leading-snug truncate">
                                 {step.text}
                               </span>
                             </div>
@@ -528,7 +535,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 type="button"
                                 onClick={() => handleMoveOrderItem(idx, -1)}
                                 disabled={isFirst || canAdvance}
-                                className="p-1 rounded zqp-papercut-card text-[#1b5c53] disabled:opacity-30"
+                                className="p-1 rounded zqp-papercut-tag bg-[#faf8f5] hover:bg-[#edf5f3] text-[#1b5c53] disabled:opacity-30 transition-colors"
                                 title="Nach oben schieben"
                               >
                                 <ArrowUp className="w-3.5 h-3.5" />
@@ -537,7 +544,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 type="button"
                                 onClick={() => handleMoveOrderItem(idx, 1)}
                                 disabled={isLast || canAdvance}
-                                className="p-1 rounded zqp-papercut-card text-[#1b5c53] disabled:opacity-30"
+                                className="p-1 rounded zqp-papercut-tag bg-[#faf8f5] hover:bg-[#edf5f3] text-[#1b5c53] disabled:opacity-30 transition-colors"
                                 title="Nach unten schieben"
                               >
                                 <ArrowDown className="w-3.5 h-3.5" />
@@ -574,15 +581,15 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 <span className="font-bold text-xs text-[#1b5c53]">
                                   {scen.title}
                                 </span>
-                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded zqp-papercut-tag bg-white text-[#6e6c70]">
+                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded zqp-papercut-tag bg-[#faf8f5] text-[#554a3e] border-[#e2ddd5]">
                                   {scen.badge}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-[#444] leading-snug line-clamp-3">
+                              <p className="text-[11px] text-[#3a352d] leading-snug line-clamp-3">
                                 {scen.description}
                               </p>
                             </div>
-                            <div className="mt-2 pt-1.5 border-t border-[#e3eeec] text-[11px] font-semibold text-[#1b5c53] flex justify-between items-center">
+                            <div className="mt-2 pt-1.5 border-t border-[#ede8df] text-[11px] font-semibold text-[#1b5c53] flex justify-between items-center">
                               <span>{isSelected ? "Ausgewählt" : "Szenario wählen"}</span>
                               <span className="w-4 h-4 rounded-full border-2 border-[#247a6d] flex items-center justify-center font-bold text-[10px]">
                                 {isSelected ? "✓" : ""}
@@ -618,7 +625,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                               onChange={() => setSelectedOptionIdx(idx)}
                               className="mt-0.5 text-[#247a6d] focus:ring-[#247a6d]"
                             />
-                            <span className="text-xs font-medium text-[#444] leading-snug">
+                            <span className="text-xs font-medium text-[#3a352d] leading-snug">
                               {opt.text}
                             </span>
                           </label>
