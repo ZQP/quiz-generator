@@ -5,7 +5,7 @@
   "identifier": "de.zqp.quizgenerator",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:1720",
+    "devUrl": "http://localhost:3100",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
