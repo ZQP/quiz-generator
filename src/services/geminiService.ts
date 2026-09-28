@@ -100,6 +100,9 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
    - Der Quiz-Container '#zqp-game-root' MUSS zwingend OHNE Scrollbalken auskommen (overflow: hidden, feste Höhe ca. 560-580px, max-h: 85vh).
    - Das Quiz darf beim Umschalten zwischen Stationen oder Anzeigen von Lösungen NIEMALS die Höhe verändern.
    - Didaktische Erklärungen ("Warum richtig / falsch" + "ZQP-Praxiswissen") erscheinen bei Klick auf "Prüfen" oder "Lösung anzeigen" als eleganter Bottom-Drawer (Slide-up Overlay vom unteren Rand), sodass keine Scrollbalken entstehen und das Quiz 100% stabil bleibt.
+   - Der Drawer MUSS mit einem Button ("Ansicht ansehen ✕") schließbar sein, damit der Nutzer die Lösung/Karten auf der Bühne begutachten kann, und über "Erklärung anzeigen" wieder nach oben geschoben werden können.
+   - STRIKTE WEITERSCHALTUNG & LÖSUNGSHILFE: Der Nutzer darf erst zur nächsten Station gelangen, wenn ALLE Punkte der Station gelöst wurden ODER der Nutzer auf "Lösung anzeigen" klickt.
+   - SELBSTSTÄNDIGKEITS-TRACKING: Das Quiz muss erfassen, welche Stationen selbstständig gelöst wurden und bei welchen die Lösung aufgedeckt wurde, und dies in der Abschlussauswertung darstellen (z. B. "2 von 3 Stationen selbstständig gelöst").
 5. ZQP-FUSSZEILE (OBLIGATORISCH):
    - Jedes Quiz MUSS am alleruntersten Rand eine dezente Fußzeile besitzen:
      "Stiftung Zentrum für Qualität in der Pflege • [Aktuelles Kalenderjahr]" (z. B. "Stiftung Zentrum für Qualität in der Pflege • ${new Date().getFullYear()}").
@@ -379,7 +382,7 @@ function generateLocalDemoQuiz(
 <div id="zqp-game-root" class="zqp-quiz-container">
   <header id="zqp-game-header">
     <div class="zqp-header-top">
-      <span class="zqp-badge">🧩 ZQP Wissenstest</span>
+      <span class="zqp-badge">🧩 ZQP Praxistest</span>
       <span id="zqp-station-counter">Station 1 von 3</span>
     </div>
     <h2 id="zqp-game-title">Sturzprävention im Alltag</h2>
@@ -392,7 +395,6 @@ function generateLocalDemoQuiz(
     <div id="zqp-station-content">
       <!-- Station-Inhalt wird dynamisch gerendert -->
     </div>
-    <div id="zqp-feedback-container" style="display: none;"></div>
   </main>
 
   <footer id="zqp-game-footer">
@@ -402,13 +404,30 @@ function generateLocalDemoQuiz(
       </button>
     </div>
     <div id="zqp-footer-right">
-      <button id="zqp-btn-action" type="button" class="zqp-btn-primary">
+      <button id="zqp-btn-action" type="button" class="zqp-btn-primary" disabled>
         Nächste Station ➔
       </button>
     </div>
   </footer>
+
   <div class="zqp-copyright-footer">
     Stiftung Zentrum für Qualität in der Pflege • ${new Date().getFullYear()}
+  </div>
+
+  <!-- Slide-Up Feedback Drawer (Zero Scrollbars, No Layout Shifts) -->
+  <div id="zqp-drawer" class="zqp-drawer">
+    <div class="zqp-drawer-header">
+      <div id="zqp-drawer-title" class="zqp-drawer-title">✓ Auswertung</div>
+      <button id="zqp-btn-close-drawer" type="button" class="zqp-btn-close" title="Erklärung schließen & Ansicht ansehen">
+        Ansicht ansehen ✕
+      </button>
+    </div>
+    <div id="zqp-drawer-body" class="zqp-drawer-body"></div>
+    <div class="zqp-drawer-actions">
+      <button id="zqp-btn-drawer-next" type="button" class="zqp-btn-primary">
+        Nächste Station ➔
+      </button>
+    </div>
   </div>
 </div>`,
     generatedCss: `/* ZQP Quiz Embed Styles: Feste Höhe, Keine Layout-Verschiebungen & Keine Scrollbalken */
@@ -443,7 +462,7 @@ function generateLocalDemoQuiz(
   flex-shrink: 0;
   background: linear-gradient(to right, #247a6d, #1b5c53);
   color: #ffffff;
-  padding: 1rem 1.25rem;
+  padding: 0.875rem 1.25rem;
 }
 
 .zqp-header-top {
@@ -471,7 +490,7 @@ function generateLocalDemoQuiz(
   height: 6px;
   background: #00473d;
   border-radius: 9999px;
-  margin-top: 0.625rem;
+  margin-top: 0.5rem;
   overflow: hidden;
 }
 
@@ -487,6 +506,7 @@ function generateLocalDemoQuiz(
   min-height: 0;
   overflow: hidden;
   padding: 1.25rem;
+  position: relative;
 }
 
 .zqp-copyright-footer {
@@ -521,11 +541,16 @@ function generateLocalDemoQuiz(
   font-size: 0.8125rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, opacity 0.2s;
 }
 
-.zqp-btn-primary:hover {
+.zqp-btn-primary:hover:not(:disabled) {
   background-color: #1b5c53;
+}
+
+.zqp-btn-primary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .zqp-btn-secondary {
@@ -558,92 +583,250 @@ function generateLocalDemoQuiz(
 .puzzle-piece:hover {
   border-color: #247a6d;
   background: #f3f8f7;
+}
+
+.puzzle-piece.selected {
+  border-color: #247a6d;
+  background-color: #e3eeec;
+  outline: 2px solid #247a6d;
+}
+
+/* Slide-up Feedback Drawer Styles */
+.zqp-drawer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-height: 80%;
+  background: #f8fafc;
+  border-top: 2px solid #247a6d;
+  box-shadow: 0 -10px 25px -5px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 20;
+}
+
+.zqp-drawer.open {
+  transform: translateY(0);
+}
+
+.zqp-drawer.drawer-correct {
+  border-top-color: #10b981;
+  background: #f0fdf4;
+}
+
+.zqp-drawer.drawer-revealed {
+  border-top-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.zqp-drawer.drawer-incorrect {
+  border-top-color: #ef4444;
+  background: #fef2f2;
+}
+
+.zqp-drawer-header {
+  padding: 0.625rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.zqp-drawer-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1b5c53;
+}
+
+.zqp-btn-close {
+  background: transparent;
+  border: none;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6e6c70;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+}
+
+.zqp-btn-close:hover {
+  background: rgba(0,0,0,0.05);
+  color: #1b5c53;
+}
+
+.zqp-drawer-body {
+  padding: 0.875rem 1rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: #334155;
+  overflow: hidden;
+}
+
+.zqp-drawer-actions {
+  padding: 0.625rem 1rem;
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  background: rgba(255,255,255,0.7);
 }`,
-    generatedJs: `/* ZQP Quiz Interaktion (Vanilla JS) */
+    generatedJs: `/* ZQP Quiz Interaktion (Vanilla JS mit Drawer & Score-Tracking) */
 (function() {
   var root = document.getElementById("zqp-game-root");
   if (!root) return;
 
   var currentStation = 0;
   var totalStations = 3;
+  var stationResults = {}; // sIdx -> "independent" | "revealed"
+  var canAdvance = false;
 
   var btnReveal = document.getElementById("zqp-btn-reveal");
   var btnAction = document.getElementById("zqp-btn-action");
   var counter = document.getElementById("zqp-station-counter");
   var progressFill = document.getElementById("zqp-progress-fill");
-  var stage = document.getElementById("zqp-game-stage");
   var content = document.getElementById("zqp-station-content");
-  var feedback = document.getElementById("zqp-feedback-container");
+  
+  var drawer = document.getElementById("zqp-drawer");
+  var drawerTitle = document.getElementById("zqp-drawer-title");
+  var drawerBody = document.getElementById("zqp-drawer-body");
+  var btnCloseDrawer = document.getElementById("zqp-btn-close-drawer");
+  var btnDrawerNext = document.getElementById("zqp-btn-drawer-next");
+
+  function closeDrawer() {
+    if (drawer) drawer.classList.remove("open");
+  }
+
+  function openDrawer(type, title, explanation, zqpInfo) {
+    if (!drawer) return;
+    drawer.className = "zqp-drawer open " + (type === "correct" ? "drawer-correct" : type === "revealed" ? "drawer-revealed" : "drawer-incorrect");
+    if (drawerTitle) drawerTitle.textContent = (type === "correct" ? "✓ " : type === "revealed" ? "💡 " : "⚠️ ") + title;
+    if (drawerBody) {
+      drawerBody.innerHTML = '<p style="margin:0 0 0.5rem 0; font-weight:600;">' + explanation + '</p>' +
+        (zqpInfo ? '<div style="font-size:0.75rem; color:#475569; border-top:1px solid rgba(0,0,0,0.06); padding-top:0.35rem;"><strong>ZQP-Praxishinweis:</strong> ' + zqpInfo + '</div>' : '');
+    }
+  }
 
   function renderStation(idx) {
-    if (stage) stage.scrollTop = 0;
-    if (feedback) feedback.style.display = "none";
+    closeDrawer();
+    canAdvance = false;
+    if (btnAction) {
+      btnAction.disabled = true;
+      btnAction.textContent = (idx === totalStations - 1) ? "Zur Gesamtauswertung ➔" : "Nächste Station ➔";
+    }
+    if (btnDrawerNext) {
+      btnDrawerNext.textContent = (idx === totalStations - 1) ? "Zur Gesamtauswertung ➔" : "Nächste Station ➔";
+    }
+    if (btnReveal) {
+      btnReveal.textContent = "💡 Lösung anzeigen";
+    }
     if (counter) counter.textContent = "Station " + (idx + 1) + " von " + totalStations;
     if (progressFill) progressFill.style.width = (((idx + 1) / totalStations) * 100) + "%";
 
     if (idx === 0) {
       content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 1: Zuordnungs-Puzzle</h3>' +
-        '<p style="font-size:0.875rem; margin-bottom:1rem;">Verbinden Sie jede typische Gefahrenstelle mit der passenden Schutzmaßnahme:</p>' +
-        '<div class="puzzle-piece" onclick="window.zqpSelectMatch(1)">⚠️ Nasse Fliesen in Dusche & Bad ➔ Feste Haltegriffe & Antirutschmatte</div>' +
-        '<div class="puzzle-piece" onclick="window.zqpSelectMatch(2)">⚠️ Dunkler Flur bei Nacht ➔ Orientierungsbeleuchtung</div>' +
-        '<div class="puzzle-piece" onclick="window.zqpSelectMatch(3)">⚠️ Rutschige Wollsocken ➔ Geschlossene Hausschuhe</div>';
-      btnAction.textContent = "Nächste Station ➔";
+        '<p style="font-size:0.875rem; margin-bottom:1rem;">Klicken Sie auf ein Gefahrenpaar, um die passenden Puzzleteile zu verzahnen:</p>' +
+        '<div class="puzzle-piece" id="p1" onclick="window.zqpSelectMatch(1)">⚠️ Nasse Fliesen in Dusche & Bad ➔ Feste Haltegriffe & Antirutschmatte</div>' +
+        '<div class="puzzle-piece" id="p2" onclick="window.zqpSelectMatch(2)">⚠️ Dunkler Flur bei Nacht ➔ Orientierungsbeleuchtung</div>' +
+        '<div class="puzzle-piece" id="p3" onclick="window.zqpSelectMatch(3)">⚠️ Rutschige Wollsocken ➔ Geschlossene Hausschuhe</div>';
     } else if (idx === 1) {
       content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 2: Ablauf-Reihenfolge beim Aufstehen</h3>' +
-        '<p style="font-size:0.875rem; margin-bottom:1rem;">Richtige biomechanische Reihenfolge für sicheres Aufstehen:</p>' +
-        '<div class="puzzle-piece">1. An die vordere Stuhlkante vorrutschen</div>' +
-        '<div class="puzzle-piece">2. Füße schulterbreit fest aufstellen</div>' +
-        '<div class="puzzle-piece">3. Mit Vorneigung aufrichten</div>';
-      btnAction.textContent = "Nächste Station ➔";
+        '<p style="font-size:0.875rem; margin-bottom:1rem;">Wählen Sie den korrekten ersten biomechanischen Schritt:</p>' +
+        '<div class="puzzle-piece" onclick="window.zqpSelectOrder(1)">1. An die vordere Stuhlkante vorrutschen (Hebelarm verkürzen)</div>' +
+        '<div class="puzzle-piece" onclick="window.zqpSelectOrder(2)">2. Füße schulterbreit fest aufstellen (Fersen leicht zurück)</div>' +
+        '<div class="puzzle-piece" onclick="window.zqpSelectOrder(3)">3. Mit Vorneigung dynamisch aufrichten</div>';
     } else if (idx === 2) {
       content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 3: A/B-Situationsvergleich</h3>' +
-        '<p style="font-size:0.875rem; margin-bottom:1rem;">Wählen Sie das sturzsichere Szenario:</p>' +
-        '<div class="puzzle-piece" style="border-color:#247a6d; background:#f3f8f7;">' +
-        '<strong>Szenario B (Sturzpräventiv ✓):</strong> Freie Wege, fixierte Kabel, Sockellicht.' +
-        '</div>';
-      btnAction.textContent = "Zur Gesamtauswertung ➔";
+        '<p style="font-size:0.875rem; margin-bottom:1rem;">Wählen Sie die sturzsichere Wohnsituation:</p>' +
+        '<div class="puzzle-piece" onclick="window.zqpSelectCompare(\\'A\\')"><strong>Szenario A:</strong> Gemütlicher Flur mit losen Läufern & losem Kabel quer über den Weg</div>' +
+        '<div class="puzzle-piece" onclick="window.zqpSelectCompare(\\'B\\')"><strong>Szenario B (Sturzpräventiv ✓):</strong> Freie Wege, fixierte Kabel, schattenfreie Sockelleuchte</div>';
     }
   }
 
+  function markStationCompleted(mode, explanation, zqpInfo) {
+    canAdvance = true;
+    stationResults[currentStation] = mode;
+    if (btnAction) btnAction.disabled = false;
+    if (btnReveal) btnReveal.textContent = "💡 Erklärung anzeigen";
+    openDrawer(mode === "independent" ? "correct" : "revealed", mode === "independent" ? "Perfekt gelöst!" : "Lösung aufgedeckt", explanation, zqpInfo);
+  }
+
   window.zqpSelectMatch = function(id) {
-    showExplanation("Hervorragend verzahnt!", "Diese Maßnahme neutralisiert die Gefahrenquelle nachweislich und schützt nachhaltig.");
+    markStationCompleted("independent", "Alle Schutzmaßnahmen neutralisieren die jeweiligen Gefahrenquellen nachhaltig.", "Haltegriffe und Antirutschmatten verringern das Sturzrisiko im Badezimmer um über 70 %.");
   };
+
+  window.zqpSelectOrder = function(id) {
+    if (id === 1) {
+      markStationCompleted("independent", "Richtig: Vorrutschen an die Stuhlkante verkürzt den Hebelarm zum Körperschwerpunkt.", "Schafft die biomechanische Basis vor dem Aufstehen.");
+    } else {
+      openDrawer("incorrect", "Noch nicht optimal", "Vor dem Aufrichten muss zuerst an die vordere Kante vorgerutscht werden.", "Anderenfalls ist der Kraftaufwand viel zu hoch.");
+    }
+  };
+
+  window.zqpSelectCompare = function(choice) {
+    if (choice === "B") {
+      markStationCompleted("independent", "Ausgezeichnet! Szenario B beseitigt lose Teppichkanten und Stolperfallen.", "Lose Teppichläufer sind für über 45 % aller Stürze verantwortlich.");
+    } else {
+      openDrawer("incorrect", "Hohes Sturzrisiko", "Lose Teppiche auf Parkett und querliegende Kabel fangen Fußspitzen ein.", "Beseitigen Sie lose Vorleger und fixieren Sie Kabel.");
+    }
+  };
+
+  if (btnCloseDrawer) btnCloseDrawer.addEventListener("click", closeDrawer);
 
   if (btnReveal) {
     btnReveal.addEventListener("click", function() {
-      showExplanation("Lösung aufgedeckt & Puzzleteile verzahnt", "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP (zqp.de).");
-    });
-  }
-
-  if (btnAction) {
-    btnAction.addEventListener("click", function() {
-      if (currentStation < totalStations - 1) {
-        currentStation++;
-        renderStation(currentStation);
+      if (canAdvance) {
+        if (drawer && drawer.classList.contains("open")) {
+          closeDrawer();
+        } else {
+          openDrawer(stationResults[currentStation] === "independent" ? "correct" : "revealed", "Erklärung", "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP (zqp.de).", "Regelmäßige Sensibilität für Gefahrenquellen schützt nachhaltig.");
+        }
       } else {
-        content.innerHTML = '<div style="text-align:center; padding:1.5rem;">' +
-          '<h3 style="color:#1b5c53; font-size:1.25rem; font-weight:700;">Glückwunsch! Alle Stationen gemeistert</h3>' +
-          '<p style="font-size:0.875rem; margin-top:0.5rem;">Sie haben alle Stationen erfolgreich absolviert. Mehr Infos auf zqp.de.</p>' +
-          '</div>';
-        if (feedback) feedback.style.display = "none";
-        if (btnReveal) btnReveal.style.display = "none";
-        btnAction.textContent = "Quiz neu starten";
-        btnAction.onclick = function() { location.reload(); };
+        markStationCompleted("revealed", "Hier ist die empfohlene Lösung: Schutzmaßnahmen neutralisieren Gefahrenquellen konsequent.", "ZQP-Expertenrat: Achten Sie im Alltag auf ebene Flächen und feste Schuhe.");
       }
     });
   }
 
-  function showExplanation(title, text) {
-    if (!feedback) return;
-    feedback.innerHTML = '<div style="margin-top:1rem; padding:0.875rem; background:#ecfdf5; border:1px solid #10b981; border-radius:0.5rem; font-size:0.8125rem;">' +
-      '<strong style="color:#065f46; display:block; margin-bottom:0.25rem;">✓ ' + title + '</strong>' +
-      '<p style="margin:0; color:#1e293b;">' + text + '</p>' +
-      '</div>';
-    feedback.style.display = "block";
-    if (stage) stage.scrollTo({ top: stage.scrollHeight, behavior: "smooth" });
+  function advanceStation() {
+    closeDrawer();
+    if (currentStation < totalStations - 1) {
+      currentStation++;
+      renderStation(currentStation);
+    } else {
+      var indepCount = Object.keys(stationResults).filter(function(k) { return stationResults[k] === "independent"; }).length;
+      content.innerHTML = '<div style="text-align:center; padding:1.25rem;">' +
+        '<div style="width:48px; height:48px; border-radius:50%; background:#e3eeec; border:2px solid #247a6d; margin:0 auto 0.75rem auto; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">🏆</div>' +
+        '<h3 style="color:#1b5c53; font-size:1.125rem; font-weight:700; margin-bottom:0.25rem;">Glückwunsch! Praxistest beendet</h3>' +
+        '<p style="font-size:0.8125rem; color:#6e6c70; margin-bottom:0.75rem;">Sie haben alle Stationen erfolgreich absolviert.</p>' +
+        '<div style="background:#f3f8f7; border:1px solid #bbd1cd; border-radius:0.75rem; padding:0.75rem; text-align:left; font-size:0.75rem;">' +
+        '<div style="display:flex; justify-content:space-between; font-weight:700; color:#1b5c53; margin-bottom:0.5rem; border-bottom:1px solid rgba(0,0,0,0.06); padding-bottom:0.35rem;">' +
+        '<span>Ihr Testergebnis:</span>' +
+        '<span style="background:#d1fae5; color:#065f46; padding:0.125rem 0.5rem; border-radius:9999px;">' + indepCount + ' von ' + totalStations + ' selbstständig gelöst</span>' +
+        '</div>' +
+        '<div style="line-height:1.6;">' +
+        '<div>Station 1: ' + (stationResults[0] === "independent" ? "✓ Selbstständig gelöst" : "💡 Lösungshilfe genutzt") + '</div>' +
+        '<div>Station 2: ' + (stationResults[1] === "independent" ? "✓ Selbstständig gelöst" : "💡 Lösungshilfe genutzt") + '</div>' +
+        '<div>Station 3: ' + (stationResults[2] === "independent" ? "✓ Selbstständig gelöst" : "💡 Lösungshilfe genutzt") + '</div>' +
+        '</div>' +
+        '<div style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(0,0,0,0.06); font-size:0.6875rem; color:#475569;">' +
+        '<strong>ZQP-Fazit:</strong> Rund 80 % der Stürze im Alltag lassen sich durch Wohnraumanpassungen und passendes Schuhwerk verhindern. Ratgeber auf zqp.de.' +
+        '</div>' +
+        '</div>' +
+        '</div>';
+      if (btnReveal) btnReveal.style.display = "none";
+      if (btnAction) {
+        btnAction.disabled = false;
+        btnAction.textContent = "Test wiederholen ↺";
+        btnAction.onclick = function() { location.reload(); };
+      }
+    }
   }
 
-  renderStation(0);
+  if (btnAction) btnAction.addEventListener("click", advanceStation);
+  if (btnDrawerNext) btnDrawerNext.addEventListener("click", advanceStation);
+
 })();`,
   };
 }
+
