@@ -420,20 +420,20 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                             <div
                               key={`th-${pair.id}`}
                               onClick={() => handleSelectThreat(pair)}
-                              className={`rounded-xl border-2 p-2 sm:p-2.5 text-left transition-all cursor-pointer ${
+                              className={`zqp-papercut-card p-2 sm:p-2.5 text-left cursor-pointer transition-all ${
                                 isMatched
-                                  ? `${theme.border} ${theme.bg} shadow-xs`
+                                  ? `zqp-papercut-matched ${theme.border} ${theme.bg}`
                                   : isSelected
-                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-sm"
-                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7]"
-                              }`}
+                                  ? "zqp-papercut-selected"
+                                  : ""
+                              } ${canAdvance ? "locked pointer-events-none" : ""}`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded zqp-papercut-tag bg-amber-50 text-amber-900 border-amber-300">
                                   Teil A-{idx + 1}
                                 </span>
                                 {isMatched ? (
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${theme.badge} flex items-center gap-0.5 shadow-xs`}>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full zqp-papercut-tag ${theme.badge} flex items-center gap-0.5`}>
                                     <Check className="w-2.5 h-2.5" />
                                     <span>{theme.label}</span>
                                   </span>
@@ -463,20 +463,20 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                             <div
                               key={`sol-${pair.id}`}
                               onClick={() => handleSelectSolution(pair)}
-                              className={`rounded-xl border-2 p-2 sm:p-2.5 text-left transition-all cursor-pointer ${
+                              className={`zqp-papercut-card p-2 sm:p-2.5 text-left cursor-pointer transition-all ${
                                 isMatched
-                                  ? `${theme.border} ${theme.bg} shadow-xs`
+                                  ? `zqp-papercut-matched ${theme.border} ${theme.bg}`
                                   : isSelected
-                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-sm"
-                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7]"
-                              }`}
+                                  ? "zqp-papercut-selected"
+                                  : ""
+                              } ${canAdvance ? "locked pointer-events-none" : ""}`}
                             >
                               <div className="flex items-center justify-between mb-0.5">
-                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded zqp-papercut-tag bg-emerald-50 text-emerald-900 border-emerald-300">
                                   Teil B-{idx + 1}
                                 </span>
                                 {isMatched ? (
-                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${theme.badge} flex items-center gap-0.5 shadow-xs`}>
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full zqp-papercut-tag ${theme.badge} flex items-center gap-0.5`}>
                                     <Check className="w-2.5 h-2.5" />
                                     <span>{theme.label}</span>
                                   </span>
@@ -510,12 +510,12 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         return (
                           <div
                             key={step.id}
-                            className={`p-2.5 sm:p-3 rounded-xl border-2 border-[#bbd1cd] bg-white flex items-center justify-between text-xs shadow-xs relative transition-all ${
-                              canAdvance ? "border-emerald-500 bg-emerald-50/50" : "hover:border-[#247a6d]"
+                            className={`zqp-papercut-card p-2.5 sm:p-3 flex items-center justify-between text-xs relative ${
+                              canAdvance ? "border-emerald-500 border-b-emerald-700 bg-emerald-50/50 locked" : ""
                             }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="w-6 h-6 rounded-md bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                              <span className="w-6 h-6 rounded-md bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs zqp-papercut-tag shrink-0">
                                 #{idx + 1}
                               </span>
                               <span className="font-semibold text-[#444] text-xs leading-snug truncate">
@@ -528,7 +528,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 type="button"
                                 onClick={() => handleMoveOrderItem(idx, -1)}
                                 disabled={isFirst || canAdvance}
-                                className="p-1 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
+                                className="p-1 rounded zqp-papercut-card text-[#1b5c53] disabled:opacity-30"
                                 title="Nach oben schieben"
                               >
                                 <ArrowUp className="w-3.5 h-3.5" />
@@ -537,7 +537,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 type="button"
                                 onClick={() => handleMoveOrderItem(idx, 1)}
                                 disabled={isLast || canAdvance}
-                                className="p-1 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
+                                className="p-1 rounded zqp-papercut-card text-[#1b5c53] disabled:opacity-30"
                                 title="Nach unten schieben"
                               >
                                 <ArrowDown className="w-3.5 h-3.5" />
@@ -565,18 +565,16 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           <div
                             key={scen.id}
                             onClick={() => !canAdvance && setSelectedScenarioId(scen.id)}
-                            className={`puzzle-piece cursor-pointer p-3 rounded-xl border-2 flex flex-col justify-between transition-all ${
-                              isSelected
-                                ? "border-[#247a6d] bg-[#f3f8f7] ring-2 ring-[#247a6d] shadow-sm"
-                                : "border-[#bbd1cd] bg-white hover:border-[#247a6d]"
-                            }`}
+                            className={`zqp-papercut-card cursor-pointer p-3 sm:p-3.5 flex flex-col justify-between ${
+                              isSelected ? "zqp-papercut-selected" : ""
+                            } ${canAdvance ? "locked pointer-events-none" : ""}`}
                           >
                             <div>
                               <div className="flex items-center justify-between mb-1.5">
                                 <span className="font-bold text-xs text-[#1b5c53]">
                                   {scen.title}
                                 </span>
-                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white border border-[#bbd1cd] text-[#6e6c70]">
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded zqp-papercut-tag bg-white text-[#6e6c70]">
                                   {scen.badge}
                                 </span>
                               </div>
@@ -608,11 +606,9 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         return (
                           <label
                             key={idx}
-                            className={`flex items-start gap-2.5 p-2.5 sm:p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                              isSelected
-                                ? "border-[#247a6d] bg-[#f3f8f7] ring-1 ring-[#247a6d]"
-                                : "border-[#e3eeec] bg-white hover:border-[#247a6d]"
-                            }`}
+                            className={`zqp-papercut-card flex items-start gap-2.5 p-2.5 sm:p-3 cursor-pointer ${
+                              isSelected ? "zqp-papercut-selected" : ""
+                            } ${canAdvance ? "locked pointer-events-none" : ""}`}
                           >
                             <input
                               type="radio"

@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { X, Key, Cpu, RefreshCw, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { X, Key, Cpu, RefreshCw, Eye, EyeOff, ShieldCheck, DownloadCloud, CheckCircle2 } from "lucide-react";
 import { AppSettings } from "../types";
 import { fetchAvailableModels } from "../services/geminiService";
+import { checkForAppUpdates, installAppUpdate } from "../services/updaterService";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -24,6 +25,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isFetchingModels, setIsFetchingModels] = useState<boolean>(false);
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
 
+  // Updater State
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
+  const [updateMsg, setUpdateMsg] = useState<string | null>(null);
+  const [availableVersion, setAvailableVersion] = useState<string | null>(null);
+  const [isInstallingUpdate, setIsInstallingUpdate] = useState<boolean>(false);
+  const [installProgress, setInstallProgress] = useState<string>("");
+
   if (!isOpen) return null;
 
   const handleRefreshModels = async () => {
@@ -45,6 +53,48 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setFetchMsg(`Fehler: ${err?.message || "Konnte Modelle nicht abrufen"}`);
     } finally {
       setIsFetchingModels(false);
+    }
+  };
+
+  const handleCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateMsg("Prüfe GitHub Releases auf Updates...");
+    setAvailableVersion(null);
+
+    try {
+      const res = await checkForAppUpdates(false);
+      if (res.updateFound && res.version) {
+        setAvailableVersion(res.version);
+        setUpdateMsg(`Neue Version verfügbar: v${res.version}`);
+      } else if (!res.isDesktop) {
+        setUpdateMsg("Auto-Update ist in der Desktop-Installation (.exe) aktiv.");
+      } else if (res.error) {
+        setUpdateMsg(`Fehler bei Prüfung: ${res.error}`);
+      } else {
+        setUpdateMsg("✓ Sie verwenden bereits die neueste Version (v1.0.0).");
+      }
+    } catch (err: any) {
+      setUpdateMsg(`Fehler: ${err?.message || "Update-Prüfung fehlgeschlagen"}`);
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleInstallUpdate = async () => {
+    setIsInstallingUpdate(true);
+    setInstallProgress("Start...");
+    const result = await installAppUpdate((downloaded, total) => {
+      if (total > 0) {
+        const pct = Math.round((downloaded / total) * 100);
+        setInstallProgress(`${pct}%`);
+      } else {
+        setInstallProgress(`${Math.round(downloaded / 1024)} KB`);
+      }
+    });
+
+    if (!result.success) {
+      setIsInstallingUpdate(false);
+      setUpdateMsg(`Installationsfehler: ${result.error}`);
     }
   };
 
@@ -152,22 +202,70 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
         </div>
 
-        {/* Auto Update Checkbox */}
-        <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3 rounded-xl flex items-center justify-between">
-          <div>
-            <span className="text-xs font-bold text-[#1b5c53] block">
-              Automatische Updates
-            </span>
-            <span className="text-[11px] text-[#6e6c70]">
-              Über GitHub Releases (ZQP/quiz-generator)
-            </span>
+        {/* Auto Update Section */}
+        <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3.5 rounded-xl flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <div>
+              <span className="text-xs font-bold text-[#1b5c53] block">
+                Automatische Updates
+              </span>
+              <span className="text-[11px] text-[#6e6c70]">
+                GitHub Releases (ZQP/quiz-generator) • Version 1.0.0
+              </span>
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <span className="text-xs text-[#6e6c70]">Aktiviert</span>
+              <input
+                type="checkbox"
+                checked={autoUpdate}
+                onChange={(e) => setAutoUpdate(e.target.checked)}
+                className="w-4 h-4 text-[#247a6d] rounded focus:ring-[#247a6d]"
+              />
+            </label>
           </div>
-          <input
-            type="checkbox"
-            checked={autoUpdate}
-            onChange={(e) => setAutoUpdate(e.target.checked)}
-            className="w-4 h-4 text-[#247a6d] rounded focus:ring-[#247a6d]"
-          />
+
+          <div className="pt-2 border-t border-[#bbd1cd]/50 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={handleCheckUpdate}
+              disabled={isCheckingUpdate || isInstallingUpdate}
+              className="px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-white text-xs font-semibold text-[#1b5c53] hover:bg-gray-50 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-[#247a6d] ${isCheckingUpdate ? "animate-spin" : ""}`} />
+              <span>{isCheckingUpdate ? "Prüfe..." : "Jetzt nach Updates suchen"}</span>
+            </button>
+
+            {availableVersion && (
+              <button
+                type="button"
+                onClick={handleInstallUpdate}
+                disabled={isInstallingUpdate}
+                className="px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm animate-pulse"
+              >
+                <DownloadCloud className="w-3.5 h-3.5" />
+                <span>
+                  {isInstallingUpdate
+                    ? `Installiere... (${installProgress})`
+                    : `Update installieren (v${availableVersion})`}
+                </span>
+              </button>
+            )}
+          </div>
+
+          {updateMsg && (
+            <p
+              className={`text-[11px] ${
+                updateMsg.startsWith("✓")
+                  ? "text-emerald-700 font-medium flex items-center gap-1"
+                  : updateMsg.includes("Fehler")
+                  ? "text-red-700"
+                  : "text-[#1b5c53] font-medium"
+              }`}
+            >
+              {updateMsg.startsWith("✓") && <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />}
+              {updateMsg}
+            </p>
+          )}
         </div>
 
         {/* Footer Actions */}

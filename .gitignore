@@ -24,3 +24,8 @@ env/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Tauri & Rust
+src-tauri/target/
+*.key
+

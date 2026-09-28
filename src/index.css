@@ -78,3 +78,73 @@ body {
 .zqp-scrollbar::-webkit-scrollbar-thumb:hover {
   background: #247a6d;
 }
+
+/* ==============================================================
+   2D PAPERCUT CARD & PIECE STYLES (ZQP CRAFT LOOK)
+   ============================================================== */
+
+/* Base Papercut Card: thick cardboard bottom edge, inner rim light, tactile feel */
+.zqp-papercut-card {
+  position: relative;
+  background-color: #ffffff;
+  border: 1.5px solid #bbd1cd;
+  border-bottom: 3.5px solid #a3beba;
+  border-radius: 0.875rem;
+  box-shadow: 
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.95),
+    0 3px 6px -1px rgba(0, 0, 0, 0.05),
+    0 2px 4px -2px rgba(36, 122, 109, 0.06);
+  transition: transform 0.14s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.14s cubic-bezier(0.2, 0.8, 0.2, 1),
+              border-color 0.14s ease,
+              background-color 0.14s ease;
+  user-select: none;
+}
+
+/* Hover: slight paper lift */
+.zqp-papercut-card:hover:not(.locked) {
+  transform: translateY(-2px);
+  border-color: #247a6d;
+  border-bottom-color: #1b5c53;
+  box-shadow: 
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.95),
+    0 6px 12px -2px rgba(36, 122, 109, 0.15),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Active / Pressed: tactile click into the surface */
+.zqp-papercut-card:active:not(.locked) {
+  transform: translateY(2px);
+  border-bottom-width: 1.5px;
+  box-shadow: 
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+/* Selected papercut card */
+.zqp-papercut-selected {
+  background-color: #f3f8f7 !important;
+  border-color: #247a6d !important;
+  border-bottom: 3.5px solid #00473d !important;
+  box-shadow: 
+    inset 0 1.5px 0 rgba(255, 255, 255, 0.9),
+    0 0 0 2px rgba(36, 122, 109, 0.3),
+    0 4px 10px rgba(36, 122, 109, 0.14) !important;
+  transform: translateY(-1px);
+}
+
+/* Matched puzzle pair (Papercut badge with cut-out interlocking notch) */
+.zqp-papercut-matched {
+  border-bottom-width: 3px !important;
+  box-shadow: 
+    inset 0 1.5px 0.5px rgba(255, 255, 255, 0.8),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* Papercut badge / tag */
+.zqp-papercut-tag {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
