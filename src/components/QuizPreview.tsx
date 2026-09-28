@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, AlertTriangle, HelpCircle, Puzzle, Check } from "lucide-react";
+import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, XCircle, AlertTriangle, HelpCircle, Puzzle, Check } from "lucide-react";
 import { QuizGenerationResult, QuizStation, MatchingPair } from "../types";
 
 interface QuizPreviewProps {
@@ -40,8 +40,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [canAdvance, setCanAdvance] = useState<boolean>(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-  // Track whether each station was solved independently ("independent") or via solution reveal ("revealed")
-  const [stationResults, setStationResults] = useState<Record<number, "independent" | "revealed">>({});
+  // Track whether each station was solved by the user ("solved") or revealed ("unsolved")
+  const [stationResults, setStationResults] = useState<Record<number, "solved" | "unsolved">>({});
 
   // Reset station state on change
   useEffect(() => {
@@ -113,8 +113,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       selectionExplanation: currentStation.solutionExplanation || "Hier sehen Sie die vollständige, empfohlene Lösung für diese Station.",
       zqpBackground: currentStation.zqpRationale || "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP.",
     });
-    // Mark as solved with help / not independently
-    setStationResults((prev) => ({ ...prev, [currentStationIdx]: "revealed" }));
+    // Mark as not solved (solution revealed)
+    setStationResults((prev) => ({ ...prev, [currentStationIdx]: "unsolved" }));
     setCanAdvance(true);
     setIsDrawerOpen(true);
   };
@@ -155,8 +155,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
       if (allSolved) {
         setCanAdvance(true);
-        // Mark as solved independently
-        setStationResults((prev) => ({ ...prev, [currentStationIdx]: "independent" }));
+        // Mark as solved
+        setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
       } else {
         setCanAdvance(false);
       }
@@ -196,7 +196,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         selectionExplanation: currentStation?.solutionExplanation || "Alle Schritte greifen biomechanisch optimal ineinander.",
         zqpBackground: currentStation?.zqpRationale || "Vorrutschen und Standflächensicherung sind unverzichtbar vor der Streckbewegung.",
       });
-      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "independent" }));
+      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
       setCanAdvance(true);
     } else {
       setFeedback({
@@ -223,7 +223,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         selectionExplanation: scenario.explanation,
         zqpBackground: currentStation.zqpRationale || "Fixierte Kabel und freie Laufwege reduzieren das Sturzrisiko nachhaltig.",
       });
-      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "independent" }));
+      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
       setCanAdvance(true);
     } else {
       setFeedback({
@@ -249,7 +249,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         selectionExplanation: opt.explanation,
         zqpBackground: currentStation.zqpRationale || "Eine fundierte Maßnahme nach aktuellem pflegewissenschaftlichem Stand.",
       });
-      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "independent" }));
+      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
       setCanAdvance(true);
     } else {
       setFeedback({
@@ -647,33 +647,33 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                   Sie haben alle {quiz.stations.length} interaktiven Lernstationen abgeschlossen.
                 </p>
 
-                {/* Score & Independence Evaluation Box */}
+                {/* Score & Evaluation Box */}
                 <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3 rounded-xl text-left text-xs text-[#444] w-full space-y-2 shadow-xs">
                   <div className="flex items-center justify-between pb-1.5 border-b border-[#bbd1cd]/50">
                     <span className="font-bold text-[#1b5c53]">Ihr Praxistest-Ergebnis:</span>
                     <span className="font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px]">
-                      {Object.values(stationResults).filter((v) => v === "independent").length} von {quiz.stations.length} selbstständig gelöst
+                      {Object.values(stationResults).filter((v) => v === "solved").length} von {quiz.stations.length} Aufgaben gelöst
                     </span>
                   </div>
 
                   {/* Station-by-Station breakdown */}
                   <div className="space-y-1">
                     {quiz.stations.map((st, sIdx) => {
-                      const wasIndependent = stationResults[sIdx] === "independent";
+                      const isSolved = stationResults[sIdx] === "solved";
                       return (
                         <div key={st.id || sIdx} className="flex items-center justify-between text-[11px] py-0.5">
                           <span className="text-[#444] truncate max-w-[200px] sm:max-w-[300px]">
                             Station {sIdx + 1}: {st.title || `Aufgabe ${sIdx + 1}`}
                           </span>
-                          {wasIndependent ? (
+                          {isSolved ? (
                             <span className="text-emerald-700 font-semibold flex items-center gap-1 shrink-0">
                               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              Selbstständig gelöst
+                              Gelöst
                             </span>
                           ) : (
-                            <span className="text-amber-800 font-semibold flex items-center gap-1 shrink-0">
-                              <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
-                              Lösungshilfe genutzt
+                            <span className="text-[#722b28] font-semibold flex items-center gap-1 shrink-0">
+                              <XCircle className="w-3.5 h-3.5 text-[#722b28]" />
+                              Nicht gelöst
                             </span>
                           )}
                         </div>

@@ -101,8 +101,8 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
    - Das Quiz darf beim Umschalten zwischen Stationen oder Anzeigen von Lösungen NIEMALS die Höhe verändern.
    - Didaktische Erklärungen ("Warum richtig / falsch" + "ZQP-Praxiswissen") erscheinen bei Klick auf "Prüfen" oder "Lösung anzeigen" als eleganter Bottom-Drawer (Slide-up Overlay vom unteren Rand), sodass keine Scrollbalken entstehen und das Quiz 100% stabil bleibt.
    - Der Drawer MUSS mit einem Button ("Ansicht ansehen ✕") schließbar sein, damit der Nutzer die Lösung/Karten auf der Bühne begutachten kann, und über "Erklärung anzeigen" wieder nach oben geschoben werden können.
-   - STRIKTE WEITERSCHALTUNG & LÖSUNGSHILFE: Der Nutzer darf erst zur nächsten Station gelangen, wenn ALLE Punkte der Station gelöst wurden ODER der Nutzer auf "Lösung anzeigen" klickt.
-   - SELBSTSTÄNDIGKEITS-TRACKING: Das Quiz muss erfassen, welche Stationen selbstständig gelöst wurden und bei welchen die Lösung aufgedeckt wurde, und dies in der Abschlussauswertung darstellen (z. B. "2 von 3 Stationen selbstständig gelöst").
+   - STRIKTE WEITERSCHALTUNG: Der Nutzer darf erst zur nächsten Station gelangen, wenn ALLE Punkte der Station gelöst wurden ODER der Nutzer auf "Lösung anzeigen" klickt.
+   - ERGEBNIS-TRACKING: Das Quiz erfasst, welche Aufgaben gelöst wurden und welche nicht (weil die Lösung aufgedeckt wurde). In der Abschlussauswertung wird dies sachlich dargestellt (z. B. "2 von 3 Aufgaben gelöst" und je Station "Gelöst" bzw. "Nicht gelöst").
 5. ZQP-FUSSZEILE (OBLIGATORISCH):
    - Jedes Quiz MUSS am alleruntersten Rand eine dezente Fußzeile besitzen:
      "Stiftung Zentrum für Qualität in der Pflege • [Aktuelles Kalenderjahr]" (z. B. "Stiftung Zentrum für Qualität in der Pflege • ${new Date().getFullYear()}").
@@ -749,16 +749,16 @@ function generateLocalDemoQuiz(
     stationResults[currentStation] = mode;
     if (btnAction) btnAction.disabled = false;
     if (btnReveal) btnReveal.textContent = "💡 Erklärung anzeigen";
-    openDrawer(mode === "independent" ? "correct" : "revealed", mode === "independent" ? "Perfekt gelöst!" : "Lösung aufgedeckt", explanation, zqpInfo);
+    openDrawer(mode === "solved" ? "correct" : "revealed", mode === "solved" ? "Richtig gelöst!" : "Lösung aufgedeckt", explanation, zqpInfo);
   }
 
   window.zqpSelectMatch = function(id) {
-    markStationCompleted("independent", "Alle Schutzmaßnahmen neutralisieren die jeweiligen Gefahrenquellen nachhaltig.", "Haltegriffe und Antirutschmatten verringern das Sturzrisiko im Badezimmer um über 70 %.");
+    markStationCompleted("solved", "Alle Schutzmaßnahmen neutralisieren die jeweiligen Gefahrenquellen nachhaltig.", "Haltegriffe und Antirutschmatten verringern das Sturzrisiko im Badezimmer um über 70 %.");
   };
 
   window.zqpSelectOrder = function(id) {
     if (id === 1) {
-      markStationCompleted("independent", "Richtig: Vorrutschen an die Stuhlkante verkürzt den Hebelarm zum Körperschwerpunkt.", "Schafft die biomechanische Basis vor dem Aufstehen.");
+      markStationCompleted("solved", "Richtig: Vorrutschen an die Stuhlkante verkürzt den Hebelarm zum Körperschwerpunkt.", "Schafft die biomechanische Basis vor dem Aufstehen.");
     } else {
       openDrawer("incorrect", "Noch nicht optimal", "Vor dem Aufrichten muss zuerst an die vordere Kante vorgerutscht werden.", "Anderenfalls ist der Kraftaufwand viel zu hoch.");
     }
@@ -766,7 +766,7 @@ function generateLocalDemoQuiz(
 
   window.zqpSelectCompare = function(choice) {
     if (choice === "B") {
-      markStationCompleted("independent", "Ausgezeichnet! Szenario B beseitigt lose Teppichkanten und Stolperfallen.", "Lose Teppichläufer sind für über 45 % aller Stürze verantwortlich.");
+      markStationCompleted("solved", "Ausgezeichnet! Szenario B beseitigt lose Teppichkanten und Stolperfallen.", "Lose Teppichläufer sind für über 45 % aller Stürze verantwortlich.");
     } else {
       openDrawer("incorrect", "Hohes Sturzrisiko", "Lose Teppiche auf Parkett und querliegende Kabel fangen Fußspitzen ein.", "Beseitigen Sie lose Vorleger und fixieren Sie Kabel.");
     }
@@ -780,10 +780,10 @@ function generateLocalDemoQuiz(
         if (drawer && drawer.classList.contains("open")) {
           closeDrawer();
         } else {
-          openDrawer(stationResults[currentStation] === "independent" ? "correct" : "revealed", "Erklärung", "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP (zqp.de).", "Regelmäßige Sensibilität für Gefahrenquellen schützt nachhaltig.");
+          openDrawer(stationResults[currentStation] === "solved" ? "correct" : "revealed", "Erklärung", "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP (zqp.de).", "Regelmäßige Sensibilität für Gefahrenquellen schützt nachhaltig.");
         }
       } else {
-        markStationCompleted("revealed", "Hier ist die empfohlene Lösung: Schutzmaßnahmen neutralisieren Gefahrenquellen konsequent.", "ZQP-Expertenrat: Achten Sie im Alltag auf ebene Flächen und feste Schuhe.");
+        markStationCompleted("unsolved", "Hier ist die empfohlene Lösung: Schutzmaßnahmen neutralisieren Gefahrenquellen konsequent.", "ZQP-Expertenrat: Achten Sie im Alltag auf ebene Flächen und feste Schuhe.");
       }
     });
   }
@@ -794,20 +794,20 @@ function generateLocalDemoQuiz(
       currentStation++;
       renderStation(currentStation);
     } else {
-      var indepCount = Object.keys(stationResults).filter(function(k) { return stationResults[k] === "independent"; }).length;
+      var solvedCount = Object.keys(stationResults).filter(function(k) { return stationResults[k] === "solved"; }).length;
       content.innerHTML = '<div style="text-align:center; padding:1.25rem;">' +
         '<div style="width:48px; height:48px; border-radius:50%; background:#e3eeec; border:2px solid #247a6d; margin:0 auto 0.75rem auto; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">🏆</div>' +
         '<h3 style="color:#1b5c53; font-size:1.125rem; font-weight:700; margin-bottom:0.25rem;">Glückwunsch! Praxistest beendet</h3>' +
-        '<p style="font-size:0.8125rem; color:#6e6c70; margin-bottom:0.75rem;">Sie haben alle Stationen erfolgreich absolviert.</p>' +
+        '<p style="font-size:0.8125rem; color:#6e6c70; margin-bottom:0.75rem;">Sie haben alle Stationen abgeschlossen.</p>' +
         '<div style="background:#f3f8f7; border:1px solid #bbd1cd; border-radius:0.75rem; padding:0.75rem; text-align:left; font-size:0.75rem;">' +
         '<div style="display:flex; justify-content:space-between; font-weight:700; color:#1b5c53; margin-bottom:0.5rem; border-bottom:1px solid rgba(0,0,0,0.06); padding-bottom:0.35rem;">' +
         '<span>Ihr Testergebnis:</span>' +
-        '<span style="background:#d1fae5; color:#065f46; padding:0.125rem 0.5rem; border-radius:9999px;">' + indepCount + ' von ' + totalStations + ' selbstständig gelöst</span>' +
+        '<span style="background:#d1fae5; color:#065f46; padding:0.125rem 0.5rem; border-radius:9999px;">' + solvedCount + ' von ' + totalStations + ' Aufgaben gelöst</span>' +
         '</div>' +
         '<div style="line-height:1.6;">' +
-        '<div>Station 1: ' + (stationResults[0] === "independent" ? "✓ Selbstständig gelöst" : "💡 Lösungshilfe genutzt") + '</div>' +
-        '<div>Station 2: ' + (stationResults[1] === "independent" ? "✓ Selbstständig gelöst" : "💡 Lösungshilfe genutzt") + '</div>' +
-        '<div>Station 3: ' + (stationResults[2] === "independent" ? "✓ Selbstständig gelöst" : "💡 Lösungshilfe genutzt") + '</div>' +
+        '<div>Station 1: ' + (stationResults[0] === "solved" ? "✓ Gelöst" : "✕ Nicht gelöst") + '</div>' +
+        '<div>Station 2: ' + (stationResults[1] === "solved" ? "✓ Gelöst" : "✕ Nicht gelöst") + '</div>' +
+        '<div>Station 3: ' + (stationResults[2] === "solved" ? "✓ Gelöst" : "✕ Nicht gelöst") + '</div>' +
         '</div>' +
         '<div style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(0,0,0,0.06); font-size:0.6875rem; color:#475569;">' +
         '<strong>ZQP-Fazit:</strong> Rund 80 % der Stürze im Alltag lassen sich durch Wohnraumanpassungen und passendes Schuhwerk verhindern. Ratgeber auf zqp.de.' +
