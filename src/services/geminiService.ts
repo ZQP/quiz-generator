@@ -116,7 +116,7 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
   "stations": [
     {
       "id": "s1",
-      "type": "matching" | "ordering" | "comparison" | "single_choice",
+      "type": "matching" | "ordering" | "comparison" | "single_choice" | "myth_fact" | "bucket_sort" | "dilemma" | "checklist" | "fill_in_the_blank",
       "title": "Stationstitel",
       "promptOrInstruction": "Anweisung",
       "zqpRationale": "ZQP-Hintergrundwissen zur Station",
@@ -132,6 +132,22 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
       ],
       "options": [
         { "text": "...", "isCorrect": true, "explanation": "Erklärung warum Option richtig oder falsch ist" }
+      ],
+      "mythFactItems": [
+        { "id": "1", "statement": "Behauptung", "isFact": false, "explanation": "Erklärung warum Mythos oder Fakt" }
+      ],
+      "bucketSortItems": [
+        { "id": "1", "text": "Maßnahme", "targetBucket": "do", "explanation": "Begründung" }
+      ],
+      "dilemmaReactions": [
+        { "id": "1", "text": "Reaktion", "isOptimal": true, "consequence": "Konsequenz", "zqpAdvice": "Fachlicher Rat" }
+      ],
+      "checklistItems": [
+        { "id": "1", "text": "Maßnahme", "isCorrect": true, "explanation": "Begründung" }
+      ],
+      "fillInSentence": "Satz mit [BLANK_1] und [BLANK_2]",
+      "fillInBlanks": [
+        { "id": "BLANK_1", "correctWord": "Wort", "options": ["Wort", "AnderesWort", "DrittesWort"] }
       ]
     }
   ],
@@ -347,8 +363,58 @@ function generateLocalDemoQuiz(
     },
     {
       id: "st-3",
+      type: "myth_fact",
+      title: "Station 3: Mythos vs. Fakt: Bettgitter",
+      promptOrInstruction: "Entscheiden Sie: Handelt es sich bei der folgenden Aussage um einen Mythos oder eine belegte Tatsache?",
+      zqpRationale: "Bettgitter vermitteln trügerische Sicherheit und erhöhen bei Kletterversuchen die Fallhöhe erheblich.",
+      solutionExplanation: "Es handelt sich um einen gefährlichen Mythos! Bettgitter verhindern Stürze bei mobilen, desorientierten Personen nicht zuverlässig. Stattdessen versuchen Betroffene häufig darüberzuklettern und stürzen aus gefährlicher Höhe. Der ZQP-Standard empfiehlt Niedrigstbetten mit Boden-Abrollmatten.",
+      mythFactItems: [
+        {
+          id: "mf-1",
+          statement: "Bettgitter schützen ältere und demenziell erkrankte Menschen nachts zuverlässig vor schweren Stürzen.",
+          isFact: false,
+          explanation: "Mythos! Studien und ZQP-Erhebungen belegen: Bettgitter verhindern Stürze nicht, sondern steigern bei Kletterversuchen die Sturzhöhe und das Risiko schwerer Kopfverletzungen drastisch. Besser sind Niedrigstbetten und Sensormatten."
+        }
+      ]
+    },
+    {
+      id: "st-4",
+      type: "bucket_sort",
+      title: "Station 4: Dos & Don'ts: Akute Unruhe bei Demenz",
+      promptOrInstruction: "Sortieren Sie die Verhaltensweisen in die richtige Spalte (Empfohlen vs. Vermeiden):",
+      zqpRationale: "Empathische Validation und Reizreduktion deeskalieren Verwirrtheitszustände wirksam.",
+      solutionExplanation: "Empfohlen (Do): Ruhig auf Augenhöhe sprechen und warmes, schattenfreies Licht einschalten. Vermeiden (Don't): Widersprechen/Korrigieren und Einsperren erzeugen Panik und Gegenwehr.",
+      bucketSortItems: [
+        {
+          id: "bs-1",
+          text: "Ruhig auf Augenhöhe ansprechen und sanfte Handberührung anbieten",
+          targetBucket: "do",
+          explanation: "Do: Beruhigt das vegetative Nervensystem und signalisiert Sicherheit."
+        },
+        {
+          id: "bs-2",
+          text: "Laut widersprechen und die Person sachlich korrigieren",
+          targetBucket: "dont",
+          explanation: "Don't: Zerstört Vertrauen und verstärkt Verzweiflung und Unruhe."
+        },
+        {
+          id: "bs-3",
+          text: "Für blendfreie, warme Beleuchtung im Raum sorgen",
+          targetBucket: "do",
+          explanation: "Do: Beseitigt Schattenwürfe, die bei Demenz leicht als bedrohlich missdeutet werden."
+        },
+        {
+          id: "bs-4",
+          text: "Die Person zur Beruhigung im Sessel fixieren oder einschließen",
+          targetBucket: "dont",
+          explanation: "Don't: Freiheitsentziehende Maßnahme, führt zu massiver Panik und Gegenwehr."
+        }
+      ]
+    },
+    {
+      id: "st-5",
       type: "comparison",
-      title: "Station 3: A/B-Situationsvergleich im Wohnbereich",
+      title: "Station 5: A/B-Situationsvergleich im Wohnbereich",
       promptOrInstruction: "Vergleichen Sie beide Wohnraumsituationen: Welche Variante entspricht den Kriterien für ein sturzsicheres Zuhause?",
       zqpRationale: "Freie Laufwege und fixierte Kabel sind essenziell, um Stürze älterer Menschen im Alltag zu verhindern.",
       solutionExplanation: "Szenario B ist die sturzsichere Variante: Lose Teppichkanten und querliegende Kabel (aus Szenario A) sind für über 45 % aller häuslichen Stolperstürze verantwortlich. Feste Kabelkanäle und schattenfreie Beleuchtung beseitigen diese Gefahren nachhaltig.",
@@ -368,13 +434,105 @@ function generateLocalDemoQuiz(
           description: "Freie Laufwege ohne lose Vorleger, Kabel sind sauber an der Fußleiste befestigt und nachts leuchtet eine schattenfreie Sockelleuchte.",
           isCorrect: true,
           explanation: "Warum dies optimal ist: Durch den Verzicht auf lose Läufer bleibt der Bodenkontakt plan. Fixierte Kabel schalten Stolperfallen aus und die Sockelbeleuchtung nimmt Sehunsicherheiten bei Dämmerung."
-        },
-      ],
+        }
+      ]
     },
     {
-      id: "st-4",
+      id: "st-6",
+      type: "dilemma",
+      title: "Station 6: Praxis-Dilemma: Nächtlicher Toilettengang",
+      promptOrInstruction: "Herr K. (83, beginnende Demenz) möchte nachts aufstehen, weigert sich aber, die helle Deckenlampe einzuschalten. Wie reagieren Sie am besten?",
+      zqpRationale: "Autonomie und Sicherheit müssen in der häuslichen Pflege partnerschaftlich ausbalanciert werden.",
+      solutionExplanation: "Reaktion 2 ist optimal: Ein blendfreies Orientierungslicht respektiert seinen Schlaf-Wach-Rhythmus, ohne Kompromisse bei der Trittsicherheit einzugehen.",
+      dilemmaReactions: [
+        {
+          id: "dil-1",
+          text: "Ihm das Aufstehen verbieten und auf sofortige Bettruhe pochen",
+          isOptimal: false,
+          consequence: "Herr K. fühlt sich bevormundet und versucht heimlich aufzustehen – akutes Sturzrisiko!",
+          zqpAdvice: "Verbote führen bei Demenz fast immer zu heimlichen Aufstehversuchen im Dunkeln."
+        },
+        {
+          id: "dil-2",
+          text: "Blendfreies, bodennahes Sockellicht / Nachtlicht mit Bewegungsmelder einschalten",
+          isOptimal: true,
+          consequence: "Der Laufweg zum Bad wird blendfrei erleuchtet, ohne Herrn K.s Augen zu überreizen.",
+          zqpAdvice: "Respektiert seine Autonomie und gewährleistet gleichzeitig sichere Trittsicht."
+        },
+        {
+          id: "dil-3",
+          text: "Das grelle Deckenlicht gegen seinen Protest einschalten",
+          isOptimal: false,
+          consequence: "Die plötzliche Blendung irritiert Herrn K. und führt zu Schwindelgefühlen.",
+          zqpAdvice: "Grelle Deckenleuchten führen bei nächtlich erwachten Senioren zu starker Blendung und Desorientierung."
+        }
+      ]
+    },
+    {
+      id: "st-7",
+      type: "checklist",
+      title: "Station 7: Interaktive Checkliste: Wohnraumanpassung",
+      promptOrInstruction: "Wählen Sie genau die 3 Maßnahmen aus, die das häusliche Sturzrisiko nach ZQP-Leitlinien am stärksten senken:",
+      zqpRationale: "Schwellenfreiheit, Griffsicherheit und blendfreie Sicht sind die drei Säulen barrierefreien Wohnens.",
+      solutionExplanation: "Die 3 unverzichtbaren Kernmaßnahmen: 1. Beseitigung aller losen Teppiche/Läufer. 2. Montage fester Haltegriffe in Nassbereichen. 3. Blendfreie Nacht-Orientierungsbeleuchtung.",
+      checklistItems: [
+        {
+          id: "chk-1",
+          text: "Beseitigung aller losen Teppiche & Läufer ohne rutschhemmende Unterlage",
+          isCorrect: true,
+          explanation: "Richtig: Beseitigt Stolper- und Rutschkanten als Ursache Nr. 1 für Wohnungsstürze."
+        },
+        {
+          id: "chk-2",
+          text: "Montage stabiler, kontrastreicher Haltegriffe in Dusche und neben dem WC",
+          isCorrect: true,
+          explanation: "Richtig: Bietet zuverlässigen mechanischen Halt bei nassem oder ermüdetem Stand."
+        },
+        {
+          id: "chk-3",
+          text: "Installation blendfreier Bewegungsmelder für die Nachtstrecke ins Bad",
+          isCorrect: true,
+          explanation: "Richtig: Erleichtert die Hell-Dunkel-Adaption älterer Augen und markiert den Gehweg."
+        },
+        {
+          id: "chk-4",
+          text: "Komplette Vermeidung von Bewegung zur angeblichen Schonung der Gelenke",
+          isCorrect: false,
+          explanation: "Falsch: Bewegungsmangel beschleunigt Muskelabbau und verschlechtert das Gleichgewicht drastisch."
+        },
+        {
+          id: "chk-5",
+          text: "Kauf von offenen Schlappen für möglichst schnelles Hineinschlüpfen",
+          isCorrect: false,
+          explanation: "Falsch: Offene Fersen führen zu Instabilität und Ausrutschern."
+        }
+      ]
+    },
+    {
+      id: "st-8",
+      type: "fill_in_the_blank",
+      title: "Station 8: Wort-Lückentext: ZQP-Notfall-Leitsatz",
+      promptOrInstruction: "Setzen Sie die passenden Wortbausteine in die Lücken des ZQP-Leitsatzes ein:",
+      zqpRationale: "Strukturierte Notfallkompetenz verhindert Folgeverletzungen nach einem Sturzereignis.",
+      solutionExplanation: "Der ZQP-Leitsatz lautet: 'Nach einem Sturz ist zuerst RUHE zu bewahren und keinesfalls ein überstürztes AUFRICHTEN zu erzwingen.'",
+      fillInSentence: "Nach einem Sturz ist zuerst [BLANK_1] zu bewahren und keinesfalls ein überstürztes [BLANK_2] zu erzwingen.",
+      fillInBlanks: [
+        {
+          id: "BLANK_1",
+          correctWord: "Ruhe",
+          options: ["Ruhe", "Panik", "Hektik"]
+        },
+        {
+          id: "BLANK_2",
+          correctWord: "Aufrichten",
+          options: ["Aufrichten", "Schlafen", "Wärmen"]
+        }
+      ]
+    },
+    {
+      id: "st-9",
       type: "single_choice",
-      title: "Station 4: Wissenscheck: Sturzsicheres Schuhwerk",
+      title: "Station 9: Wissenscheck: Sturzsicheres Schuhwerk",
       promptOrInstruction: "Welche Schuhmerkmale bieten älteren und pflegebedürftigen Menschen in der Wohnung nachweislich den sichersten Halt?",
       zqpRationale: "Schuhe mit stabiler Fersenkappe und Profilsohle verringern die Sturzgefahr im Haushalt signifikant.",
       solutionExplanation: "Geschlossene Hausschuhe mit fester Fersenkappe und rutschfester Profilsohle stützen das Sprunggelenk optimal.",
@@ -397,37 +555,9 @@ function generateLocalDemoQuiz(
       ]
     },
     {
-      id: "st-5",
-      type: "matching",
-      title: "Station 5: Zuordnungs-Puzzle: Barrierearmes Badezimmer",
-      promptOrInstruction: "Ordnen Sie den typischen Gefahrenzonen im Bad das passende Hilfsmittel zu:",
-      zqpRationale: "Das Badezimmer ist der häufigste Ort schwerer Stürze im häuslichen Bereich.",
-      solutionExplanation: "Haltegriffe, Toilettensitzerhöhungen und ebenerdige Duschen mit Antirutschbeschichtung minimieren Gefahrenquellen im Nassbereich.",
-      matchingPairs: [
-        {
-          id: "m5-1",
-          threatOrTerm: "Hoher Einstieg in die Duschkabine",
-          solutionOrDef: "Bodengleiche Dusche oder stabiler Tritt mit Haltegriff",
-          explanation: "Hohe Duschtassen erfordern Einbeinstand auf rutschigem Boden. Bodengleiche Zugänge beseitigen diese Barriere."
-        },
-        {
-          id: "m5-2",
-          threatOrTerm: "Niedrige Toilette erschwert das Aufstehen",
-          solutionOrDef: "Toilettensitzerhöhung mit klappbaren Armlehnen",
-          explanation: "Eine Sitzerhöhung reduziert den Beugewinkel der Kniegelenke und erleichtert das kraftsparende Aufstehen."
-        },
-        {
-          id: "m5-3",
-          threatOrTerm: "Glatter Wannenboden beim Duschen",
-          solutionOrDef: "Geprüfte Saugnapf-Antirutschmatte & Wandhaltestange",
-          explanation: "Die Kombination aus mechanischem Halt und hoher Haftreibung schützt vor plötzlichem Wegrutschen."
-        }
-      ]
-    },
-    {
-      id: "st-6",
+      id: "st-10",
       type: "ordering",
-      title: "Station 6: Notfallkette nach einem häuslichen Sturz",
+      title: "Station 10: Notfallkette nach einem häuslichen Sturz",
       promptOrInstruction: "Welche Reihenfolge ist unmittelbar nach einem Sturz einer pflegebedürftigen Person einzuhalten?",
       zqpRationale: "Überstürztes Aufrichten nach einem Sturz kann Frakturen und Kreislaufkollapse verschlimmern.",
       solutionExplanation: "Die richtige Notfallfolge: 1. Ruhe bewahren und Schmerzen/Atmung prüfen. 2. Notruf oder Hausnotrufknopf betätigen, wenn kein schmerzfreies Aufstehen möglich ist. 3. Person warmhalten und betreuen.",
@@ -449,110 +579,6 @@ function generateLocalDemoQuiz(
           text: "Person mit einer Decke wärmen und bis zum Eintreffen der Hilfe beruhigend begleiten",
           correctIndex: 2,
           reason: "Schritt 3: Auskühlung auf kaltem Boden verhindern und psychischen Halt geben."
-        }
-      ]
-    },
-    {
-      id: "st-7",
-      type: "comparison",
-      title: "Station 7: A/B-Situationsvergleich: Beleuchtungskonzepte",
-      promptOrInstruction: "Vergleichen Sie die Beleuchtung: Welches Konzept sorgt nachts für maximale Gangsicherheit?",
-      zqpRationale: "Im Alter lässt die Hell-Dunkel-Adaption des Auges nach. Blendung führt zu Orientierungsverlust.",
-      solutionExplanation: "Szenario B sorgt mit blendfreiem, gleichmäßigem Sockellicht für klare Kontraste ohne Blendung.",
-      comparisonScenarios: [
-        {
-          id: "A",
-          title: "Szenario A: Eine helle Deckenlampe am Ende des Flurs",
-          badge: "Blendungsgefahr ⚠️",
-          description: "Ein starker Deckenstrahler blendet beim Blick nach vorn und wirft lange, irritierende Schatten auf den Boden.",
-          isCorrect: false,
-          explanation: "Blendung lässt Bodenunebenheiten und Kanten im Schatten verschwinden – das Auge kann Abstände nicht mehr abschätzen."
-        },
-        {
-          id: "B",
-          title: "Szenario B: Durchgehende, diffuse Sockelleuchten",
-          badge: "Blendfrei & Sicher ✓",
-          description: "Bodennahe LED-Lichtbänder leuchten die Lauffläche schattenfrei aus, ohne die Augen zu blenden.",
-          isCorrect: true,
-          explanation: "Die bodennahe Ausleuchtung markiert den Laufweg kontinuierlich und schont die Nachtsicht."
-        }
-      ]
-    },
-    {
-      id: "st-8",
-      type: "single_choice",
-      title: "Station 8: Wissenscheck: Medikamente & Sturzrisiko",
-      promptOrInstruction: "Welche Arzneimittelgruppe erhöht durch Nebenwirkungen wie Schwindel oder Sedierung das Sturzrisiko besonders?",
-      zqpRationale: "Polypharmazie (Einnahme von mehr als 5 Medikamenten) verdoppelt das Sturzrisiko älterer Menschen.",
-      solutionExplanation: "Schlaf- und Beruhigungsmittel (z. B. Benzodiazepine) sowie stark blutdrucksenkende Mittel sind Hauptrisikofaktoren.",
-      options: [
-        {
-          text: "Schlaf- und Beruhigungsmittel sowie stark blutdrucksenkende Präparate",
-          isCorrect: true,
-          explanation: "Richtig: Diese Wirkstoffe können Schläfrigkeit, Muskelschwäche und orthostatischen Blutdruckabfall auslösen."
-        },
-        {
-          text: "Freiverkäufliche Vitamin-D- und Calciumtabletten",
-          isCorrect: false,
-          explanation: "Falsch: Vitamin D stärkt im Gegenteil Muskelkraft und Knochendichte und kann Stürzen vorbeugen."
-        },
-        {
-          text: "Magentropfen auf pflanzlicher Basis",
-          isCorrect: false,
-          explanation: "Falsch: Reine pflanzliche Verdauungshilfen haben in der Regel keinen Einfluss auf Gangstabilität und Motorik."
-        }
-      ]
-    },
-    {
-      id: "st-9",
-      type: "matching",
-      title: "Station 9: Zuordnungs-Puzzle: Wohnraumanpassung",
-      promptOrInstruction: "Verbinden Sie die bauliche Barriere mit der passenden Lösung nach ZQP-Standard:",
-      zqpRationale: "Bereits kleine Wohnraumanpassungen (z. B. Pflegekassen-Zuschuss bis 4.000 €) schaffen Barrierefreiheit.",
-      solutionExplanation: "Schwellenrampen, beidseitige Handläufe und rutschhemmende Beläge schaffen eine sichere Bewegungsumgebung.",
-      matchingPairs: [
-        {
-          id: "w9-1",
-          threatOrTerm: "Türschwelle zum Balkon / zur Terrasse",
-          solutionOrDef: "Flache Schwellenbrücke oder Ausgleichsrampe",
-          explanation: "Nimmt die Stolperkante und erlaubt schwellenfreies Rollator- oder Gehwagennutzen."
-        },
-        {
-          id: "w9-2",
-          threatOrTerm: "Treppenhaus mit nur einem einseitigen Geländer",
-          solutionOrDef: "Zweiter durchgehender Handlauf an Wandseite",
-          explanation: "Erlaubt sicheren beidseitigen Halt beim Auf- und Absteigen."
-        },
-        {
-          id: "w9-3",
-          threatOrTerm: "Spiegelndes, glattes Parkett im Wohnzimmer",
-          solutionOrDef: "Rutschhemmende Pflegebehandlung oder matter Belag",
-          explanation: "Reduziert gefährliche Gleiteffekte und verhindert optische Täuschungen durch Reflexionen."
-        }
-      ]
-    },
-    {
-      id: "st-10",
-      type: "single_choice",
-      title: "Station 10: Wissenscheck: Bewegung & Prävention",
-      promptOrInstruction: "Welche Maßnahme stärkt die Gangsicherheit und Sturzprophylaxe im Alltag am nachhaltigsten?",
-      zqpRationale: "Regelmäßiges Balance- und Krafttraining erhält die Gehfähigkeit bis ins hohe Alter.",
-      solutionExplanation: "Regelmäßige gezielte Kraft- und Balanceübungen für die Beine und den Rumpf halten die Muskulatur reaktionsfähig.",
-      options: [
-        {
-          text: "Regelmäßiges, angepasstes Kraft- und Gleichgewichtstraining",
-          isCorrect: true,
-          explanation: "Richtig: Trainierte Muskeln fangen Fehltritte reaktiv ab und schützen vor schweren Verletzungen."
-        },
-        {
-          text: "Möglichst viel Bettruhe und Schonung, um Risiken komplett zu vermeiden",
-          isCorrect: false,
-          explanation: "Falsch: Bewegungsmangel führt zu raschem Muskelabbau und verschlimmert die Gangunsicherheit drastisch."
-        },
-        {
-          text: "Ausschließliche Nutzung eines Rollstuhls zur Vermeidung von Stehzeiten",
-          isCorrect: false,
-          explanation: "Falsch: Unnötiges Ruhigstellen schwächt Gleichgewichtssinn und Knochendichte."
         }
       ]
     }

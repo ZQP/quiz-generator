@@ -1,6 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, XCircle, AlertTriangle, HelpCircle, Puzzle, Check } from "lucide-react";
-import { QuizGenerationResult, QuizStation, MatchingPair } from "../types";
+import {
+  RotateCcw,
+  Monitor,
+  Smartphone,
+  ArrowRight,
+  ArrowUp,
+  ArrowDown,
+  Award,
+  Lightbulb,
+  CheckCircle2,
+  XCircle,
+  Puzzle,
+  Check,
+  GripVertical,
+  Sparkles,
+} from "lucide-react";
+import {
+  QuizGenerationResult,
+  QuizStation,
+  MatchingPair,
+} from "../types";
 
 interface QuizPreviewProps {
   quiz: QuizGenerationResult;
@@ -14,23 +33,48 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
   const currentStation: QuizStation | undefined = quiz.stations[currentStationIdx];
 
-  // Matching state
+  // 1. MATCHING STATE
   const [selectedThreat, setSelectedThreat] = useState<{ id: string; btnId: string } | null>(null);
   const [selectedSolution, setSelectedSolution] = useState<{ id: string; btnId: string } | null>(null);
   const [matchedIds, setMatchedIds] = useState<string[]>([]);
-  // Shuffled solutions so they are NEVER in the same order as threats!
   const [shuffledSolutions, setShuffledSolutions] = useState<MatchingPair[]>([]);
+  const [draggedThreatId, setDraggedThreatId] = useState<string | null>(null);
+  const [dragOverSolId, setDragOverSolId] = useState<string | null>(null);
 
-  // Ordering state
+  // 2. ORDERING STATE
   const [orderedList, setOrderedList] = useState<{ id: string; text: string; correctIndex: number; reason?: string }[]>([]);
+  const [draggedStepIdx, setDraggedStepIdx] = useState<number | null>(null);
+  const [dragOverStepIdx, setDragOverStepIdx] = useState<number | null>(null);
 
-  // Comparison state
+  // 3. COMPARISON STATE
   const [selectedScenarioId, setSelectedScenarioId] = useState<string | null>(null);
 
-  // Single choice state
+  // 4. SINGLE CHOICE STATE
   const [selectedOptionIdx, setSelectedOptionIdx] = useState<number | null>(null);
 
-  // Unified feedback state
+  // 5. MYTH VS FACT STATE
+  const [mythFactChoice, setMythFactChoice] = useState<boolean | null>(null);
+  const [draggedMythStatement, setDraggedMythStatement] = useState<boolean>(false);
+  const [dragOverMythTarget, setDragOverMythTarget] = useState<"myth" | "fact" | null>(null);
+
+  // 6. BUCKET SORT (DOS & DON'TS) STATE
+  const [bucketAssignments, setBucketAssignments] = useState<Record<string, "do" | "dont">>({});
+  const [draggedBucketItemId, setDraggedBucketItemId] = useState<string | null>(null);
+  const [dragOverBucket, setDragOverBucket] = useState<"do" | "dont" | null>(null);
+
+  // 7. DILEMMA STATE
+  const [selectedDilemmaId, setSelectedDilemmaId] = useState<string | null>(null);
+
+  // 8. CHECKLIST STATE
+  const [checkedItemIds, setCheckedItemIds] = useState<string[]>([]);
+
+  // 9. FILL IN THE BLANKS STATE
+  const [filledBlanks, setFilledBlanks] = useState<Record<string, string>>({});
+  const [activeBlankId, setActiveBlankId] = useState<string | null>(null);
+  const [draggedWord, setDraggedWord] = useState<string | null>(null);
+  const [dragOverBlankId, setDragOverBlankId] = useState<string | null>(null);
+
+  // UNIFIED FEEDBACK & DRAWER STATE
   interface FeedbackState {
     type: "correct" | "incorrect" | "revealed";
     title: string;
@@ -40,7 +84,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [canAdvance, setCanAdvance] = useState<boolean>(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
-  // Track whether each station was solved by the user ("solved") or revealed ("unsolved")
   const [stationResults, setStationResults] = useState<Record<number, "solved" | "unsolved">>({});
 
   // Reset station state on change
@@ -48,8 +91,31 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     setSelectedThreat(null);
     setSelectedSolution(null);
     setMatchedIds([]);
+    setDraggedThreatId(null);
+    setDragOverSolId(null);
+
+    setDraggedStepIdx(null);
+    setDragOverStepIdx(null);
+
     setSelectedScenarioId(null);
     setSelectedOptionIdx(null);
+
+    setMythFactChoice(null);
+    setDraggedMythStatement(false);
+    setDragOverMythTarget(null);
+
+    setBucketAssignments({});
+    setDraggedBucketItemId(null);
+    setDragOverBucket(null);
+
+    setSelectedDilemmaId(null);
+    setCheckedItemIds([]);
+
+    setFilledBlanks({});
+    setActiveBlankId(null);
+    setDraggedWord(null);
+    setDragOverBlankId(null);
+
     setFeedback(null);
     setCanAdvance(false);
     setIsDrawerOpen(false);
@@ -58,18 +124,13 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     if (currentStation?.type === "matching" && currentStation.matchingPairs) {
       const original = [...currentStation.matchingPairs];
       const shuffled = [...original];
-      
-      // Fisher-Yates shuffle
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-
-      // Ensure it is NOT identical to the original order (if length > 1)
       if (shuffled.length > 1 && shuffled.every((p, idx) => p.id === original[idx].id)) {
         [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
       }
-
       setShuffledSolutions(shuffled);
     }
 
@@ -77,6 +138,11 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     if (currentStation?.type === "ordering" && currentStation.orderingSteps) {
       const shuffled = [...currentStation.orderingSteps].sort(() => Math.random() - 0.5);
       setOrderedList(shuffled);
+    }
+
+    // Set first blank active if fill_in_the_blank
+    if (currentStation?.type === "fill_in_the_blank" && currentStation.fillInBlanks?.length) {
+      setActiveBlankId(currentStation.fillInBlanks[0].id);
     }
   }, [currentStationIdx, currentStation]);
 
@@ -105,21 +171,39 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     } else if (currentStation.type === "single_choice" && currentStation.options) {
       const correctIdx = currentStation.options.findIndex((o) => o.isCorrect);
       if (correctIdx !== -1) setSelectedOptionIdx(correctIdx);
+    } else if (currentStation.type === "myth_fact" && currentStation.mythFactItems?.length) {
+      setMythFactChoice(currentStation.mythFactItems[0].isFact);
+    } else if (currentStation.type === "bucket_sort" && currentStation.bucketSortItems) {
+      const allAssigned: Record<string, "do" | "dont"> = {};
+      currentStation.bucketSortItems.forEach((it) => {
+        allAssigned[it.id] = it.targetBucket;
+      });
+      setBucketAssignments(allAssigned);
+    } else if (currentStation.type === "dilemma" && currentStation.dilemmaReactions) {
+      const opt = currentStation.dilemmaReactions.find((r) => r.isOptimal);
+      if (opt) setSelectedDilemmaId(opt.id);
+    } else if (currentStation.type === "checklist" && currentStation.checklistItems) {
+      setCheckedItemIds(currentStation.checklistItems.filter((i) => i.isCorrect).map((i) => i.id));
+    } else if (currentStation.type === "fill_in_the_blank" && currentStation.fillInBlanks) {
+      const allFilled: Record<string, string> = {};
+      currentStation.fillInBlanks.forEach((b) => {
+        allFilled[b.id] = b.correctWord;
+      });
+      setFilledBlanks(allFilled);
     }
 
     setFeedback({
       type: "revealed",
-      title: "Lösung aufgedeckt & Puzzleteile verzahnt",
+      title: "Lösung aufgedeckt",
       selectionExplanation: currentStation.solutionExplanation || "Hier sehen Sie die vollständige, empfohlene Lösung für diese Station.",
       zqpBackground: currentStation.zqpRationale || "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP.",
     });
-    // Mark as not solved (solution revealed)
     setStationResults((prev) => ({ ...prev, [currentStationIdx]: "unsolved" }));
     setCanAdvance(true);
     setIsDrawerOpen(true);
   };
 
-  // --- MATCHING LOGIC ---
+  // --- 1. MATCHING LOGIC (CLICK & DRAG-AND-DROP) ---
   const handleSelectThreat = (pair: MatchingPair) => {
     if (matchedIds.includes(pair.id) || canAdvance) return;
     setSelectedThreat({ id: pair.id, btnId: `threat-${pair.id}` });
@@ -137,7 +221,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     if (threatId === solutionId && pair) {
       const nextMatched = [...matchedIds, threatId];
       setMatchedIds(nextMatched);
-
       setSelectedThreat(null);
       setSelectedSolution(null);
 
@@ -155,53 +238,60 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
       if (allSolved) {
         setCanAdvance(true);
-        // Mark as solved
         setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
       } else {
         setCanAdvance(false);
       }
       setIsDrawerOpen(true);
     } else {
+      setSelectedThreat(null);
+      setSelectedSolution(null);
       setFeedback({
         type: "incorrect",
         title: "Puzzleteile passen nicht zusammen",
-        selectionExplanation: "Diese beiden Teile lassen sich nicht verzahnen: Die Maßnahme ist für eine andere Gefahrenquelle vorgesehen.",
-        zqpBackground: "Achten Sie auf die genaue Ursache der Gefahr (z. B. Feuchtigkeit am Boden vs. schlechte Sicht bei Nacht).",
+        selectionExplanation: "Diese Schutzmaßnahme greift bei der gewählten Gefahrenquelle nicht. Prüfen Sie die Anforderungen erneut.",
+        zqpBackground: "Typische Gefahrenquellen erfordern spezifische, gezielte Absicherungen nach ZQP-Standard.",
       });
       setIsDrawerOpen(true);
-      setTimeout(() => {
-        setSelectedThreat(null);
-        setSelectedSolution(null);
-      }, 900);
     }
   };
 
-  // --- ORDERING LOGIC ---
-  const handleMoveOrderItem = (idx: number, direction: -1 | 1) => {
+  // --- 2. ORDERING LOGIC (DRAG-REORDER & ARROWS) ---
+  const handleMoveOrderItem = (fromIndex: number, direction: -1 | 1) => {
     if (canAdvance) return;
-    const targetIdx = idx + direction;
-    if (targetIdx < 0 || targetIdx >= orderedList.length) return;
-    const copy = [...orderedList];
-    const item = copy.splice(idx, 1)[0];
-    copy.splice(targetIdx, 0, item);
-    setOrderedList(copy);
+    const toIndex = fromIndex + direction;
+    if (toIndex < 0 || toIndex >= orderedList.length) return;
+    const nextList = [...orderedList];
+    const [moved] = nextList.splice(fromIndex, 1);
+    nextList.splice(toIndex, 0, moved);
+    setOrderedList(nextList);
+  };
+
+  const handleReorderDrop = (fromIndex: number, toIndex: number) => {
+    if (canAdvance || fromIndex === toIndex) return;
+    const nextList = [...orderedList];
+    const [moved] = nextList.splice(fromIndex, 1);
+    nextList.splice(toIndex, 0, moved);
+    setOrderedList(nextList);
+    setDraggedStepIdx(null);
+    setDragOverStepIdx(null);
   };
 
   const handleCheckOrder = () => {
-    const isAllCorrect = orderedList.every((step, i) => step.correctIndex === i);
-    if (isAllCorrect) {
+    const isCorrect = orderedList.every((item, idx) => item.correctIndex === idx);
+    if (isCorrect) {
       setFeedback({
         type: "correct",
-        title: "Puzzlekette vollständig geschlossen! Richtiger Ablauf",
-        selectionExplanation: currentStation?.solutionExplanation || "Alle Schritte greifen biomechanisch optimal ineinander.",
-        zqpBackground: currentStation?.zqpRationale || "Vorrutschen und Standflächensicherung sind unverzichtbar vor der Streckbewegung.",
+        title: "Hervorragend! Perfekte Schrittfolge",
+        selectionExplanation: "Alle Schritte wurden in der richtigen Reihenfolge angeordnet.",
+        zqpBackground: currentStation?.zqpRationale || "Eine methodisch korrekte Abfolge verhindert Komplikationen.",
       });
       setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
       setCanAdvance(true);
     } else {
       setFeedback({
         type: "incorrect",
-        title: "Die Kette ist noch unterbrochen",
+        title: "Die Kette ist noch nicht optimal",
         selectionExplanation: "Ein Schritt wurde zu früh oder zu spät angesetzt. Überlegen Sie, welcher vorbereitende Schritt zuerst Stabilität verleiht.",
         zqpBackground: "Erst Standfläche sichern, dann Schwerpunkt verlagern, dann aufrichten.",
       });
@@ -210,7 +300,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     setIsDrawerOpen(true);
   };
 
-  // --- COMPARISON LOGIC ---
+  // --- 3. COMPARISON LOGIC ---
   const handleCheckComparison = () => {
     if (!selectedScenarioId || !currentStation?.comparisonScenarios) return;
     const scenario = currentStation.comparisonScenarios.find((s) => s.id === selectedScenarioId);
@@ -237,7 +327,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     setIsDrawerOpen(true);
   };
 
-  // --- SINGLE CHOICE LOGIC ---
+  // --- 4. SINGLE CHOICE LOGIC ---
   const handleCheckChoice = () => {
     if (selectedOptionIdx === null || !currentStation?.options) return;
     const opt = currentStation.options[selectedOptionIdx];
@@ -263,6 +353,174 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     setIsDrawerOpen(true);
   };
 
+  // --- 5. MYTH VS FACT LOGIC ---
+  const handleSelectMythFact = (userSaidFact: boolean) => {
+    if (canAdvance || !currentStation?.mythFactItems?.length) return;
+    const item = currentStation.mythFactItems[0];
+    setMythFactChoice(userSaidFact);
+
+    const isCorrect = userSaidFact === item.isFact;
+    if (isCorrect) {
+      setFeedback({
+        type: "correct",
+        title: item.isFact ? "Richtig erkannt! Es ist eine Tatsache." : "Richtig erkannt! Es ist ein Mythos.",
+        selectionExplanation: item.explanation,
+        zqpBackground: currentStation.zqpRationale || "Evidenzbasierte Aufklärung beseitigt riskante Alltagsgewohnheiten.",
+      });
+      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
+      setCanAdvance(true);
+    } else {
+      setFeedback({
+        type: "incorrect",
+        title: item.isFact ? "Irrtum: Dies ist eine belegte Tatsache!" : "Vorsicht: Dies ist ein verbreiteter Mythos!",
+        selectionExplanation: item.explanation,
+        zqpBackground: currentStation.solutionExplanation || "Wissenschaftliche Erkenntnisse zeigen hier ein anderes Bild.",
+      });
+      setCanAdvance(false);
+    }
+    setIsDrawerOpen(true);
+  };
+
+  // --- 6. BUCKET SORT (DOS & DON'TS) LOGIC ---
+  const handleAssignBucket = (itemId: string, bucket: "do" | "dont") => {
+    if (canAdvance) return;
+    const next = { ...bucketAssignments, [itemId]: bucket };
+    setBucketAssignments(next);
+
+    const totalItems = currentStation?.bucketSortItems?.length || 0;
+    if (Object.keys(next).length === totalItems) {
+      // Evaluate all
+      const allCorrect = currentStation?.bucketSortItems?.every(
+        (it) => next[it.id] === it.targetBucket
+      );
+
+      if (allCorrect) {
+        setFeedback({
+          type: "correct",
+          title: "Ausgezeichnet! Alle Maßnahmen richtig eingeordnet",
+          selectionExplanation: "Sie haben alle Verhaltensweisen treffsicher in Do (Empfohlen) und Don't (Vermeiden) aufgeteilt.",
+          zqpBackground: currentStation?.zqpRationale || "Empathische Deeskalation und Validation sind in Krisensituationen entscheidend.",
+        });
+        setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
+        setCanAdvance(true);
+      } else {
+        setFeedback({
+          type: "incorrect",
+          title: "Noch nicht alle Zuordnungen stimmen",
+          selectionExplanation: "Prüfen Sie insbesondere, welche Verhaltensweisen eher Frustration erzeugen und vermieden werden sollten.",
+          zqpBackground: currentStation?.solutionExplanation || "Validation statt Widerspruch lautet die ZQP-Empfehlung.",
+        });
+        setCanAdvance(false);
+      }
+      setIsDrawerOpen(true);
+    }
+  };
+
+  // --- 7. DILEMMA LOGIC ---
+  const handleSelectDilemma = (id: string) => {
+    if (canAdvance || !currentStation?.dilemmaReactions) return;
+    setSelectedDilemmaId(id);
+    const reaction = currentStation.dilemmaReactions.find((r) => r.id === id);
+    if (!reaction) return;
+
+    if (reaction.isOptimal) {
+      setFeedback({
+        type: "correct",
+        title: "Beste Handlungsoption gewählt!",
+        selectionExplanation: `${reaction.consequence} • ${reaction.zqpAdvice}`,
+        zqpBackground: currentStation.zqpRationale || "Autonomie und Schutzbedürfnis stehen in der Pflegeberatung gleichberechtigt nebeneinander.",
+      });
+      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
+      setCanAdvance(true);
+    } else {
+      setFeedback({
+        type: "incorrect",
+        title: "Problematische Reaktion für den Pflegealltag",
+        selectionExplanation: `${reaction.consequence} • ${reaction.zqpAdvice}`,
+        zqpBackground: currentStation.solutionExplanation || "Versuchen Sie, die Selbstbestimmung der Person mit dezenten Hilfen zu wahren.",
+      });
+      setCanAdvance(false);
+    }
+    setIsDrawerOpen(true);
+  };
+
+  // --- 8. CHECKLIST LOGIC ---
+  const handleToggleChecklist = (id: string) => {
+    if (canAdvance) return;
+    setCheckedItemIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleCheckChecklist = () => {
+    if (!currentStation?.checklistItems) return;
+    const correctIds = currentStation.checklistItems.filter((i) => i.isCorrect).map((i) => i.id);
+    const isExactMatch =
+      checkedItemIds.length === correctIds.length &&
+      checkedItemIds.every((id) => correctIds.includes(id));
+
+    if (isExactMatch) {
+      setFeedback({
+        type: "correct",
+        title: "Perfekt ausgewählt! Alle Kernmaßnahmen markiert",
+        selectionExplanation: "Sie haben exakt die wirksamen Maßnahmen nach ZQP-Leitlinie identifiziert.",
+        zqpBackground: currentStation.zqpRationale || "Gezielte Wohnraumanpassungen senken das Sturzrisiko nachhaltig.",
+      });
+      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
+      setCanAdvance(true);
+    } else {
+      setFeedback({
+        type: "incorrect",
+        title: "Checkliste ist noch nicht stimmig",
+        selectionExplanation: "Einige gewählte Punkte sind entweder ineffektiv oder es fehlen wesentliche Sicherheitsmaßnahmen.",
+        zqpBackground: currentStation.solutionExplanation || "Feste Haltegriffe, rutschfreie Böden und Licht sind die 3 Säulen.",
+      });
+      setCanAdvance(false);
+    }
+    setIsDrawerOpen(true);
+  };
+
+  // --- 9. FILL IN THE BLANK LOGIC ---
+  const handleAssignWordToBlank = (blankId: string, word: string) => {
+    if (canAdvance) return;
+    const next = { ...filledBlanks, [blankId]: word };
+    setFilledBlanks(next);
+
+    // Auto advance active blank
+    const blanks = currentStation?.fillInBlanks || [];
+    const nextEmpty = blanks.find((b) => !next[b.id]);
+    if (nextEmpty) {
+      setActiveBlankId(nextEmpty.id);
+    }
+  };
+
+  const handleCheckFillIn = () => {
+    if (!currentStation?.fillInBlanks) return;
+    const allCorrect = currentStation.fillInBlanks.every(
+      (b) => filledBlanks[b.id] === b.correctWord
+    );
+
+    if (allCorrect) {
+      setFeedback({
+        type: "correct",
+        title: "Wortbausteine exakt eingesetzt!",
+        selectionExplanation: "Der ZQP-Leitsatz ist vollständig und fachlich präzise komplettiert.",
+        zqpBackground: currentStation.zqpRationale || "Einprägsame Merksätze sichern klares Handeln im Ernstfall.",
+      });
+      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
+      setCanAdvance(true);
+    } else {
+      setFeedback({
+        type: "incorrect",
+        title: "Ein oder mehrere Wörter passen noch nicht",
+        selectionExplanation: "Überlegen Sie, welches Verhalten im Notfall Beruhigung statt Hektik stiftet.",
+        zqpBackground: currentStation.solutionExplanation || "Ruhe bewahren und kein überstürztes Aufrichten erzwingen.",
+      });
+      setCanAdvance(false);
+    }
+    setIsDrawerOpen(true);
+  };
+
   const handleNextStation = () => {
     setIsDrawerOpen(false);
     setFeedback(null);
@@ -273,7 +531,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     }
   };
 
-  // Color map for matching pairs to clearly show which left item links to which right item
   const pairColorThemes = [
     { border: "border-teal-500", bg: "bg-teal-50", badge: "bg-[#247a6d] text-white", label: "Paar #1" },
     { border: "border-emerald-500", bg: "bg-emerald-50", badge: "bg-emerald-600 text-white", label: "Paar #2" },
@@ -294,48 +551,57 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#1b5c53]">
             {completed
-              ? "Auswertung & Zertifikat"
+              ? "Auswertung & Praxistest-Ergebnis"
               : `Station ${currentStationIdx + 1} von ${quiz.stations.length}`}
           </span>
           <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#e3eeec] text-[#1b5c53] font-semibold border border-[#bbd1cd] flex items-center gap-1">
-            <Puzzle className="w-3 h-3 text-[#247a6d]" />
-            {currentStation?.type === "matching" && "Zuordnungs-Puzzle"}
-            {currentStation?.type === "ordering" && "Ablauf-Puzzlekette"}
-            {currentStation?.type === "comparison" && "Situationsvergleich"}
-            {currentStation?.type === "single_choice" && "Wissenscheck"}
+            <span className="w-1.5 h-1.5 rounded-full bg-[#247a6d]"></span>
+            {currentStation?.type === "matching"
+              ? "🧩 Zuordnungs-Puzzle (Drag & Drop)"
+              : currentStation?.type === "ordering"
+              ? "🔢 Ablauf-Reihenfolge (Drag-Reorder)"
+              : currentStation?.type === "myth_fact"
+              ? "❌/💡 Mythos vs. Fakt"
+              : currentStation?.type === "bucket_sort"
+              ? "📥 Dos & Don'ts (Sortierung)"
+              : currentStation?.type === "comparison"
+              ? "⚖️ Situationsvergleich"
+              : currentStation?.type === "dilemma"
+              ? "🎭 Praxis-Dilemma"
+              : currentStation?.type === "checklist"
+              ? "📋 Checkliste"
+              : currentStation?.type === "fill_in_the_blank"
+              ? "✍️ Wort-Lückentext"
+              : "💡 Wissenscheck"}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="flex items-center bg-white border border-[#bbd1cd] rounded-lg p-0.5 text-xs shadow-sm">
+          <div className="flex bg-[#e3eeec] p-0.5 rounded-lg border border-[#bbd1cd]">
             <button
               onClick={() => setViewport("desktop")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded font-medium transition-all ${
-                viewport === "desktop"
-                  ? "bg-[#e3eeec] text-[#1b5c53] shadow-xs"
-                  : "text-[#6e6c70] hover:text-[#1b5c53]"
+              className={`p-1 rounded text-xs transition-colors ${
+                viewport === "desktop" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
               }`}
+              title="Desktop-Ansicht"
             >
               <Monitor className="w-3.5 h-3.5" />
-              <span>Desktop</span>
             </button>
             <button
               onClick={() => setViewport("mobile")}
-              className={`flex items-center gap-1 px-2.5 py-1 rounded font-medium transition-all ${
-                viewport === "mobile"
-                  ? "bg-[#e3eeec] text-[#1b5c53] shadow-xs"
-                  : "text-[#6e6c70] hover:text-[#1b5c53]"
+              className={`p-1 rounded text-xs transition-colors ${
+                viewport === "mobile" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
               }`}
+              title="Smartphone-Ansicht"
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span>Mobil</span>
             </button>
           </div>
 
           <button
             onClick={handleReset}
-            className="p-1.5 text-[#247a6d] hover:bg-[#e3eeec] rounded border border-[#bbd1cd] bg-white transition-colors"
-            title="Quiz neu starten"
+            className="p-1.5 text-xs text-[#6e6c70] hover:text-[#1b5c53] hover:bg-[#f3f8f7] rounded-lg border border-[#bbd1cd] transition-colors"
+            title="Quiz von vorne starten"
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -345,9 +611,9 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       {/* Main Responsive Quiz Viewport with STABLE HEIGHT & ZERO SCROLLBARS */}
       <div className="flex-1 flex justify-center items-center overflow-hidden py-1 px-1">
         <div
-          className={`w-full bg-white border border-[#bbd1cd] rounded-2xl shadow-md overflow-hidden transition-all duration-300 relative flex flex-col ${
+          className={`w-full bg-[#fbf9f5] border border-[#d8d2c7] rounded-2xl shadow-md overflow-hidden transition-all duration-300 relative flex flex-col ${
             viewport === "mobile"
-              ? "max-w-[380px] h-[570px] max-h-[85vh]"
+              ? "max-w-[390px] h-[570px] max-h-[85vh]"
               : "max-w-2xl h-[570px] max-h-[85vh]"
           }`}
         >
@@ -373,43 +639,44 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
               <div
                 className="bg-emerald-400 h-full transition-all duration-500 rounded-full"
                 style={{
-                  width: completed
-                    ? "100%"
-                    : `${((currentStationIdx + 1) / quiz.stations.length) * 100}%`,
+                  width: `${
+                    completed
+                      ? 100
+                      : ((currentStationIdx + 1) / quiz.stations.length) * 100
+                  }%`,
                 }}
               />
             </div>
           </header>
 
-          {/* 2. COMPACT STAGE (flex-1 overflow-hidden p-4 sm:p-5 flex flex-col justify-start) */}
-          <div className="flex-1 min-h-0 overflow-hidden p-4 sm:p-5 flex flex-col justify-start">
+          {/* 2. COMPACT STAGE (flex-1 overflow-hidden p-3 sm:p-4 flex flex-col justify-start) */}
+          <div className="flex-1 min-h-0 overflow-hidden p-3 sm:p-4 flex flex-col justify-start relative">
             {!completed && currentStation && (
-              <div className="flex flex-col gap-3 h-full">
+              <div className="flex flex-col gap-2.5 h-full">
                 <div>
-                  <h3 className="text-sm sm:text-base font-bold text-[#1b5c53] leading-snug">
+                  <h3 className="text-xs sm:text-sm font-bold text-[#1b5c53] leading-snug">
                     {currentStation.promptOrInstruction}
                   </h3>
                 </div>
 
                 {/* ==============================================================
-                    1. AUTHENTIC MATCHING PUZZLE (COMPACT 2-COLUMNS, IN-PLACE DOCKING)
+                    1. MATCHING PUZZLE (DRAG & DROP + CLICK FALLBACK)
                     ============================================================== */}
                 {currentStation.type === "matching" && currentStation.matchingPairs && (
-                  <div className="space-y-2.5">
-                    <div className="flex items-center justify-between text-xs text-[#6e6c70] bg-[#f3f8f7] px-2.5 py-1.5 rounded-lg border border-[#bbd1cd]">
-                      <span className="text-[11px] sm:text-xs">
-                        Wählen Sie links die Gefahr und rechts die passende Schutzmaßnahme:
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-[#6e6c70] bg-[#f2ede4] px-2.5 py-1 rounded-lg border border-[#e2ddd5]">
+                      <span>
+                        Kärtchen per Drag & Drop oder Klick verknüpfen:
                       </span>
-                      <span className="font-bold text-[#1b5c53] shrink-0 ml-2 text-xs">
+                      <span className="font-bold text-[#1b5c53] shrink-0 ml-2">
                         {matchedIds.length} von {currentStation.matchingPairs.length} verzahnt
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
                       {/* Left: Threats */}
-                      {/* Left: Threats / Terms */}
-                      <div className="space-y-2">
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded zqp-papercut-tag bg-[#fef8eb] border border-amber-300/80 text-amber-900 text-[10px] font-bold uppercase tracking-wider shadow-xs mb-0.5">
+                      <div className="space-y-1.5">
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded zqp-papercut-tag bg-[#fef8eb] border border-amber-300/80 text-amber-900 text-[10px] font-bold uppercase tracking-wider mb-0.5">
                           <span>⚠️</span>
                           <span>Gefahrenquelle</span>
                         </div>
@@ -421,10 +688,16 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           return (
                             <div
                               key={`th-${pair.id}`}
+                              draggable={!isMatched && !canAdvance}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("text/plain", pair.id);
+                                setDraggedThreatId(pair.id);
+                              }}
+                              onDragEnd={() => setDraggedThreatId(null)}
                               onClick={() => handleSelectThreat(pair)}
-                              className={`zqp-papercut-card p-2 sm:p-2.5 text-left cursor-pointer transition-all ${
+                              className={`zqp-papercut-card p-2 text-left cursor-grab active:cursor-grabbing transition-all ${
                                 isMatched
-                                  ? `zqp-papercut-matched ${theme.border} ${theme.bg}`
+                                  ? `zqp-papercut-matched ${theme.border} ${theme.bg} cursor-default`
                                   : isSelected
                                   ? "zqp-papercut-selected"
                                   : ""
@@ -442,7 +715,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 ) : isSelected ? (
                                   <span className="text-[9px] font-bold text-[#247a6d]">Wählen ➔</span>
                                 ) : (
-                                  <span className="text-[9px] text-[#8e8578] font-mono">Puzzleteil</span>
+                                  <span className="text-[9px] text-[#8e8578] font-mono">Ziehen 🖐️</span>
                                 )}
                               </div>
                               <p className="text-[11px] sm:text-xs font-semibold text-[#3a352d] leading-tight">
@@ -453,26 +726,40 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         })}
                       </div>
 
-                      {/* Right: Shuffled Solutions */}
-                      <div className="space-y-2">
-                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded zqp-papercut-tag bg-[#edf7f4] border border-emerald-300/80 text-emerald-900 text-[10px] font-bold uppercase tracking-wider shadow-xs mb-0.5">
+                      {/* Right: Shuffled Solutions (Drop Targets) */}
+                      <div className="space-y-1.5">
+                        <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded zqp-papercut-tag bg-[#edf7f4] border border-emerald-300/80 text-emerald-900 text-[10px] font-bold uppercase tracking-wider mb-0.5">
                           <span>🛡️</span>
                           <span>Schutzmaßnahme</span>
                         </div>
                         {shuffledSolutions.map((pair, idx) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedSolution?.id === pair.id;
+                          const isDragTarget = dragOverSolId === pair.id;
                           const theme = getPairTheme(pair.id);
 
                           return (
                             <div
                               key={`sol-${pair.id}`}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                if (!isMatched && !canAdvance) setDragOverSolId(pair.id);
+                              }}
+                              onDragLeave={() => setDragOverSolId(null)}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                setDragOverSolId(null);
+                                const threatId = e.dataTransfer.getData("text/plain") || draggedThreatId;
+                                if (threatId) checkMatch(threatId, pair.id);
+                              }}
                               onClick={() => handleSelectSolution(pair)}
-                              className={`zqp-papercut-card p-2 sm:p-2.5 text-left cursor-pointer transition-all ${
+                              className={`zqp-papercut-card p-2 text-left cursor-pointer transition-all ${
                                 isMatched
-                                  ? `zqp-papercut-matched ${theme.border} ${theme.bg}`
+                                  ? `zqp-papercut-matched ${theme.border} ${theme.bg} cursor-default`
                                   : isSelected
                                   ? "zqp-papercut-selected"
+                                  : isDragTarget
+                                  ? "border-dashed border-2 border-[#247a6d] bg-[#edf7f4] scale-[1.02]"
                                   : ""
                               } ${canAdvance ? "locked pointer-events-none" : ""}`}
                             >
@@ -487,6 +774,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                   </span>
                                 ) : isSelected ? (
                                   <span className="text-[9px] font-bold text-[#247a6d]">Wählen ➔</span>
+                                ) : isDragTarget ? (
+                                  <span className="text-[9px] font-bold text-[#247a6d] animate-pulse">Hier einrasten!</span>
                                 ) : (
                                   <span className="text-[9px] text-[#8e8578] font-mono">Gegenstück</span>
                                 )}
@@ -503,26 +792,47 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                 )}
 
                 {/* ==============================================================
-                    2. ORDERING STATION (VERTICAL JIGSAW PUZZLE CHAIN)
+                    2. ORDERING STATION (DRAG-REORDER & ARROWS)
                     ============================================================== */}
                 {currentStation.type === "ordering" && (
-                  <div className="space-y-2.5">
-                    <p className="text-xs text-[#6e6c70]">
-                      Ordnen Sie die Schritte mit den Pfeiltasten in die richtige biomechanische Reihenfolge:
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-[#6e6c70]">
+                      Per Anfasser 🖐️ ziehen oder mit den Pfeilen sortieren:
                     </p>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {orderedList.map((step, idx) => {
                         const isFirst = idx === 0;
                         const isLast = idx === orderedList.length - 1;
+                        const isDragOver = dragOverStepIdx === idx;
                         return (
                           <div
                             key={step.id}
-                            className={`zqp-papercut-card p-2.5 sm:p-3 flex items-center justify-between text-xs relative ${
-                              canAdvance ? "border-emerald-500 bg-[#edf7f4] locked" : ""
+                            draggable={!canAdvance}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", String(idx));
+                              setDraggedStepIdx(idx);
+                            }}
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              setDragOverStepIdx(idx);
+                            }}
+                            onDragLeave={() => setDragOverStepIdx(null)}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const from = Number(e.dataTransfer.getData("text/plain") ?? draggedStepIdx);
+                              if (!isNaN(from)) handleReorderDrop(from, idx);
+                            }}
+                            className={`zqp-papercut-card p-2 sm:p-2.5 flex items-center justify-between text-xs relative cursor-grab active:cursor-grabbing transition-all ${
+                              canAdvance
+                                ? "border-emerald-500 bg-[#edf7f4] locked cursor-default"
+                                : isDragOver
+                                ? "border-dashed border-2 border-[#247a6d] bg-[#edf7f4]"
+                                : ""
                             }`}
                           >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="w-6 h-6 rounded-md bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs zqp-papercut-tag shrink-0 shadow-xs">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <GripVertical className="w-3.5 h-3.5 text-[#888] shrink-0" />
+                              <span className="w-5 h-5 rounded bg-[#247a6d] text-white flex items-center justify-center font-bold text-[10px] zqp-papercut-tag shrink-0 shadow-xs">
                                 #{idx + 1}
                               </span>
                               <span className="font-semibold text-[#3a352d] text-xs leading-snug truncate">
@@ -538,7 +848,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 className="p-1 rounded zqp-papercut-tag bg-[#faf8f5] hover:bg-[#edf5f3] text-[#1b5c53] disabled:opacity-30 transition-colors"
                                 title="Nach oben schieben"
                               >
-                                <ArrowUp className="w-3.5 h-3.5" />
+                                <ArrowUp className="w-3 h-3" />
                               </button>
                               <button
                                 type="button"
@@ -547,7 +857,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 className="p-1 rounded zqp-papercut-tag bg-[#faf8f5] hover:bg-[#edf5f3] text-[#1b5c53] disabled:opacity-30 transition-colors"
                                 title="Nach unten schieben"
                               >
-                                <ArrowDown className="w-3.5 h-3.5" />
+                                <ArrowDown className="w-3 h-3" />
                               </button>
                             </div>
                           </div>
@@ -558,30 +868,240 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                 )}
 
                 {/* ==============================================================
-                    3. COMPARISON STATION (A/B SCENARIOS)
+                    3. MYTH VS FACT STATION (SWIPE / BUCKET CHOICE)
+                    ============================================================== */}
+                {currentStation.type === "myth_fact" && currentStation.mythFactItems?.length && (
+                  <div className="space-y-3">
+                    <div
+                      draggable={!canAdvance}
+                      onDragStart={() => setDraggedMythStatement(true)}
+                      onDragEnd={() => setDraggedMythStatement(false)}
+                      className={`zqp-papercut-card p-3 sm:p-4 text-center cursor-grab active:cursor-grabbing border-[#e2ddd5] transition-all ${
+                        draggedMythStatement ? "opacity-60 scale-95 shadow-lg" : ""
+                      }`}
+                    >
+                      <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded zqp-papercut-tag bg-[#faf4ea] text-amber-950 border border-amber-300 text-[10px] font-bold uppercase mb-2">
+                        <span>🏷️</span>
+                        <span>Behauptung im Alltag</span>
+                      </div>
+                      <p className="text-xs sm:text-sm font-bold text-[#2d251e] leading-snug">
+                        „{currentStation.mythFactItems[0].statement}“
+                      </p>
+                      <p className="text-[10px] text-[#8e8578] mt-1.5 font-mono">
+                        🖐️ Karte auf Mythos oder Fakt ziehen oder unten antippen
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-1">
+                      {/* Myth Target */}
+                      <button
+                        type="button"
+                        disabled={canAdvance}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverMythTarget("myth");
+                        }}
+                        onDragLeave={() => setDragOverMythTarget(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOverMythTarget(null);
+                          handleSelectMythFact(false);
+                        }}
+                        onClick={() => handleSelectMythFact(false)}
+                        className={`zqp-papercut-card p-3 sm:p-3.5 flex flex-col items-center justify-center gap-1.5 text-center transition-all ${
+                          mythFactChoice === false
+                            ? "zqp-papercut-selected border-rose-500 bg-rose-50/70"
+                            : dragOverMythTarget === "myth"
+                            ? "border-dashed border-2 border-rose-500 bg-rose-50 scale-105"
+                            : "hover:border-rose-400"
+                        }`}
+                      >
+                        <span className="w-8 h-8 rounded-full bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-sm zqp-papercut-tag">
+                          ❌
+                        </span>
+                        <div>
+                          <span className="font-bold text-xs text-rose-900 block">Mythos</span>
+                          <span className="text-[10px] text-[#777]">Ein gefährlicher Irrtum</span>
+                        </div>
+                      </button>
+
+                      {/* Fact Target */}
+                      <button
+                        type="button"
+                        disabled={canAdvance}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverMythTarget("fact");
+                        }}
+                        onDragLeave={() => setDragOverMythTarget(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOverMythTarget(null);
+                          handleSelectMythFact(true);
+                        }}
+                        onClick={() => handleSelectMythFact(true)}
+                        className={`zqp-papercut-card p-3 sm:p-3.5 flex flex-col items-center justify-center gap-1.5 text-center transition-all ${
+                          mythFactChoice === true
+                            ? "zqp-papercut-selected border-emerald-500 bg-emerald-50/70"
+                            : dragOverMythTarget === "fact"
+                            ? "border-dashed border-2 border-emerald-500 bg-emerald-50 scale-105"
+                            : "hover:border-emerald-400"
+                        }`}
+                      >
+                        <span className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm zqp-papercut-tag">
+                          💡
+                        </span>
+                        <div>
+                          <span className="font-bold text-xs text-emerald-900 block">Fakt</span>
+                          <span className="text-[10px] text-[#777]">Belegte Tatsache</span>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ==============================================================
+                    4. BUCKET SORT STATION (DOS & DON'TS)
+                    ============================================================== */}
+                {currentStation.type === "bucket_sort" && currentStation.bucketSortItems && (
+                  <div className="space-y-2">
+                    {/* Two Trays */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverBucket("do");
+                        }}
+                        onDragLeave={() => setDragOverBucket(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOverBucket(null);
+                          const id = e.dataTransfer.getData("text/plain") || draggedBucketItemId;
+                          if (id) handleAssignBucket(id, "do");
+                        }}
+                        className={`rounded-lg p-2 border transition-all ${
+                          dragOverBucket === "do"
+                            ? "border-dashed border-2 border-emerald-500 bg-emerald-50 scale-[1.02]"
+                            : "bg-[#edf7f4] border-emerald-300"
+                        }`}
+                      >
+                        <span className="text-[10px] font-bold text-emerald-900 uppercase block mb-1">
+                          🟢 Empfohlen (Do)
+                        </span>
+                        <div className="text-[10px] text-emerald-700 font-semibold">
+                          {Object.values(bucketAssignments).filter((b) => b === "do").length} zugeordnet
+                        </div>
+                      </div>
+
+                      <div
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragOverBucket("dont");
+                        }}
+                        onDragLeave={() => setDragOverBucket(null)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragOverBucket(null);
+                          const id = e.dataTransfer.getData("text/plain") || draggedBucketItemId;
+                          if (id) handleAssignBucket(id, "dont");
+                        }}
+                        className={`rounded-lg p-2 border transition-all ${
+                          dragOverBucket === "dont"
+                            ? "border-dashed border-2 border-rose-500 bg-rose-50 scale-[1.02]"
+                            : "bg-[#fdf2f2] border-rose-300"
+                        }`}
+                      >
+                        <span className="text-[10px] font-bold text-rose-900 uppercase block mb-1">
+                          🔴 Vermeiden (Don't)
+                        </span>
+                        <div className="text-[10px] text-rose-700 font-semibold">
+                          {Object.values(bucketAssignments).filter((b) => b === "dont").length} zugeordnet
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Items to sort */}
+                    <div className="space-y-1.5 pt-1">
+                      {currentStation.bucketSortItems.map((item) => {
+                        const assigned = bucketAssignments[item.id];
+                        return (
+                          <div
+                            key={item.id}
+                            draggable={!canAdvance}
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData("text/plain", item.id);
+                              setDraggedBucketItemId(item.id);
+                            }}
+                            onDragEnd={() => setDraggedBucketItemId(null)}
+                            className={`zqp-papercut-card p-2 flex items-center justify-between text-xs cursor-grab active:cursor-grabbing ${
+                              assigned === "do"
+                                ? "border-emerald-400 bg-emerald-50/50"
+                                : assigned === "dont"
+                                ? "border-rose-400 bg-rose-50/50"
+                                : ""
+                            }`}
+                          >
+                            <span className="font-semibold text-[#3a352d] leading-tight pr-2">
+                              {item.text}
+                            </span>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                disabled={canAdvance}
+                                onClick={() => handleAssignBucket(item.id, "do")}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                  assigned === "do"
+                                    ? "bg-emerald-600 text-white shadow-xs"
+                                    : "bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-50"
+                                }`}
+                              >
+                                Do ✓
+                              </button>
+                              <button
+                                type="button"
+                                disabled={canAdvance}
+                                onClick={() => handleAssignBucket(item.id, "dont")}
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all ${
+                                  assigned === "dont"
+                                    ? "bg-rose-600 text-white shadow-xs"
+                                    : "bg-white border border-rose-300 text-rose-800 hover:bg-rose-50"
+                                }`}
+                              >
+                                Don't ✕
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ==============================================================
+                    5. COMPARISON STATION (A/B SCENARIOS)
                     ============================================================== */}
                 {currentStation.type === "comparison" && currentStation.comparisonScenarios && (
-                  <div className="space-y-2.5">
-                    <p className="text-xs text-[#6e6c70]">
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-[#6e6c70]">
                       Klicken Sie auf das Szenario, das die ZQP-Präventionskriterien erfüllt:
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {currentStation.comparisonScenarios.map((scen) => {
                         const isSelected = selectedScenarioId === scen.id;
                         return (
                           <div
                             key={scen.id}
                             onClick={() => !canAdvance && setSelectedScenarioId(scen.id)}
-                            className={`zqp-papercut-card cursor-pointer p-3 sm:p-3.5 flex flex-col justify-between ${
+                            className={`zqp-papercut-card cursor-pointer p-2.5 sm:p-3 flex flex-col justify-between ${
                               isSelected ? "zqp-papercut-selected" : ""
                             } ${canAdvance ? "locked pointer-events-none" : ""}`}
                           >
                             <div>
-                              <div className="flex items-center justify-between mb-1.5">
+                              <div className="flex items-center justify-between mb-1">
                                 <span className="font-bold text-xs text-[#1b5c53]">
                                   {scen.title}
                                 </span>
-                                <span className="text-[10px] font-semibold px-2 py-0.5 rounded zqp-papercut-tag bg-[#faf8f5] text-[#554a3e] border-[#e2ddd5]">
+                                <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded zqp-papercut-tag bg-[#faf8f5] text-[#554a3e] border-[#e2ddd5]">
                                   {scen.badge}
                                 </span>
                               </div>
@@ -589,9 +1109,9 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 {scen.description}
                               </p>
                             </div>
-                            <div className="mt-2 pt-1.5 border-t border-[#ede8df] text-[11px] font-semibold text-[#1b5c53] flex justify-between items-center">
-                              <span>{isSelected ? "Ausgewählt" : "Szenario wählen"}</span>
-                              <span className="w-4 h-4 rounded-full border-2 border-[#247a6d] flex items-center justify-center font-bold text-[10px]">
+                            <div className="mt-2 pt-1 border-t border-[#ede8df] text-[10px] font-semibold text-[#1b5c53] flex justify-between items-center">
+                              <span>{isSelected ? "Ausgewählt" : "Wählen"}</span>
+                              <span className="w-3.5 h-3.5 rounded-full border-2 border-[#247a6d] flex items-center justify-center font-bold text-[9px]">
                                 {isSelected ? "✓" : ""}
                               </span>
                             </div>
@@ -603,17 +1123,177 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                 )}
 
                 {/* ==============================================================
-                    4. SINGLE CHOICE STATION
+                    6. DILEMMA STATION
+                    ============================================================== */}
+                {currentStation.type === "dilemma" && currentStation.dilemmaReactions && (
+                  <div className="space-y-2">
+                    <p className="text-[11px] text-[#6e6c70]">
+                      Wählen Sie die pädagogisch und pflegerisch optimalste Reaktion:
+                    </p>
+                    <div className="space-y-1.5">
+                      {currentStation.dilemmaReactions.map((reaction) => {
+                        const isSelected = selectedDilemmaId === reaction.id;
+                        return (
+                          <div
+                            key={reaction.id}
+                            onClick={() => handleSelectDilemma(reaction.id)}
+                            className={`zqp-papercut-card p-2 sm:p-2.5 cursor-pointer flex items-start gap-2.5 transition-all ${
+                              isSelected ? "zqp-papercut-selected" : ""
+                            } ${canAdvance ? "locked pointer-events-none" : ""}`}
+                          >
+                            <span className="w-5 h-5 rounded-full border-2 border-[#247a6d] flex items-center justify-center font-bold text-[10px] text-[#1b5c53] shrink-0 mt-0.5">
+                              {isSelected ? "✓" : ""}
+                            </span>
+                            <span className="text-xs font-semibold text-[#3a352d] leading-snug">
+                              {reaction.text}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ==============================================================
+                    7. CHECKLIST STATION
+                    ============================================================== */}
+                {currentStation.type === "checklist" && currentStation.checklistItems && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-[#6e6c70] bg-[#f2ede4] px-2.5 py-1 rounded-lg border border-[#e2ddd5]">
+                      <span>Wählen Sie genau die 3 Kernmaßnahmen:</span>
+                      <span className="font-bold text-[#1b5c53]">
+                        {checkedItemIds.length} von 3 gewählt
+                      </span>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      {currentStation.checklistItems.map((item) => {
+                        const isChecked = checkedItemIds.includes(item.id);
+                        return (
+                          <label
+                            key={item.id}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              handleToggleChecklist(item.id);
+                            }}
+                            className={`zqp-papercut-card p-2 flex items-center gap-2.5 cursor-pointer transition-all ${
+                              isChecked ? "zqp-papercut-selected" : ""
+                            } ${canAdvance ? "locked pointer-events-none" : ""}`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              readOnly
+                              className="w-4 h-4 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                            />
+                            <span className="text-xs font-semibold text-[#3a352d] leading-snug">
+                              {item.text}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ==============================================================
+                    8. FILL IN THE BLANKS STATION
+                    ============================================================== */}
+                {currentStation.type === "fill_in_the_blank" && currentStation.fillInBlanks && (
+                  <div className="space-y-3">
+                    {/* Sentence with Blank slots */}
+                    <div className="zqp-papercut-card p-3 sm:p-3.5 bg-white text-xs sm:text-sm font-semibold text-[#3a352d] leading-relaxed">
+                      {(() => {
+                        const parts = (currentStation.fillInSentence || "").split(/(\[BLANK_\d+\])/g);
+                        return parts.map((part, pIdx) => {
+                          const match = part.match(/\[(BLANK_\d+)\]/);
+                          if (match) {
+                            const blankId = match[1];
+                            const currentWord = filledBlanks[blankId];
+                            const isActive = activeBlankId === blankId;
+                            const isOver = dragOverBlankId === blankId;
+                            return (
+                              <button
+                                key={pIdx}
+                                type="button"
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  setDragOverBlankId(blankId);
+                                }}
+                                onDragLeave={() => setDragOverBlankId(null)}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  setDragOverBlankId(null);
+                                  const word = e.dataTransfer.getData("text/plain") || draggedWord;
+                                  if (word) handleAssignWordToBlank(blankId, word);
+                                }}
+                                onClick={() => setActiveBlankId(blankId)}
+                                className={`inline-flex items-center px-2 py-0.5 mx-1 rounded border font-bold transition-all ${
+                                  currentWord
+                                    ? "bg-[#edf7f4] border-[#247a6d] text-[#1b5c53]"
+                                    : isActive || isOver
+                                    ? "bg-amber-50 border-dashed border-2 border-amber-600 text-amber-900 animate-pulse"
+                                    : "bg-gray-100 border-gray-300 text-gray-500"
+                                }`}
+                              >
+                                {currentWord || "___"}
+                              </button>
+                            );
+                          }
+                          return <span key={pIdx}>{part}</span>;
+                        });
+                      })()}
+                    </div>
+
+                    {/* Word Pills to Drag or Tap */}
+                    <div>
+                      <span className="text-[10px] text-[#6e6c70] block mb-1">
+                        Wortbausteine (🖐️ Ziehen oder Antippen):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {Array.from(
+                          new Set(currentStation.fillInBlanks.flatMap((b) => b.options))
+                        ).map((word, wIdx) => {
+                          const isUsed = Object.values(filledBlanks).includes(word);
+                          return (
+                            <button
+                              key={wIdx}
+                              draggable={!canAdvance}
+                              onDragStart={(e) => {
+                                e.dataTransfer.setData("text/plain", word);
+                                setDraggedWord(word);
+                              }}
+                              onDragEnd={() => setDraggedWord(null)}
+                              onClick={() => {
+                                if (activeBlankId) handleAssignWordToBlank(activeBlankId, word);
+                              }}
+                              className={`px-3 py-1.5 rounded-lg zqp-papercut-card text-xs font-bold transition-all cursor-grab active:cursor-grabbing ${
+                                isUsed
+                                  ? "opacity-40 border-gray-300 bg-gray-100 cursor-default"
+                                  : "text-[#1b5c53] hover:border-[#247a6d]"
+                              }`}
+                            >
+                              {word}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* ==============================================================
+                    9. SINGLE CHOICE STATION
                     ============================================================== */}
                 {currentStation.type === "single_choice" && currentStation.options && (
-                  <div className="space-y-2.5">
-                    <div className="space-y-2">
+                  <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {currentStation.options.map((opt, idx) => {
                         const isSelected = selectedOptionIdx === idx;
                         return (
                           <label
                             key={idx}
-                            className={`zqp-papercut-card flex items-start gap-2.5 p-2.5 sm:p-3 cursor-pointer ${
+                            className={`zqp-papercut-card flex items-start gap-2.5 p-2 sm:p-2.5 cursor-pointer ${
                               isSelected ? "zqp-papercut-selected" : ""
                             } ${canAdvance ? "locked pointer-events-none" : ""}`}
                           >
@@ -637,7 +1317,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
               </div>
             )}
 
-            {/* Completed Score & Certificate View */}
+            {/* Completed Score & Evaluation View */}
             {completed && (
               <div className="h-full flex flex-col items-center justify-center text-center p-2">
                 <div className="w-12 h-12 rounded-full bg-[#e3eeec] border-2 border-[#247a6d] flex items-center justify-center mb-1.5 shadow-xs">
@@ -646,12 +1326,12 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                 <h3 className="text-base sm:text-lg font-bold text-[#1b5c53] mb-0.5">
                   Glückwunsch! Alle Stationen gemeistert
                 </h3>
-                <p className="text-xs text-[#6e6c70] mb-2.5">
+                <p className="text-xs text-[#6e6c70] mb-2">
                   Sie haben alle {quiz.stations.length} interaktiven Lernstationen abgeschlossen.
                 </p>
 
                 {/* Score & Evaluation Box */}
-                <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3 rounded-xl text-left text-xs text-[#444] w-full space-y-2 shadow-xs">
+                <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3 rounded-xl text-left text-xs text-[#444] w-full space-y-1.5 shadow-xs">
                   <div className="flex items-center justify-between pb-1.5 border-b border-[#bbd1cd]/50">
                     <span className="font-bold text-[#1b5c53]">Ihr Praxistest-Ergebnis:</span>
                     <span className="font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px]">
@@ -659,302 +1339,211 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     </span>
                   </div>
 
-                  {/* Station-by-Station breakdown */}
                   <div className="space-y-1">
                     {quiz.stations.map((st, sIdx) => {
                       const isSolved = stationResults[sIdx] === "solved";
                       return (
                         <div key={st.id || sIdx} className="flex items-center justify-between text-[11px] py-0.5">
-                          <span className="text-[#444] truncate max-w-[200px] sm:max-w-[300px]">
-                            Station {sIdx + 1}: {st.title || `Aufgabe ${sIdx + 1}`}
+                          <span className="truncate pr-2">
+                            {sIdx + 1}. {st.title.replace(/^Station \d+:\s*/, "")}
                           </span>
-                          {isSolved ? (
-                            <span className="text-emerald-700 font-semibold flex items-center gap-1 shrink-0">
-                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                              Gelöst
-                            </span>
-                          ) : (
-                            <span className="text-[#722b28] font-semibold flex items-center gap-1 shrink-0">
-                              <XCircle className="w-3.5 h-3.5 text-[#722b28]" />
-                              Nicht gelöst
-                            </span>
-                          )}
+                          <span
+                            className={`font-semibold shrink-0 px-1.5 py-0.2 rounded text-[10px] ${
+                              isSolved
+                                ? "bg-emerald-100 text-emerald-800"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {isSolved ? "Gelöst" : "Nicht gelöst"}
+                          </span>
                         </div>
                       );
                     })}
                   </div>
-
-                  <div className="pt-1.5 border-t border-[#bbd1cd]/50">
-                    <strong className="text-[#1b5c53] block font-bold text-xs mb-0.5">
-                      ZQP-Praxisfazit für den Alltag:
-                    </strong>
-                    <p className="leading-relaxed text-[11px] text-[#444]">
-                      {quiz.summary || "Regelmäßiges Auffrischen von Pflegewissen und Sensibilität für Gefahrenquellen schützen nachhaltig im häuslichen Umfeld."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* 3. PINNED BOTTOM ACTION BAR (shrink-0) */}
-          <div className="shrink-0 border-t border-[#bbd1cd] bg-white px-4 py-2 sm:px-5 sm:py-2.5 flex items-center justify-between gap-2 shadow-xs">
-            {!completed ? (
-              <>
-                {/* Left: Solution reveal or Reopen Explanation */}
-                <div className="flex items-center gap-1.5">
-                  {canAdvance ? (
-                    <button
-                      type="button"
-                      onClick={() => setIsDrawerOpen(true)}
-                      className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors"
-                      title="Erklärung wieder nach oben schieben"
-                    >
-                      <Lightbulb className="w-3.5 h-3.5 text-[#247a6d]" />
-                      <span>Erklärung anzeigen</span>
-                    </button>
-                  ) : (
-                    <>
-                      {feedback && (
-                        <button
-                          type="button"
-                          onClick={() => setIsDrawerOpen(true)}
-                          className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors"
-                          title="Letztes Feedback ansehen"
-                        >
-                          <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
-                          <span className="hidden sm:inline">Erklärung</span>
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={handleRevealSolution}
-                        className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
-                        title="Antwort und didaktische Erklärung aufdecken"
-                      >
-                        <HelpCircle className="w-3.5 h-3.5 text-[#247a6d] shrink-0" />
-                        <span className="hidden sm:inline">Ich weiß es nicht / </span>
-                        <span>Lösung anzeigen</span>
-                      </button>
-                    </>
-                  )}
                 </div>
 
-                {/* Right: Check action OR Next station */}
-                <div>
-                  {!canAdvance ? (
-                    <>
-                      {currentStation?.type === "matching" && (
-                        <span className="text-xs font-semibold text-[#1b5c53] bg-[#f3f8f7] px-3 py-1.5 rounded-lg border border-[#bbd1cd]">
-                          {matchedIds.length} von {currentStation.matchingPairs?.length || 0} verzahnt
-                        </span>
-                      )}
-
-                      {currentStation?.type === "ordering" && (
-                        <button
-                          type="button"
-                          onClick={handleCheckOrder}
-                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
-                        >
-                          Reihenfolge prüfen
-                        </button>
-                      )}
-
-                      {currentStation?.type === "comparison" && (
-                        <button
-                          type="button"
-                          onClick={handleCheckComparison}
-                          disabled={!selectedScenarioId}
-                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
-                        >
-                          Szenario prüfen
-                        </button>
-                      )}
-
-                      {currentStation?.type === "single_choice" && (
-                        <button
-                          type="button"
-                          onClick={handleCheckChoice}
-                          disabled={selectedOptionIdx === null}
-                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
-                        >
-                          Antwort prüfen
-                        </button>
-                      )}
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleNextStation}
-                      className="bg-[#247a6d] hover:bg-[#1b5c53] text-white font-semibold text-xs px-4 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 transition-all focus-visible:ring-2 focus-visible:ring-[#247a6d]"
-                    >
-                      <span>
-                        {currentStationIdx === quiz.stations.length - 1
-                          ? "Zur Gesamtauswertung"
-                          : "Nächste Station"}
-                      </span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-              </>
-            ) : (
-              <div className="w-full flex items-center justify-between">
-                <span className="text-xs text-[#6e6c70] flex items-center gap-1">
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  Lerneinheit abgeschlossen
-                </span>
                 <button
-                  type="button"
                   onClick={handleReset}
-                  className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                  className="mt-3 px-4 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
                 >
                   <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Lernreise erneut starten</span>
+                  <span>Praxistest wiederholen</span>
                 </button>
               </div>
             )}
           </div>
 
-          {/* 4. ZQP COPYRIGHT & KALENDERJAHR FOOTER (shrink-0) */}
-          <footer className="shrink-0 bg-[#f3f8f7] border-t border-[#bbd1cd]/60 px-4 py-1.5 text-center text-[10px] sm:text-[11px] text-[#6e6c70] font-medium tracking-wide">
+          {/* 3. PERMANENT COPYRIGHT FOOTER */}
+          <div className="bg-[#f3f8f7] border-t border-[#bbd1cd]/60 px-3 py-1 text-center text-[10px] text-[#6e6c70] font-medium shrink-0">
             Stiftung Zentrum für Qualität in der Pflege • {new Date().getFullYear()}
+          </div>
+
+          {/* 4. FIXED ACTION FOOTER */}
+          <footer className="bg-white border-t border-[#bbd1cd] px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleRevealSolution}
+                disabled={canAdvance || completed}
+                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-[#bbd1cd] text-[#1b5c53] hover:bg-[#f3f8f7] flex items-center gap-1 disabled:opacity-40 transition-colors"
+                title="Lösung für diese Station aufdecken"
+              >
+                <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
+                <span>Lösung anzeigen</span>
+              </button>
+
+              {/* Drawer reopen toggle button if drawer was closed */}
+              {feedback && !isDrawerOpen && (
+                <button
+                  type="button"
+                  onClick={() => setIsDrawerOpen(true)}
+                  className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e3eeec] text-[#1b5c53] hover:bg-[#bbd1cd] flex items-center gap-1 transition-colors"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
+                  <span>Erklärung ansehen</span>
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2">
+              {currentStation?.type === "ordering" && !canAdvance && (
+                <button
+                  type="button"
+                  onClick={handleCheckOrder}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm transition-colors"
+                >
+                  Reihenfolge prüfen
+                </button>
+              )}
+
+              {currentStation?.type === "comparison" && !canAdvance && (
+                <button
+                  type="button"
+                  disabled={!selectedScenarioId}
+                  onClick={handleCheckComparison}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                >
+                  Szenario prüfen
+                </button>
+              )}
+
+              {currentStation?.type === "checklist" && !canAdvance && (
+                <button
+                  type="button"
+                  disabled={checkedItemIds.length !== 3}
+                  onClick={handleCheckChecklist}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                >
+                  Checkliste prüfen
+                </button>
+              )}
+
+              {currentStation?.type === "fill_in_the_blank" && !canAdvance && (
+                <button
+                  type="button"
+                  disabled={Object.keys(filledBlanks).length < (currentStation.fillInBlanks?.length || 2)}
+                  onClick={handleCheckFillIn}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                >
+                  Lösung prüfen
+                </button>
+              )}
+
+              {currentStation?.type === "single_choice" && !canAdvance && (
+                <button
+                  type="button"
+                  disabled={selectedOptionIdx === null}
+                  onClick={handleCheckChoice}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                >
+                  Antwort prüfen
+                </button>
+              )}
+
+              {/* Next station button */}
+              <button
+                type="button"
+                onClick={handleNextStation}
+                disabled={!canAdvance}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 flex items-center gap-1 transition-colors"
+              >
+                <span>
+                  {currentStationIdx === quiz.stations.length - 1
+                    ? "Zur Gesamtauswertung"
+                    : "Nächste Station"}
+                </span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </footer>
 
-          {/* 5. SLIDE-UP FEEDBACK DRAWER (DUOLINGO-STYLE: NO SCROLLBARS, ZERO LAYOUT SHIFT) */}
+          {/* 5. SLIDE-UP DRAWER (OVERLAY WITHIN FIXED CONTAINER) */}
           <div
-            className={`absolute bottom-0 inset-x-0 bg-white border-t-2 shadow-2xl transition-all duration-300 ease-out z-20 flex flex-col ${
-              feedback && isDrawerOpen
-                ? "translate-y-0 opacity-100"
-                : "translate-y-full opacity-0 pointer-events-none"
-            } ${
-              feedback?.type === "correct"
-                ? "border-emerald-500 bg-emerald-50/98 text-emerald-950"
-                : feedback?.type === "revealed"
-                ? "border-amber-500 bg-amber-50/98 text-amber-950"
-                : "border-[#722b28] bg-rose-50/98 text-rose-950"
+            className={`absolute inset-x-0 bottom-0 max-h-[82%] bg-[#fdfcf9] border-t-2 border-[#247a6d] shadow-2xl transition-transform duration-300 ease-out z-20 flex flex-col ${
+              isDrawerOpen && feedback ? "translate-y-0" : "translate-y-full"
             }`}
-            style={{ maxHeight: "78%" }}
           >
-            {/* Drawer Top Status Bar with ALWAYS-WORKING CLOSE BUTTON */}
-            <div className="px-4 py-2 flex items-center justify-between border-b border-black/5 shrink-0">
-              <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
-                {feedback?.type === "correct" && (
-                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 shrink-0" />
+            {/* Drawer Header */}
+            <div className="bg-[#f2ede4] border-b border-[#bbd1cd] px-4 py-2 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2">
+                {feedback?.type === "correct" ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                ) : feedback?.type === "revealed" ? (
+                  <Lightbulb className="w-4 h-4 text-amber-600" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-rose-600" />
                 )}
-                {feedback?.type === "revealed" && (
-                  <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 shrink-0" />
-                )}
-                {feedback?.type === "incorrect" && (
-                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-[#722b28] shrink-0" />
-                )}
-                <span>{feedback?.title}</span>
+                <span className="text-xs font-bold text-[#1b5c53]">
+                  {feedback?.title}
+                </span>
               </div>
 
-              {/* Close button that works for ANY state (correct, revealed, incorrect) */}
               <button
                 type="button"
                 onClick={() => setIsDrawerOpen(false)}
-                className="px-2 py-0.5 rounded text-[#444] hover:bg-black/5 text-xs font-semibold flex items-center gap-1 transition-colors"
-                title="Erklärung schließen & Ansicht ansehen"
+                className="text-[11px] font-bold text-[#6e6c70] hover:text-[#1b5c53] px-2 py-0.5 rounded hover:bg-[#e3eeec] transition-colors"
+                title="Erklärung schließen und Spielfeld betrachten"
               >
-                <span>Ansicht ansehen</span>
-                <span className="font-mono text-sm">✕</span>
+                Ansicht ansehen ✕
               </button>
             </div>
 
-            {/* Drawer Body (Explanation & Didactics) */}
-            <div className="p-3 space-y-2 text-xs overflow-hidden">
-              <div className="bg-white/90 p-2.5 rounded-lg border border-black/5 shadow-2xs">
-                <strong className="block text-[#1b5c53] font-bold text-[11px] mb-0.5">
-                  {feedback?.type === "correct" ? "Warum diese Auswahl richtig ist:" : "Didaktische Erklärung:"}
-                </strong>
-                <p className="leading-snug text-[#444] text-[11px] sm:text-xs">
+            {/* Drawer Content */}
+            <div className="p-3 sm:p-4 text-xs text-[#444] space-y-2.5 flex-1 min-h-0 overflow-y-auto zqp-scrollbar">
+              <div className="bg-[#faf8f5] p-2.5 rounded-lg border border-[#e2ddd5]">
+                <span className="font-bold text-[#1b5c53] block text-[11px] mb-0.5">
+                  Warum richtig / Warum falsch:
+                </span>
+                <p className="text-[11px] leading-relaxed text-[#3a352d]">
                   {feedback?.selectionExplanation}
                 </p>
               </div>
 
-              <div className="p-2 rounded-lg bg-[#247a6d]/10 border border-[#247a6d]/20 text-[#1b5c53]">
-                <strong className="block font-bold text-[10px] sm:text-[11px] mb-0.5">
-                  ZQP-Hintergrundwissen für die Praxis:
-                </strong>
-                <p className="leading-snug text-[10px] sm:text-[11px]">
+              <div className="bg-[#edf7f4] p-2.5 rounded-lg border border-[#bbd1cd]">
+                <span className="font-bold text-[#1b5c53] block text-[11px] mb-0.5">
+                  ZQP-Praxiswissen:
+                </span>
+                <p className="text-[11px] leading-relaxed text-[#1b5c53]">
                   {feedback?.zqpBackground}
                 </p>
               </div>
             </div>
 
-            {/* Drawer Bottom Actions */}
-            <div className="px-4 py-2 bg-white border-t border-[#bbd1cd] flex items-center justify-between gap-2 shrink-0">
-              {feedback?.type === "incorrect" ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={handleRevealSolution}
-                    className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5 text-[#247a6d]" />
-                    <span>Lösung aufdecken</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setIsDrawerOpen(false)}
-                    className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors"
-                  >
-                    Erneut versuchen ↺
-                  </button>
-                </>
-              ) : !canAdvance ? (
-                /* Matching partial progress (not all pairs matched yet) */
-                <div className="w-full flex items-center justify-between gap-2">
-                  <button
-                    type="button"
-                    onClick={handleRevealSolution}
-                    className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors"
-                    title="Restliche Paare aufdecken"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5 text-[#247a6d]" />
-                    <span>Lösung aufdecken</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsDrawerOpen(false)}
-                    className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors"
-                  >
-                    Weiter verzahnen ➔
-                  </button>
-                </div>
-              ) : (
-                /* Solved or Revealed: can advance to next station */
-                <div className="w-full flex items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setIsDrawerOpen(false)}
-                    className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors"
-                  >
-                    Ansicht prüfen 👁️
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleNextStation}
-                    className="bg-[#247a6d] hover:bg-[#1b5c53] text-white font-semibold text-xs px-5 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition-all focus-visible:ring-2 focus-visible:ring-[#247a6d]"
-                  >
-                    <span>
-                      {currentStationIdx === quiz.stations.length - 1
-                        ? "Zur Gesamtauswertung"
-                        : "Nächste Station"}
-                    </span>
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* ZQP Copyright strip inside drawer */}
-            <div className="bg-[#f3f8f7] border-t border-[#bbd1cd]/50 px-4 py-1 text-center text-[10px] text-[#6e6c70]">
-              Stiftung Zentrum für Qualität in der Pflege • {new Date().getFullYear()}
+            {/* Drawer Actions */}
+            <div className="bg-white border-t border-[#bbd1cd] p-2.5 flex items-center justify-end gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleNextStation}
+                disabled={!canAdvance}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 flex items-center gap-1 transition-colors"
+              >
+                <span>
+                  {currentStationIdx === quiz.stations.length - 1
+                    ? "Zur Gesamtauswertung"
+                    : "Nächste Station"}
+                </span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
@@ -962,4 +1551,3 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     </div>
   );
 };
-

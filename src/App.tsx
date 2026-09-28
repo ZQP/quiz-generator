@@ -30,9 +30,15 @@ export const App: React.FC = () => {
     handleGenerateNewQuiz({
       topicPrompt: "Sturzprävention im Alltag: Mitmachen & Prüfen",
       referenceText: "",
-      questionCount: 3,
+      questionCount: 5,
       targetAudience: "angehoerige",
-      mechanics: ["matching", "ordering", "comparison"],
+      mechanics: [
+        "matching",
+        "ordering",
+        "myth_fact",
+        "bucket_sort",
+        "comparison",
+      ],
     }, false);
   }, []);
 

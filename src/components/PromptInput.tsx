@@ -31,8 +31,25 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     "matching",
     "ordering",
     "comparison",
+    "myth_fact",
+    "bucket_sort",
+    "dilemma",
+    "checklist",
+    "fill_in_the_blank",
     "single_choice",
   ]);
+
+  const ALL_MECHANICS: StationType[] = [
+    "matching",
+    "ordering",
+    "comparison",
+    "myth_fact",
+    "bucket_sort",
+    "dilemma",
+    "checklist",
+    "fill_in_the_blank",
+    "single_choice",
+  ];
 
   const toggleMechanic = (type: StationType) => {
     setMechanics((prev) =>
@@ -42,7 +59,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
   const selectAllMechanics = (all: boolean) => {
     if (all) {
-      setMechanics(["matching", "ordering", "comparison", "single_choice"]);
+      setMechanics(ALL_MECHANICS);
     } else {
       setMechanics(["single_choice"]);
     }
@@ -160,7 +177,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               />
               <div>
                 <span className="font-semibold block text-[#1b5c53]">🧩 Zuordnungs-Puzzle</span>
-                <span className="text-[10px] text-[#6e6c70]">Paare verbinden (Gefahr ↔ Lösung)</span>
+                <span className="text-[10px] text-[#6e6c70]">Drag & Drop (Gefahr ↔ Schutz)</span>
               </div>
             </label>
 
@@ -173,7 +190,33 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               />
               <div>
                 <span className="font-semibold block text-[#1b5c53]">🔢 Ablauf / Reihenfolge</span>
-                <span className="text-[10px] text-[#6e6c70]">Schritte richtig ordnen</span>
+                <span className="text-[10px] text-[#6e6c70]">Schritte per Drag umsortieren</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={mechanics.includes("myth_fact")}
+                onChange={() => toggleMechanic("myth_fact")}
+                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+              />
+              <div>
+                <span className="font-semibold block text-[#1b5c53]">❌/💡 Mythos vs. Fakt</span>
+                <span className="text-[10px] text-[#6e6c70]">Alltagsirrtümer entlarven</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={mechanics.includes("bucket_sort")}
+                onChange={() => toggleMechanic("bucket_sort")}
+                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+              />
+              <div>
+                <span className="font-semibold block text-[#1b5c53]">📥 Dos & Don'ts</span>
+                <span className="text-[10px] text-[#6e6c70]">2-Spalten Sortier-Ablage</span>
               </div>
             </label>
 
@@ -191,6 +234,45 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             </label>
 
             <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={mechanics.includes("dilemma")}
+                onChange={() => toggleMechanic("dilemma")}
+                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+              />
+              <div>
+                <span className="font-semibold block text-[#1b5c53]">🎭 Praxis-Dilemma</span>
+                <span className="text-[10px] text-[#6e6c70]">Fallbeispiel & Entscheidung</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={mechanics.includes("checklist")}
+                onChange={() => toggleMechanic("checklist")}
+                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+              />
+              <div>
+                <span className="font-semibold block text-[#1b5c53]">📋 Checkliste</span>
+                <span className="text-[10px] text-[#6e6c70]">Lochkarten-Auswahl</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={mechanics.includes("fill_in_the_blank")}
+                onChange={() => toggleMechanic("fill_in_the_blank")}
+                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+              />
+              <div>
+                <span className="font-semibold block text-[#1b5c53]">✍️ Wort-Lückentext</span>
+                <span className="text-[10px] text-[#6e6c70]">Wortbausteine einsetzen</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer col-span-2">
               <input
                 type="checkbox"
                 checked={mechanics.includes("single_choice")}
