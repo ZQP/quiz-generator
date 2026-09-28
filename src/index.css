@@ -27,56 +27,19 @@ body {
   outline-offset: 2px !important;
 }
 
-/* --- AUTHENTIC JIGSAW PUZZLE PIECE STYLING --- */
+/* --- JIGSAW PUZZLE PIECE & SNAPPING ANIMATIONS --- */
 
-/* Left Piece (Has an outward tab on the right side) */
-.jigsaw-left {
-  position: relative;
-  border-top-left-radius: 14px;
-  border-bottom-left-radius: 14px;
-  border-top-right-radius: 6px;
-  border-bottom-right-radius: 6px;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+.puzzle-piece {
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.jigsaw-left .puzzle-tab-right {
-  position: absolute;
-  right: -13px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  z-index: 10;
-  transition: all 0.25s ease;
+.puzzle-piece:hover {
+  transform: translateY(-2px);
 }
 
-/* Right Piece (Has an inward blank/socket on the left side) */
-.jigsaw-right {
-  position: relative;
-  border-top-right-radius: 14px;
-  border-bottom-right-radius: 14px;
-  border-top-left-radius: 6px;
-  border-bottom-left-radius: 6px;
-  transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.jigsaw-right .puzzle-blank-left {
-  position: absolute;
-  left: -13px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  z-index: 10;
-  transition: all 0.25s ease;
-}
-
-/* Interlocking Snapping Animation */
 @keyframes puzzle-snap {
   0% { transform: scale(0.96); }
-  50% { transform: scale(1.03); }
+  50% { transform: scale(1.02); }
   100% { transform: scale(1); }
 }
 
@@ -84,25 +47,9 @@ body {
   animation: puzzle-snap 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Vertical Puzzle Pieces (Chain for Ordering) */
-.jigsaw-vertical-top-tab {
-  position: absolute;
-  top: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  z-index: 10;
-}
-
-.jigsaw-vertical-bottom-tab {
-  position: absolute;
-  bottom: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  z-index: 10;
+/* Clean jigsaw interlocking tab and slot design */
+.jigsaw-card {
+  position: relative;
+  overflow: visible;
+  border-radius: 14px;
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, AlertTriangle, HelpCircle, Puzzle, Link as LinkIcon } from "lucide-react";
+import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, AlertTriangle, HelpCircle, Puzzle, Check } from "lucide-react";
 import { QuizGenerationResult, QuizStation, MatchingPair } from "../types";
 
 interface QuizPreviewProps {
@@ -18,7 +18,9 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [selectedThreat, setSelectedThreat] = useState<{ id: string; btnId: string } | null>(null);
   const [selectedSolution, setSelectedSolution] = useState<{ id: string; btnId: string } | null>(null);
   const [matchedIds, setMatchedIds] = useState<string[]>([]);
-  // Store connected pairs with their details for persistent visual interlocking
+  // Shuffled solutions so they are NEVER in the same order as threats!
+  const [shuffledSolutions, setShuffledSolutions] = useState<MatchingPair[]>([]);
+  // Store connected pairs with details for persistent visual interlocking
   const [connectedPairs, setConnectedPairs] = useState<{
     id: string;
     threat: string;
@@ -56,6 +58,26 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     setFeedback(null);
     setCanAdvance(false);
 
+    // Shuffle solutions for matching station
+    if (currentStation?.type === "matching" && currentStation.matchingPairs) {
+      const original = [...currentStation.matchingPairs];
+      const shuffled = [...original];
+      
+      // Fisher-Yates shuffle
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      // Ensure it is NOT identical to the original order (if length > 1)
+      if (shuffled.length > 1 && shuffled.every((p, idx) => p.id === original[idx].id)) {
+        [shuffled[0], shuffled[1]] = [shuffled[1], shuffled[0]];
+      }
+
+      setShuffledSolutions(shuffled);
+    }
+
+    // Shuffle steps for ordering station
     if (currentStation?.type === "ordering" && currentStation.orderingSteps) {
       const shuffled = [...currentStation.orderingSteps].sort(() => Math.random() - 0.5);
       setOrderedList(shuffled);
@@ -104,7 +126,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     setCanAdvance(true);
   };
 
-  // --- MATCHING LOGIC WITH VISIBLE INTERLOCKING ---
+  // --- MATCHING LOGIC ---
   const handleSelectThreat = (pair: MatchingPair) => {
     if (matchedIds.includes(pair.id) || canAdvance) return;
     setSelectedThreat({ id: pair.id, btnId: `threat-${pair.id}` });
@@ -123,7 +145,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       const nextMatched = [...matchedIds, threatId];
       setMatchedIds(nextMatched);
 
-      // Add to visually connected pairs list
       setConnectedPairs((prev) => [
         ...prev,
         {
@@ -140,10 +161,10 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       const allSolved = nextMatched.length === (currentStation?.matchingPairs?.length || 0);
       setFeedback({
         type: "correct",
-        title: allSolved ? "Großartig! Alle Puzzleteile perfekt verzahnt" : "Puzzleteile eingerastet! ✓",
-        selectionExplanation: pair.explanation || "Diese beiden Puzzleteile greifen exakt ineinander.",
+        title: allSolved ? "Großartig! Alle Puzzleteile perfekt verzahnt" : "Puzzleteile erfolgreich eingerastet! ✓",
+        selectionExplanation: pair.explanation || "Diese beiden Puzzleteile greifen inhaltlich exakt ineinander.",
         zqpBackground: allSolved
-          ? (currentStation?.zqpRationale || "Alle Maßnahmen tragen entscheidend zur Entschärfung typischer Wohnraumrisiken bei.")
+          ? (currentStation?.zqpRationale || "Alle Schutzmaßnahmen neutralisieren die jeweiligen Gefahrenquellen nachhaltig.")
           : `Noch ${(currentStation?.matchingPairs?.length || 0) - nextMatched.length} Puzzleteil(e) offen.`,
       });
 
@@ -248,13 +269,19 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     }
   };
 
-  // Color badges for matched pairs to show their explicit link
-  const pairColors = [
-    { border: "border-teal-500", bg: "bg-teal-50", text: "text-teal-900", badge: "bg-[#247a6d] text-white" },
-    { border: "border-emerald-500", bg: "bg-emerald-50", text: "text-emerald-900", badge: "bg-emerald-600 text-white" },
-    { border: "border-cyan-500", bg: "bg-cyan-50", text: "text-cyan-900", badge: "bg-cyan-700 text-white" },
-    { border: "border-indigo-500", bg: "bg-indigo-50", text: "text-indigo-900", badge: "bg-indigo-700 text-white" },
+  // Color map for matching pairs to clearly show which left item links to which right item
+  const pairColorThemes = [
+    { border: "border-teal-500", bg: "bg-teal-50", badge: "bg-[#247a6d] text-white", label: "Paar #1" },
+    { border: "border-emerald-500", bg: "bg-emerald-50", badge: "bg-emerald-600 text-white", label: "Paar #2" },
+    { border: "border-cyan-600", bg: "bg-cyan-50", badge: "bg-cyan-700 text-white", label: "Paar #3" },
+    { border: "border-indigo-500", bg: "bg-indigo-50", badge: "bg-indigo-700 text-white", label: "Paar #4" },
+    { border: "border-amber-500", bg: "bg-amber-50", badge: "bg-amber-700 text-white", label: "Paar #5" },
   ];
+
+  const getPairTheme = (pairId: string) => {
+    const idx = currentStation?.matchingPairs?.findIndex((p) => p.id === pairId) ?? 0;
+    return pairColorThemes[idx % pairColorThemes.length];
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -263,7 +290,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#1b5c53]">
             {completed
-              ? "Auswertung"
+              ? "Auswertung & Zertifikat"
               : `Station ${currentStationIdx + 1} von ${quiz.stations.length}`}
           </span>
           <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#e3eeec] text-[#1b5c53] font-semibold border border-[#bbd1cd] flex items-center gap-1">
@@ -315,7 +342,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       <div className="flex-1 flex justify-center items-start overflow-y-auto">
         <div
           className={`w-full bg-white border border-[#bbd1cd] rounded-2xl shadow-md overflow-hidden transition-all duration-300 ${
-            viewport === "mobile" ? "max-w-[385px]" : "max-w-2xl"
+            viewport === "mobile" ? "max-w-[395px]" : "max-w-2xl"
           }`}
         >
           {/* Header with ZQP Petrol & dynamic progress bar */}
@@ -357,144 +384,174 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                 </div>
 
                 {/* ==============================================================
-                    1. AUTHENTIC JIGSAW MATCHING PUZZLE WITH VISIBLE CONNECTIONS
+                    1. AUTHENTIC MATCHING PUZZLE (SHUFFLED & CLEARLY LINKED)
                     ============================================================== */}
                 {currentStation.type === "matching" && currentStation.matchingPairs && (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between text-xs text-[#6e6c70] bg-[#f3f8f7] p-2.5 rounded-lg border border-[#bbd1cd]">
                       <span>
-                        Wählen Sie links ein Puzzleteil (凸) und rechts das Gegenstück (凹), um sie zu verzahnen:
+                        Wählen Sie links ein Puzzleteil (Gefahr) und rechts die passende Lösung zum Verzahnen:
                       </span>
                       <span className="font-bold text-[#1b5c53] shrink-0 ml-2">
-                        {matchedIds.length} / {currentStation.matchingPairs.length} verzahnt
+                        {matchedIds.length} von {currentStation.matchingPairs.length} verzahnt
                       </span>
                     </div>
 
-                    {/* Unmatched Interactive Grid */}
-                    <div className="grid grid-cols-2 gap-4 relative">
-                      {/* Left: Threats with protruding Jigsaw Tab on right */}
+                    {/* Interactive Grid: Left (Threats) & Right (Shuffled Solutions) */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {/* Left: Threats */}
                       <div className="space-y-3">
-                        <span className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wider block mb-1">
-                          Puzzleteile: Gefahrenquelle
-                        </span>
-                        {currentStation.matchingPairs.map((pair) => {
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wider flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                            Gefahrenquelle (Links)
+                          </span>
+                        </div>
+
+                        {currentStation.matchingPairs.map((pair, idx) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedThreat?.id === pair.id;
+                          const theme = getPairTheme(pair.id);
+
                           return (
-                            <button
+                            <div
                               key={`th-${pair.id}`}
                               onClick={() => handleSelectThreat(pair)}
-                              disabled={isMatched || canAdvance}
-                              className={`jigsaw-left w-full p-3 pr-6 text-left border-2 text-xs font-semibold relative transition-all ${
+                              className={`puzzle-piece rounded-xl border-2 p-3 text-left relative transition-all cursor-pointer ${
                                 isMatched
-                                  ? "border-emerald-500 bg-emerald-50/70 text-emerald-950 opacity-60 shadow-none cursor-default"
+                                  ? `${theme.border} ${theme.bg} shadow-xs`
                                   : isSelected
-                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-md -translate-x-1"
+                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-md"
                                   : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7] shadow-xs"
                               }`}
                             >
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold shrink-0">
-                                  Gefahr
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                                  Teil A-{idx + 1}
                                 </span>
-                                <span className="leading-snug">{pair.threatOrTerm}</span>
+
+                                {isMatched ? (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${theme.badge} flex items-center gap-1 shadow-xs`}>
+                                    <Check className="w-3 h-3" />
+                                    <span>{theme.label}</span>
+                                  </span>
+                                ) : isSelected ? (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#247a6d] text-white animate-pulse">
+                                    Ausgewählt ➔
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-medium text-[#6e6c70] flex items-center gap-1">
+                                    <Puzzle className="w-3 h-3 text-[#247a6d]" />
+                                    <span>Einrasten</span>
+                                  </span>
+                                )}
                               </div>
 
-                              {/* Jigsaw Connector Tab on Right Edge */}
-                              <div
-                                className={`puzzle-tab-right border-2 ${
-                                  isMatched
-                                    ? "bg-emerald-50 border-emerald-500"
-                                    : isSelected
-                                    ? "bg-[#247a6d] border-[#1b5c53] shadow-sm animate-pulse"
-                                    : "bg-white border-[#bbd1cd]"
-                                }`}
-                              />
-                            </button>
+                              <p className="text-xs font-semibold text-[#444] leading-relaxed">
+                                {pair.threatOrTerm}
+                              </p>
+                            </div>
                           );
                         })}
                       </div>
 
-                      {/* Right: Solutions with inward Jigsaw Socket on left */}
+                      {/* Right: Shuffled Solutions (Mischung garantiert!) */}
                       <div className="space-y-3">
-                        <span className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wider block mb-1">
-                          Gegenstücke: Schutzmaßnahme
-                        </span>
-                        {currentStation.matchingPairs.map((pair) => {
+                        <div className="flex items-center justify-between px-1">
+                          <span className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wider flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            Schutzmaßnahme (Rechts gemischt)
+                          </span>
+                        </div>
+
+                        {shuffledSolutions.map((pair, idx) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedSolution?.id === pair.id;
+                          const theme = getPairTheme(pair.id);
+
                           return (
-                            <button
+                            <div
                               key={`sol-${pair.id}`}
                               onClick={() => handleSelectSolution(pair)}
-                              disabled={isMatched || canAdvance}
-                              className={`jigsaw-right w-full p-3 pl-6 text-left border-2 text-xs font-semibold relative transition-all ${
+                              className={`puzzle-piece rounded-xl border-2 p-3 text-left relative transition-all cursor-pointer ${
                                 isMatched
-                                  ? "border-emerald-500 bg-emerald-50/70 text-emerald-950 opacity-60 shadow-none cursor-default"
+                                  ? `${theme.border} ${theme.bg} shadow-xs`
                                   : isSelected
-                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-md translate-x-1"
+                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-md"
                                   : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7] shadow-xs"
                               }`}
                             >
-                              {/* Jigsaw Socket on Left Edge */}
-                              <div
-                                className={`puzzle-blank-left border-2 ${
-                                  isMatched
-                                    ? "bg-emerald-50 border-emerald-500"
-                                    : isSelected
-                                    ? "bg-[#e3eeec] border-[#247a6d] shadow-sm"
-                                    : "bg-[#fcfaf8] border-[#bbd1cd]"
-                                }`}
-                              />
-
-                              <div className="flex items-center gap-1.5">
-                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold shrink-0">
-                                  Lösung
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+                                  Teil B-{idx + 1}
                                 </span>
-                                <span className="leading-snug">{pair.solutionOrDef}</span>
+
+                                {isMatched ? (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${theme.badge} flex items-center gap-1 shadow-xs`}>
+                                    <Check className="w-3 h-3" />
+                                    <span>{theme.label}</span>
+                                  </span>
+                                ) : isSelected ? (
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#247a6d] text-white animate-pulse">
+                                    Ausgewählt ➔
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] font-medium text-[#6e6c70] flex items-center gap-1">
+                                    <Puzzle className="w-3 h-3 text-[#247a6d]" />
+                                    <span>Einrasten</span>
+                                  </span>
+                                )}
                               </div>
-                            </button>
+
+                              <p className="text-xs font-semibold text-[#444] leading-relaxed">
+                                {pair.solutionOrDef}
+                              </p>
+                            </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* === PERSISTENT VISUAL CONNECTIONS & DOCKING SEAM === */}
+                    {/* === PERSISTENT VISUAL INTERLOCKING SECTION === */}
                     {connectedPairs.length > 0 && (
-                      <div className="mt-4 pt-3 border-t-2 border-dashed border-[#bbd1cd] space-y-2.5">
-                        <span className="text-xs font-bold text-[#1b5c53] flex items-center gap-1.5">
-                          <LinkIcon className="w-3.5 h-3.5 text-[#247a6d]" />
-                          Erfolgreich verzahnte Puzzleteile ({connectedPairs.length}):
-                        </span>
+                      <div className="mt-4 pt-3 border-t-2 border-dashed border-[#bbd1cd] space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#1b5c53] flex items-center gap-1.5">
+                            <Puzzle className="w-4 h-4 text-[#247a6d]" />
+                            <span>Erfolgreich ineinander eingerastete Puzzleteile ({connectedPairs.length}):</span>
+                          </span>
+                        </div>
 
-                        {connectedPairs.map((cp, idx) => {
-                          const col = pairColors[idx % pairColors.length];
+                        {connectedPairs.map((cp) => {
+                          const theme = getPairTheme(cp.id);
                           return (
                             <div
-                              key={cp.id}
-                              className={`p-3 rounded-xl border-2 ${col.border} ${col.bg} flex flex-col gap-1.5 animate-puzzle-snap shadow-xs`}
+                              key={`docked-${cp.id}`}
+                              className={`p-3.5 rounded-xl border-2 ${theme.border} ${theme.bg} flex flex-col gap-2 animate-puzzle-snap shadow-xs`}
                             >
-                              {/* Interlocking Puzzle Header */}
-                              <div className="flex items-center justify-between gap-2 text-xs font-bold flex-wrap">
-                                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-[#bbd1cd] text-[#444]">
-                                  <Puzzle className="w-3.5 h-3.5 text-[#247a6d]" />
-                                  <span>{cp.threat}</span>
+                              {/* Interlocking Puzzle Pair Block */}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 relative">
+                                <div className="p-2.5 rounded-lg bg-white border border-[#bbd1cd] flex flex-col justify-between">
+                                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                                    Gefahr
+                                  </span>
+                                  <span className="text-xs font-semibold text-[#444]">{cp.threat}</span>
                                 </div>
 
-                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] shadow-xs">
-                                  <span>🧩 Verzahnt</span>
-                                </div>
-
-                                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-[#bbd1cd] text-[#444]">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                                  <span>{cp.solution}</span>
+                                <div className="p-2.5 rounded-lg bg-white border border-[#bbd1cd] flex flex-col justify-between">
+                                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                    Schutzmaßnahme
+                                  </span>
+                                  <span className="text-xs font-semibold text-[#444]">{cp.solution}</span>
                                 </div>
                               </div>
 
-                              {/* Why this pair interlocks */}
+                              {/* Why they interlock */}
                               {cp.explanation && (
-                                <p className="text-[11px] text-[#444] bg-white/70 p-2 rounded-lg border border-black/5 leading-relaxed">
-                                  <strong>Didaktischer Zusammenhang:</strong> {cp.explanation}
+                                <p className="text-[11px] text-[#444] bg-white/80 p-2.5 rounded-lg border border-black/5 leading-relaxed">
+                                  <strong className="text-[#1b5c53]">Warum diese Puzzleteile verzahnen:</strong> {cp.explanation}
                                 </p>
                               )}
                             </div>
@@ -570,7 +627,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         onClick={handleCheckOrder}
                         className="mt-1 bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm"
                       >
-                        Puzzlekette prüfen
+                        Puzzlekette überprüfen
                       </button>
                     )}
                   </div>
@@ -702,7 +759,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                       <span className="text-sm">{feedback.title}</span>
                     </div>
 
-                    {/* Specific explanation why this selection was right or wrong */}
                     <div className="mb-2 bg-white/80 p-2.5 rounded-lg border border-black/5">
                       <strong className="block text-[#1b5c53] mb-0.5">
                         {feedback.type === "correct" ? "Warum diese Auswahl richtig ist:" : "Didaktische Erklärung:"}
@@ -710,7 +766,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                       <p className="leading-relaxed">{feedback.selectionExplanation}</p>
                     </div>
 
-                    {/* ZQP Practice advice */}
                     <div className="p-2.5 rounded-lg bg-[#247a6d]/10 border border-[#247a6d]/20 text-[#1b5c53]">
                       <strong className="block font-bold mb-0.5">
                         ZQP-Hintergrundwissen für die Praxis:
@@ -727,7 +782,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                       type="button"
                       onClick={handleRevealSolution}
                       className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors"
-                      title="Antwort und fachliche Erklärung aufdecken"
+                      title="Antwort und didaktische Erklärung aufdecken"
                     >
                       <HelpCircle className="w-4 h-4 text-[#247a6d]" />
                       <span>Ich weiß es nicht / Lösung anzeigen</span>
