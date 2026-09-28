@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Header } from "./components/Header";
 import { PromptInput } from "./components/PromptInput";
+import { QuizRefiner } from "./components/QuizRefiner";
 import { QuizPreview } from "./components/QuizPreview";
 import { CodeExport } from "./components/CodeExport";
 import { SettingsModal } from "./components/SettingsModal";
 import { AppSettings, QuizGenerationResult, TargetAudience, StationType } from "./types";
-import { loadSettings, saveSettings, generateQuizWithGemini } from "./services/geminiService";
-import { Eye, Code2 } from "lucide-react";
+import { loadSettings, saveSettings, generateQuizWithGemini, refineQuizWithGemini } from "./services/geminiService";
+import { Eye, Code2, Sparkles, PlusCircle } from "lucide-react";
 
 export const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
@@ -16,11 +17,17 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingStepText, setLoadingStepText] = useState<string>("");
 
-  const [currentQuiz, setCurrentQuiz] = useState<QuizGenerationResult | null>(null);
+  // Quiz history & current version
+  const [quizHistory, setQuizHistory] = useState<QuizGenerationResult[]>([]);
+  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  const currentQuiz: QuizGenerationResult | null = historyIndex >= 0 ? quizHistory[historyIndex] : null;
+
+  // Mode in left column: create new from scratch vs. refine existing
+  const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">("create");
 
   // Initial load: generate initial preview
   useEffect(() => {
-    generateQuiz({
+    handleGenerateNewQuiz({
       topicPrompt: "Sturzprävention im Alltag: Mitmachen & Prüfen",
       referenceText: "",
       questionCount: 3,
@@ -34,7 +41,8 @@ export const App: React.FC = () => {
     saveSettings(newSettings);
   };
 
-  const generateQuiz = async (params: {
+  // Full creation from scratch
+  const handleGenerateNewQuiz = async (params: {
     topicPrompt: string;
     referenceText: string;
     questionCount: number;
@@ -61,13 +69,65 @@ export const App: React.FC = () => {
 
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
-      setCurrentQuiz(quiz);
+
+      // Add to history
+      const newHistory = [quiz];
+      setQuizHistory(newHistory);
+      setHistoryIndex(0);
+      setLeftPanelMode("refine");
       setActiveMainTab("preview");
     } catch (err: any) {
       alert(`Fehler bei der Generierung: ${err?.message || "Unbekannter Fehler"}`);
     } finally {
       setIsLoading(false);
       setLoadingStepText("");
+    }
+  };
+
+  // Targeted prompt-based refinement
+  const handleRefineQuiz = async (refinementPrompt: string) => {
+    if (!currentQuiz) return;
+
+    setIsLoading(true);
+    setLoadingStepText("Wende gezielte Anpassung mit Gemini an...");
+
+    const stepTimer = setTimeout(() => {
+      setLoadingStepText("Passe betroffene Stationen an & behalte Rest bei...");
+    }, 1200);
+
+    try {
+      const updatedQuiz = await refineQuizWithGemini({
+        apiKey: settings.geminiApiKey,
+        model: settings.selectedModel,
+        existingQuiz: currentQuiz,
+        refinementPrompt,
+      });
+
+      clearTimeout(stepTimer);
+
+      // Push new version to history
+      const newHistory = [...quizHistory.slice(0, historyIndex + 1), updatedQuiz];
+      setQuizHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1);
+      setActiveMainTab("preview");
+    } catch (err: any) {
+      alert(`Fehler bei der Anpassung: ${err?.message || "Unbekannter Fehler"}`);
+    } finally {
+      setIsLoading(false);
+      setLoadingStepText("");
+    }
+  };
+
+  // Undo / Redo
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < quizHistory.length - 1) {
+      setHistoryIndex(historyIndex + 1);
     }
   };
 
@@ -78,13 +138,60 @@ export const App: React.FC = () => {
 
       {/* Main Two-Column Content */}
       <main className="flex-1 max-w-[1700px] w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column: Input & Controls (5 cols) */}
-        <div className="lg:col-span-5">
-          <PromptInput
-            onGenerate={generateQuiz}
-            isLoading={isLoading}
-            loadingStepText={loadingStepText}
-          />
+        {/* Left Column: Input, Customization & Refinement (5 cols) */}
+        <div className="lg:col-span-5 flex flex-col gap-3">
+          {/* Mode Switcher Bar */}
+          {currentQuiz && (
+            <div className="flex items-center gap-1 bg-[#e3eeec] p-1 rounded-xl border border-[#bbd1cd] text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setLeftPanelMode("refine")}
+                className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  leftPanelMode === "refine"
+                    ? "bg-white text-[#1b5c53] shadow-xs"
+                    : "text-[#6e6c70] hover:text-[#1b5c53]"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span>Quiz per Prompt verfeinern</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLeftPanelMode("create")}
+                className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                  leftPanelMode === "create"
+                    ? "bg-white text-[#1b5c53] shadow-xs"
+                    : "text-[#6e6c70] hover:text-[#1b5c53]"
+                }`}
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Neues Thema starten</span>
+              </button>
+            </div>
+          )}
+
+          {/* Render Refiner or Prompt Input */}
+          {leftPanelMode === "refine" && currentQuiz ? (
+            <QuizRefiner
+              currentQuiz={currentQuiz}
+              onRefine={handleRefineQuiz}
+              isLoading={isLoading}
+              loadingStepText={loadingStepText}
+              canUndo={historyIndex > 0}
+              canRedo={historyIndex < quizHistory.length - 1}
+              onUndo={handleUndo}
+              onRedo={handleRedo}
+              versionInfo={`Version ${historyIndex + 1} von ${quizHistory.length}`}
+              onSwitchToNewQuiz={() => setLeftPanelMode("create")}
+            />
+          ) : (
+            <PromptInput
+              onGenerate={handleGenerateNewQuiz}
+              isLoading={isLoading}
+              loadingStepText={loadingStepText}
+            />
+          )}
         </div>
 
         {/* Right Column: Preview & Code Export (7 cols) */}
@@ -117,6 +224,13 @@ export const App: React.FC = () => {
                   <span>Code-Export (HTML, CSS, JS)</span>
                 </button>
               </div>
+
+              {/* Version pill */}
+              {quizHistory.length > 1 && (
+                <div className="text-[11px] text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd]">
+                  Stand: v{historyIndex + 1}
+                </div>
+              )}
             </div>
 
             {/* Tab Content Panels */}
@@ -126,7 +240,7 @@ export const App: React.FC = () => {
                   <QuizPreview
                     quiz={currentQuiz}
                     onReset={() => {
-                      // re-trigger initial state
+                      // reset handled in component
                     }}
                   />
                 ) : (

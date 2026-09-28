@@ -177,6 +177,101 @@ ${referenceText ? `ZQP-Referenzinhalte / Wissensbasis:\n${referenceText}` : ""}`
   }
 }
 
+export interface RefineQuizParams {
+  apiKey: string;
+  model: string;
+  existingQuiz: QuizGenerationResult;
+  refinementPrompt: string;
+}
+
+export async function refineQuizWithGemini(
+  params: RefineQuizParams
+): Promise<QuizGenerationResult> {
+  const { apiKey, model, existingQuiz, refinementPrompt } = params;
+
+  // Offline demo adjustment simulation
+  if (!apiKey || apiKey.trim() === "") {
+    const updated = JSON.parse(JSON.stringify(existingQuiz)) as QuizGenerationResult;
+    updated.summary = `[Angepasst per KI]: ${refinementPrompt}. ${updated.summary}`;
+    const pLower = refinementPrompt.toLowerCase();
+
+    if (pLower.includes("einfach") || pLower.includes("senior")) {
+      updated.targetAudience = "senioren";
+      updated.title = `${updated.title} (In einfacher Sprache)`;
+      if (updated.stations[0]) {
+        updated.stations[0].promptOrInstruction = "Verbinden Sie die Gefahren mit der passenden Lösung (in einfacher Sprache):";
+      }
+    } else if (pLower.includes("fachkraft") || pLower.includes("pflegefach")) {
+      updated.targetAudience = "fachkraefte";
+      updated.title = `${updated.title} (Für Pflegefachkräfte)`;
+    } else if (pLower.includes("kürz") || pLower.includes("knapp")) {
+      updated.title = `${updated.title} (Kompaktfassung)`;
+      updated.stations.forEach((s) => {
+        s.zqpRationale = s.zqpRationale.split(".")[0] + ".";
+      });
+    } else {
+      updated.title = `${updated.title} (Aktualisiert)`;
+    }
+    return updated;
+  }
+
+  const promptSystem = `Du bist ein erfahrener Bildungsredakteur der Stiftung ZQP (zqp.de).
+Der Nutzer hat bereits ein HTML5-Quiz erstellt und möchte nun gezielte ANPASSUNGEN daran vornehmen, OHNE dass das gesamte Quiz neu erstellt wird.
+
+WICHTIGE ANWEISUNGEN:
+1. Nimm das bestehende Quiz als Basis und führe die gewünschte Änderung des Nutzers präzise und feinfühlig durch.
+2. Behalte alle unveränderten Stationen, Texte und didaktischen Erklärungen exakt bei.
+3. Achte weiterhin streng auf ZQP Corporate Design (#247a6d, #1b5c53, #f3f8f7) und Barrierefreiheit (BITV 2.0 / WCAG 2.1 AA).
+4. Sorge dafür, dass bei allen Antwortoptionen weiterhin die 'Warum richtig / Warum falsch' Begründungen vorhanden sind.
+5. Die Ausgabe MUSS zwingend valides JSON im bekannten QuizGenerationResult-Schema sein.`;
+
+  const userContent = `Bestehendes Quiz (JSON):
+${JSON.stringify(existingQuiz, null, 2)}
+
+Gewünschte Anpassung des Nutzers:
+${refinementPrompt}`;
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const payload = {
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: `${promptSystem}\n\n${userContent}` }],
+      },
+    ],
+    generationConfig: {
+      temperature: 0.3,
+      responseMimeType: "application/json",
+    },
+  };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody?.error?.message || `Gemini API Fehler (${response.status})`);
+  }
+
+  const resultData = await response.json();
+  const textOutput = resultData?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!textOutput) {
+    throw new Error("Keine Antwort von Gemini erhalten.");
+  }
+
+  try {
+    const parsed: QuizGenerationResult = JSON.parse(textOutput);
+    return parsed;
+  } catch (err) {
+    console.error("Failed to parse Gemini JSON:", err, textOutput);
+    throw new Error("Antwort von Gemini konnte nicht als valides Quiz-JSON interpretiert werden.");
+  }
+}
+
 // Built-in authentic ZQP demo quiz generator (used when offline or testing without key)
 function generateLocalDemoQuiz(
   topic: string,
