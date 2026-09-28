@@ -4,13 +4,13 @@ const SETTINGS_STORAGE_KEY = "zqp_quiz_generator_settings";
 
 export const defaultSettings: AppSettings = {
   geminiApiKey: "",
-  selectedModel: "gemini-2.5-flash",
+  selectedModel: "gemini-3.0-flash",
   availableModels: [
+    "gemini-3.0-flash",
+    "gemini-3.0-pro",
     "gemini-2.5-flash",
     "gemini-2.5-pro",
     "gemini-2.0-flash",
-    "gemini-1.5-pro",
-    "gemini-1.5-flash"
   ],
   autoUpdate: true,
 };

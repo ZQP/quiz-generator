@@ -178,18 +178,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </button>
           </div>
 
-          <select
-            id="model-select"
-            value={selectedModel}
-            onChange={(e) => setSelectedModel(e.target.value)}
-            className="w-full rounded-lg border border-[#bbd1cd] p-2.5 text-xs bg-white focus:ring-2 focus:ring-[#247a6d] outline-none"
-          >
-            {availableModels.map((m) => (
-              <option key={m} value={m}>
-                {m} {m === "gemini-2.5-flash" ? "(Empfohlen: Schnell & präzise)" : ""}
-              </option>
-            ))}
-          </select>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              id="model-select"
+              value={selectedModel}
+              onChange={(e) => setSelectedModel(e.target.value)}
+              placeholder="z. B. gemini-3.0-flash, gemini-3.0-pro..."
+              className="flex-1 rounded-lg border border-[#bbd1cd] p-2.5 text-xs font-mono bg-white focus:ring-2 focus:ring-[#247a6d] outline-none"
+            />
+            {availableModels.length > 0 && (
+              <select
+                value=""
+                onChange={(e) => {
+                  if (e.target.value) setSelectedModel(e.target.value);
+                }}
+                className="w-36 rounded-lg border border-[#bbd1cd] p-2 text-xs bg-[#f3f8f7] text-[#1b5c53] font-semibold focus:ring-2 focus:ring-[#247a6d] outline-none cursor-pointer"
+              >
+                <option value="">Modell wählen...</option>
+                {availableModels.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <p className="text-[11px] text-[#6e6c70] mt-1">
+            Geben Sie das gewünschte Gemini-Modell frei ein oder synchronisieren Sie die neuesten Modelle direkt von der Google API.
+          </p>
 
           {fetchMsg && (
             <p

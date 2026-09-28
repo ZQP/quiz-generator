@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Sparkles, FileText, Upload, ChevronDown, ChevronRight, CheckSquare, Layers } from "lucide-react";
 import { TargetAudience, StationType } from "../types";
+import { parseDocumentFile, ParsedDocumentResult } from "../services/documentParser";
 
 interface PromptInputProps {
   onGenerate: (data: {
@@ -65,17 +66,27 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const [isParsingDoc, setIsParsingDoc] = useState<boolean>(false);
+  const [parsedDocInfo, setParsedDocInfo] = useState<ParsedDocumentResult | null>(null);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target?.result as string;
-      setReferenceText(text);
+  const handleProcessFile = async (file: File) => {
+    setIsParsingDoc(true);
+    try {
+      const res = await parseDocumentFile(file);
+      setParsedDocInfo(res);
+      setReferenceText(res.text);
       setIsRefOpen(true);
-    };
-    reader.readAsText(file);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      alert(`Fehler beim Einlesen der Datei: ${msg}`);
+    } finally {
+      setIsParsingDoc(false);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) handleProcessFile(file);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -307,32 +318,96 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
           {isRefOpen && (
             <div className="p-3 bg-white flex flex-col gap-2.5">
+              {/* Document Dropzone */}
+              <div
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) handleProcessFile(file);
+                }}
+                className="border-2 border-dashed border-[#bbd1cd] hover:border-[#247a6d] rounded-lg p-3 text-center bg-[#fcfaf8] transition-colors flex flex-col items-center justify-center gap-1.5"
+              >
+                <div className="flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-[#247a6d]" />
+                  <span className="text-xs font-semibold text-[#1b5c53]">
+                    PDF-Broschüre, Word-Dokument (.docx) oder Textdatei ablegen
+                  </span>
+                </div>
+                <p className="text-[10px] text-[#6e6c70]">
+                  Unterstützt PDF (z. B. ZQP-Ratgeber), Word (.docx), Markdown (.md) und Text (.txt)
+                </p>
+
+                <label className="cursor-pointer px-3 py-1 bg-white border border-[#bbd1cd] hover:border-[#247a6d] rounded text-xs font-medium text-[#1b5c53] shadow-xs transition-colors">
+                  <span>Datei durchsuchen</span>
+                  <input
+                    type="file"
+                    accept=".pdf,.docx,.txt,.md,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
+              {isParsingDoc && (
+                <div className="p-2 rounded bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2 animate-pulse">
+                  <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
+                  <span>Dokument wird analysiert und Text extrahiert...</span>
+                </div>
+              )}
+
+              {parsedDocInfo && !isParsingDoc && (
+                <div className="p-2 rounded bg-[#edf7f4] border border-[#247a6d] text-xs text-[#1b5c53] flex items-center justify-between">
+                  <div className="flex items-center gap-2 truncate">
+                    <FileText className="w-4 h-4 text-[#247a6d] shrink-0" />
+                    <span className="font-semibold truncate">
+                      {parsedDocInfo.fileName}
+                    </span>
+                    {parsedDocInfo.pageCount && (
+                      <span className="text-[10px] px-1.5 py-0.2 rounded bg-white border border-[#bbd1cd] font-mono shrink-0">
+                        {parsedDocInfo.pageCount} Seiten
+                      </span>
+                    )}
+                    <span className="text-[10px] text-[#6e6c70] shrink-0">
+                      ({Math.round(parsedDocInfo.text.length / 5)} Wörter)
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setParsedDocInfo(null);
+                      setReferenceText("");
+                    }}
+                    className="text-xs text-rose-700 hover:underline font-semibold ml-2 shrink-0"
+                  >
+                    Entfernen
+                  </button>
+                </div>
+              )}
+
               <textarea
-                rows={3}
+                rows={4}
                 value={referenceText}
                 onChange={(e) => setReferenceText(e.target.value)}
                 placeholder="Fügen Sie hier ZQP-Ratgeberinhalte oder Faktenblätter ein, die als Basis für die Fragen und Erklärungen dienen sollen..."
                 className="w-full rounded border border-[#bbd1cd] p-2 text-xs focus:ring-1 focus:ring-[#247a6d] outline-none"
               />
-              <div className="flex items-center justify-between text-xs">
-                <label className="cursor-pointer text-[#247a6d] hover:underline flex items-center gap-1 font-medium">
-                  <Upload className="w-3.5 h-3.5" />
-                  Textdatei (.txt, .md) hochladen
-                  <input
-                    type="file"
-                    accept=".txt,.md"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
+
+              <div className="flex items-center justify-between text-xs pt-0.5">
+                <span className="text-[10px] text-[#6e6c70]">
+                  {referenceText.trim()
+                    ? `${referenceText.trim().split(/\s+/).length} Wörter geladen`
+                    : "Kein Text hinterlegt"}
+                </span>
                 <button
                   type="button"
-                  onClick={() =>
+                  onClick={() => {
+                    setParsedDocInfo(null);
                     setReferenceText(
                       "ZQP-Themenreport 'Sicherheit in der häuslichen Pflege': Rund 80% aller Stürze bei Pflegebedürftigen ereignen sich im Wohnbereich. Die häufigsten Ursachen sind fehlende Haltegriffe in Nassbereichen, schlechte Beleuchtung und ungeeignetes Schuhwerk ohne Fersenhalt."
-                    )
-                  }
-                  className="text-[#1b5c53] hover:underline"
+                    );
+                  }}
+                  className="text-[#1b5c53] hover:underline text-[11px]"
                 >
                   ZQP-Mustertext laden
                 </button>
