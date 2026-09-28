@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, AlertTriangle, HelpCircle } from "lucide-react";
+import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, AlertTriangle, HelpCircle, Puzzle, Link as LinkIcon } from "lucide-react";
 import { QuizGenerationResult, QuizStation, MatchingPair } from "../types";
 
 interface QuizPreviewProps {
@@ -18,6 +18,13 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [selectedThreat, setSelectedThreat] = useState<{ id: string; btnId: string } | null>(null);
   const [selectedSolution, setSelectedSolution] = useState<{ id: string; btnId: string } | null>(null);
   const [matchedIds, setMatchedIds] = useState<string[]>([]);
+  // Store connected pairs with their details for persistent visual interlocking
+  const [connectedPairs, setConnectedPairs] = useState<{
+    id: string;
+    threat: string;
+    solution: string;
+    explanation?: string;
+  }[]>([]);
 
   // Ordering state
   const [orderedList, setOrderedList] = useState<{ id: string; text: string; correctIndex: number; reason?: string }[]>([]);
@@ -43,13 +50,13 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     setSelectedThreat(null);
     setSelectedSolution(null);
     setMatchedIds([]);
+    setConnectedPairs([]);
     setSelectedScenarioId(null);
     setSelectedOptionIdx(null);
     setFeedback(null);
     setCanAdvance(false);
 
     if (currentStation?.type === "ordering" && currentStation.orderingSteps) {
-      // Shuffle initially
       const shuffled = [...currentStation.orderingSteps].sort(() => Math.random() - 0.5);
       setOrderedList(shuffled);
     }
@@ -61,41 +68,43 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     onReset();
   };
 
-  // --- LÖSUNG ANZEIGEN (REVEAL SOLUTION) ---
+  // --- REVEAL SOLUTION ---
   const handleRevealSolution = () => {
     if (!currentStation) return;
 
     if (currentStation.type === "matching" && currentStation.matchingPairs) {
-      // Automatically match all pairs
       setMatchedIds(currentStation.matchingPairs.map((p) => p.id));
+      setConnectedPairs(
+        currentStation.matchingPairs.map((p) => ({
+          id: p.id,
+          threat: p.threatOrTerm,
+          solution: p.solutionOrDef,
+          explanation: p.explanation,
+        }))
+      );
       setSelectedThreat(null);
       setSelectedSolution(null);
     } else if (currentStation.type === "ordering" && currentStation.orderingSteps) {
-      // Sort into correct order
       const sorted = [...currentStation.orderingSteps].sort((a, b) => a.correctIndex - b.correctIndex);
       setOrderedList(sorted);
     } else if (currentStation.type === "comparison" && currentStation.comparisonScenarios) {
       const correctScenario = currentStation.comparisonScenarios.find((s) => s.isCorrect);
-      if (correctScenario) {
-        setSelectedScenarioId(correctScenario.id);
-      }
+      if (correctScenario) setSelectedScenarioId(correctScenario.id);
     } else if (currentStation.type === "single_choice" && currentStation.options) {
       const correctIdx = currentStation.options.findIndex((o) => o.isCorrect);
-      if (correctIdx !== -1) {
-        setSelectedOptionIdx(correctIdx);
-      }
+      if (correctIdx !== -1) setSelectedOptionIdx(correctIdx);
     }
 
     setFeedback({
       type: "revealed",
-      title: "Lösung aufgedeckt",
+      title: "Lösung aufgedeckt & Puzzleteile verzahnt",
       selectionExplanation: currentStation.solutionExplanation || "Hier sehen Sie die vollständige, empfohlene Lösung für diese Station.",
       zqpBackground: currentStation.zqpRationale || "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP.",
     });
     setCanAdvance(true);
   };
 
-  // --- MATCHING LOGIC ---
+  // --- MATCHING LOGIC WITH VISIBLE INTERLOCKING ---
   const handleSelectThreat = (pair: MatchingPair) => {
     if (matchedIds.includes(pair.id) || canAdvance) return;
     setSelectedThreat({ id: pair.id, btnId: `threat-${pair.id}` });
@@ -113,26 +122,38 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     if (threatId === solutionId && pair) {
       const nextMatched = [...matchedIds, threatId];
       setMatchedIds(nextMatched);
+
+      // Add to visually connected pairs list
+      setConnectedPairs((prev) => [
+        ...prev,
+        {
+          id: pair.id,
+          threat: pair.threatOrTerm,
+          solution: pair.solutionOrDef,
+          explanation: pair.explanation,
+        },
+      ]);
+
       setSelectedThreat(null);
       setSelectedSolution(null);
 
       const allSolved = nextMatched.length === (currentStation?.matchingPairs?.length || 0);
       setFeedback({
         type: "correct",
-        title: allSolved ? "Großartig! Alle Paare vollständig gelöst" : "Treffer! Passende Maßnahme verbunden",
-        selectionExplanation: pair.explanation || "Dieses Paar gehört genau zusammen: Die Maßnahme neutralisiert die Gefahrenquelle direkt.",
+        title: allSolved ? "Großartig! Alle Puzzleteile perfekt verzahnt" : "Puzzleteile eingerastet! ✓",
+        selectionExplanation: pair.explanation || "Diese beiden Puzzleteile greifen exakt ineinander.",
         zqpBackground: allSolved
           ? (currentStation?.zqpRationale || "Alle Maßnahmen tragen entscheidend zur Entschärfung typischer Wohnraumrisiken bei.")
-          : `Noch ${(currentStation?.matchingPairs?.length || 0) - nextMatched.length} Paar(e) offen.`,
+          : `Noch ${(currentStation?.matchingPairs?.length || 0) - nextMatched.length} Puzzleteil(e) offen.`,
       });
 
       if (allSolved) setCanAdvance(true);
     } else {
       setFeedback({
         type: "incorrect",
-        title: "Nicht ganz die ideale Kombination",
-        selectionExplanation: "Diese Maßnahme wurde für eine andere Gefahrenquelle konzipiert. Überlegen Sie, welcher Schutz die genannte Gefahr am unmittelbarsten entschärft.",
-        zqpBackground: "Im Pflegealltag ist es wichtig, dass Hilfsmittel exakt zur Gefahrensituation passen (z. B. Feuchtigkeit vs. Orientierung).",
+        title: "Puzzleteile passen nicht zusammen",
+        selectionExplanation: "Diese beiden Teile lassen sich nicht verzahnen: Die Maßnahme ist für eine andere Gefahrenquelle vorgesehen.",
+        zqpBackground: "Achten Sie auf die genaue Ursache der Gefahr (z. B. Feuchtigkeit am Boden vs. schlechte Sicht bei Nacht).",
       });
       setTimeout(() => {
         setSelectedThreat(null);
@@ -157,17 +178,17 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     if (isAllCorrect) {
       setFeedback({
         type: "correct",
-        title: "Perfekt sortiert! Richtiger Bewegungsablauf",
-        selectionExplanation: currentStation?.solutionExplanation || "Alle Schritte sind biomechanisch genau in der richtigen Abfolge.",
-        zqpBackground: currentStation?.zqpRationale || "Durch das Vorrutschen und Aufstellen der Fersen wird der Schwerpunkt stabilisiert, bevor Kraft zum Aufrichten aufgewendet wird.",
+        title: "Puzzlekette vollständig geschlossen! Richtiger Ablauf",
+        selectionExplanation: currentStation?.solutionExplanation || "Alle Schritte greifen biomechanisch optimal ineinander.",
+        zqpBackground: currentStation?.zqpRationale || "Vorrutschen und Standflächensicherung sind unverzichtbar vor der Streckbewegung.",
       });
       setCanAdvance(true);
     } else {
       setFeedback({
         type: "incorrect",
-        title: "Die Reihenfolge stimmt noch nicht ganz",
-        selectionExplanation: "Warum das wichtig ist: Wenn man versucht aufzustehen, bevor die Fersen stabil stehen oder der Schwerpunkt vorne ist, droht ein Zurückfallen in den Sessel.",
-        zqpBackground: "Achten Sie darauf, dass erst die Unterstützungsfläche gesichert werden muss, bevor die eigentliche Aufstehbewegung eingeleitet wird.",
+        title: "Die Kette ist noch unterbrochen",
+        selectionExplanation: "Ein Schritt wurde zu früh oder zu spät angesetzt. Überlegen Sie, welcher vorbereitende Schritt zuerst Stabilität verleiht.",
+        zqpBackground: "Erst Standfläche sichern, dann Schwerpunkt verlagern, dann aufrichten.",
       });
     }
   };
@@ -183,7 +204,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         type: "correct",
         title: "Hervorragend gewählt! Sturzsicheres Wohnen",
         selectionExplanation: scenario.explanation,
-        zqpBackground: currentStation.zqpRationale || "Fixierte Kabel und freie Laufwege reduzieren das Risiko von Stürzen älterer Menschen nachweislich um ein Vielfaches.",
+        zqpBackground: currentStation.zqpRationale || "Fixierte Kabel und freie Laufwege reduzieren das Sturzrisiko nachhaltig.",
       });
       setCanAdvance(true);
     } else {
@@ -191,7 +212,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         type: "incorrect",
         title: "Vorsicht: Dieses Szenario birgt erhebliche Sturzrisiken",
         selectionExplanation: scenario.explanation,
-        zqpBackground: currentStation.solutionExplanation || "Lose Teppichläufer und im Raum liegende Kabel gehören zu den gefährlichsten Unfallursachen im häuslichen Umfeld.",
+        zqpBackground: currentStation.solutionExplanation || "Lose Teppichläufer und im Raum liegende Kabel sind häufige Sturzursachen.",
       });
     }
   };
@@ -214,7 +235,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         type: "incorrect",
         title: "Nicht die empfohlene Maßnahme",
         selectionExplanation: opt.explanation,
-        zqpBackground: currentStation.solutionExplanation || "Überlegen Sie, welche Option den sichersten und nachhaltigsten Schutz bietet.",
+        zqpBackground: currentStation.solutionExplanation || "Überlegen Sie, welche Option den sichersten Schutz bietet.",
       });
     }
   };
@@ -227,6 +248,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     }
   };
 
+  // Color badges for matched pairs to show their explicit link
+  const pairColors = [
+    { border: "border-teal-500", bg: "bg-teal-50", text: "text-teal-900", badge: "bg-[#247a6d] text-white" },
+    { border: "border-emerald-500", bg: "bg-emerald-50", text: "text-emerald-900", badge: "bg-emerald-600 text-white" },
+    { border: "border-cyan-500", bg: "bg-cyan-50", text: "text-cyan-900", badge: "bg-cyan-700 text-white" },
+    { border: "border-indigo-500", bg: "bg-indigo-50", text: "text-indigo-900", badge: "bg-indigo-700 text-white" },
+  ];
+
   return (
     <div className="flex flex-col h-full">
       {/* Top Viewport & Reset Bar */}
@@ -234,14 +263,15 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#1b5c53]">
             {completed
-              ? "Auswertung & Zertifikat"
+              ? "Auswertung"
               : `Station ${currentStationIdx + 1} von ${quiz.stations.length}`}
           </span>
-          <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#e3eeec] text-[#1b5c53] font-semibold border border-[#bbd1cd]">
-            {currentStation?.type === "matching" && "🧩 Zuordnungs-Puzzle"}
-            {currentStation?.type === "ordering" && "🔢 Ablauf-Reihenfolge"}
-            {currentStation?.type === "comparison" && "⚖️ Situationsvergleich"}
-            {currentStation?.type === "single_choice" && "💡 Wissenscheck"}
+          <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#e3eeec] text-[#1b5c53] font-semibold border border-[#bbd1cd] flex items-center gap-1">
+            <Puzzle className="w-3 h-3 text-[#247a6d]" />
+            {currentStation?.type === "matching" && "Zuordnungs-Puzzle"}
+            {currentStation?.type === "ordering" && "Ablauf-Puzzlekette"}
+            {currentStation?.type === "comparison" && "Situationsvergleich"}
+            {currentStation?.type === "single_choice" && "Wissenscheck"}
           </span>
         </div>
 
@@ -285,15 +315,15 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       <div className="flex-1 flex justify-center items-start overflow-y-auto">
         <div
           className={`w-full bg-white border border-[#bbd1cd] rounded-2xl shadow-md overflow-hidden transition-all duration-300 ${
-            viewport === "mobile" ? "max-w-[375px]" : "max-w-2xl"
+            viewport === "mobile" ? "max-w-[385px]" : "max-w-2xl"
           }`}
         >
           {/* Header with ZQP Petrol & dynamic progress bar */}
           <div className="bg-gradient-to-r from-[#247a6d] to-[#1b5c53] text-white p-5 shadow-sm">
             <div className="flex items-center justify-between text-xs text-[#bbd1cd] font-semibold uppercase tracking-wider mb-1.5">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                ZQP Wissenstest
+                <Puzzle className="w-3.5 h-3.5 text-emerald-400" />
+                ZQP Interaktiver Praxistest
               </span>
               <span>
                 {completed
@@ -326,15 +356,27 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                   </h3>
                 </div>
 
-                {/* 1. MATCHING STATION */}
+                {/* ==============================================================
+                    1. AUTHENTIC JIGSAW MATCHING PUZZLE WITH VISIBLE CONNECTIONS
+                    ============================================================== */}
                 {currentStation.type === "matching" && currentStation.matchingPairs && (
                   <div className="space-y-4">
-                    <p className="text-xs text-[#6e6c70]">
-                      Klicken Sie zuerst links auf eine Gefahrenstelle und dann rechts auf die passende ZQP-Schutzmaßnahme:
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {/* Left: Threats */}
-                      <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-[#6e6c70] bg-[#f3f8f7] p-2.5 rounded-lg border border-[#bbd1cd]">
+                      <span>
+                        Wählen Sie links ein Puzzleteil (凸) und rechts das Gegenstück (凹), um sie zu verzahnen:
+                      </span>
+                      <span className="font-bold text-[#1b5c53] shrink-0 ml-2">
+                        {matchedIds.length} / {currentStation.matchingPairs.length} verzahnt
+                      </span>
+                    </div>
+
+                    {/* Unmatched Interactive Grid */}
+                    <div className="grid grid-cols-2 gap-4 relative">
+                      {/* Left: Threats with protruding Jigsaw Tab on right */}
+                      <div className="space-y-3">
+                        <span className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wider block mb-1">
+                          Puzzleteile: Gefahrenquelle
+                        </span>
                         {currentStation.matchingPairs.map((pair) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedThreat?.id === pair.id;
@@ -343,25 +385,41 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                               key={`th-${pair.id}`}
                               onClick={() => handleSelectThreat(pair)}
                               disabled={isMatched || canAdvance}
-                              className={`puzzle-piece w-full p-3 text-left rounded-xl border-2 text-xs font-semibold flex items-center justify-between transition-all ${
+                              className={`jigsaw-left w-full p-3 pr-6 text-left border-2 text-xs font-semibold relative transition-all ${
                                 isMatched
-                                  ? "border-emerald-500 bg-emerald-50 text-emerald-950 shadow-xs"
+                                  ? "border-emerald-500 bg-emerald-50/70 text-emerald-950 opacity-60 shadow-none cursor-default"
                                   : isSelected
-                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-sm"
-                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7]"
+                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-md -translate-x-1"
+                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7] shadow-xs"
                               }`}
                             >
-                              <span>{pair.threatOrTerm}</span>
-                              <span className="font-bold text-[11px] ml-1">
-                                {isMatched ? "✓" : "➔"}
-                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold shrink-0">
+                                  Gefahr
+                                </span>
+                                <span className="leading-snug">{pair.threatOrTerm}</span>
+                              </div>
+
+                              {/* Jigsaw Connector Tab on Right Edge */}
+                              <div
+                                className={`puzzle-tab-right border-2 ${
+                                  isMatched
+                                    ? "bg-emerald-50 border-emerald-500"
+                                    : isSelected
+                                    ? "bg-[#247a6d] border-[#1b5c53] shadow-sm animate-pulse"
+                                    : "bg-white border-[#bbd1cd]"
+                                }`}
+                              />
                             </button>
                           );
                         })}
                       </div>
 
-                      {/* Right: Solutions */}
-                      <div className="space-y-2">
+                      {/* Right: Solutions with inward Jigsaw Socket on left */}
+                      <div className="space-y-3">
+                        <span className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wider block mb-1">
+                          Gegenstücke: Schutzmaßnahme
+                        </span>
                         {currentStation.matchingPairs.map((pair) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedSolution?.id === pair.id;
@@ -370,73 +428,141 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                               key={`sol-${pair.id}`}
                               onClick={() => handleSelectSolution(pair)}
                               disabled={isMatched || canAdvance}
-                              className={`puzzle-piece w-full p-3 text-left rounded-xl border-2 text-xs font-semibold flex items-center justify-between transition-all ${
+                              className={`jigsaw-right w-full p-3 pl-6 text-left border-2 text-xs font-semibold relative transition-all ${
                                 isMatched
-                                  ? "border-emerald-500 bg-emerald-50 text-emerald-950 shadow-xs"
+                                  ? "border-emerald-500 bg-emerald-50/70 text-emerald-950 opacity-60 shadow-none cursor-default"
                                   : isSelected
-                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-sm"
-                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7]"
+                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-md translate-x-1"
+                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7] shadow-xs"
                               }`}
                             >
-                              <span>{pair.solutionOrDef}</span>
-                              <span className="font-bold text-[11px] ml-1">
-                                {isMatched ? "✓" : "○"}
-                              </span>
+                              {/* Jigsaw Socket on Left Edge */}
+                              <div
+                                className={`puzzle-blank-left border-2 ${
+                                  isMatched
+                                    ? "bg-emerald-50 border-emerald-500"
+                                    : isSelected
+                                    ? "bg-[#e3eeec] border-[#247a6d] shadow-sm"
+                                    : "bg-[#fcfaf8] border-[#bbd1cd]"
+                                }`}
+                              />
+
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold shrink-0">
+                                  Lösung
+                                </span>
+                                <span className="leading-snug">{pair.solutionOrDef}</span>
+                              </div>
                             </button>
                           );
                         })}
                       </div>
                     </div>
+
+                    {/* === PERSISTENT VISUAL CONNECTIONS & DOCKING SEAM === */}
+                    {connectedPairs.length > 0 && (
+                      <div className="mt-4 pt-3 border-t-2 border-dashed border-[#bbd1cd] space-y-2.5">
+                        <span className="text-xs font-bold text-[#1b5c53] flex items-center gap-1.5">
+                          <LinkIcon className="w-3.5 h-3.5 text-[#247a6d]" />
+                          Erfolgreich verzahnte Puzzleteile ({connectedPairs.length}):
+                        </span>
+
+                        {connectedPairs.map((cp, idx) => {
+                          const col = pairColors[idx % pairColors.length];
+                          return (
+                            <div
+                              key={cp.id}
+                              className={`p-3 rounded-xl border-2 ${col.border} ${col.bg} flex flex-col gap-1.5 animate-puzzle-snap shadow-xs`}
+                            >
+                              {/* Interlocking Puzzle Header */}
+                              <div className="flex items-center justify-between gap-2 text-xs font-bold flex-wrap">
+                                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-[#bbd1cd] text-[#444]">
+                                  <Puzzle className="w-3.5 h-3.5 text-[#247a6d]" />
+                                  <span>{cp.threat}</span>
+                                </div>
+
+                                <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-600 text-white text-[11px] shadow-xs">
+                                  <span>🧩 Verzahnt</span>
+                                </div>
+
+                                <div className="flex items-center gap-1.5 bg-white px-2.5 py-1 rounded-lg border border-[#bbd1cd] text-[#444]">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                                  <span>{cp.solution}</span>
+                                </div>
+                              </div>
+
+                              {/* Why this pair interlocks */}
+                              {cp.explanation && (
+                                <p className="text-[11px] text-[#444] bg-white/70 p-2 rounded-lg border border-black/5 leading-relaxed">
+                                  <strong>Didaktischer Zusammenhang:</strong> {cp.explanation}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* 2. ORDERING STATION */}
+                {/* ==============================================================
+                    2. ORDERING STATION (VERTICAL JIGSAW PUZZLE CHAIN)
+                    ============================================================== */}
                 {currentStation.type === "ordering" && (
                   <div className="space-y-3">
                     <p className="text-xs text-[#6e6c70]">
-                      Ordnen Sie die Schritte mit den Pfeilen von oben nach unten (1 bis {orderedList.length}):
+                      Ordnen Sie die Puzzlekette mit den Pfeiltasten in die richtige biomechanische Reihenfolge:
                     </p>
-                    <div className="space-y-2">
-                      {orderedList.map((step, idx) => (
-                        <div
-                          key={step.id}
-                          className="p-3 rounded-xl border-2 border-[#bbd1cd] bg-white flex items-center justify-between text-xs shadow-xs"
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <span className="w-6 h-6 rounded-full bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs shadow-xs">
-                              {idx + 1}
-                            </span>
-                            <div>
-                              <span className="font-semibold text-[#444] block">{step.text}</span>
-                              {canAdvance && step.reason && (
-                                <span className="text-[11px] text-[#1b5c53] mt-0.5 block">
-                                  {step.reason}
+                    <div className="space-y-2 relative">
+                      {orderedList.map((step, idx) => {
+                        const isFirst = idx === 0;
+                        const isLast = idx === orderedList.length - 1;
+                        return (
+                          <div
+                            key={step.id}
+                            className={`p-3.5 rounded-xl border-2 border-[#bbd1cd] bg-white flex items-center justify-between text-xs shadow-xs relative transition-all ${
+                              canAdvance ? "border-emerald-500 bg-emerald-50/50" : "hover:border-[#247a6d]"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="w-7 h-7 rounded-lg bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                                #{idx + 1}
+                              </span>
+                              <div>
+                                <span className="font-semibold text-[#444] block text-xs leading-snug">
+                                  {step.text}
                                 </span>
-                              )}
+                                {canAdvance && step.reason && (
+                                  <span className="text-[11px] text-[#1b5c53] mt-1 block">
+                                    💡 {step.reason}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex gap-1 shrink-0 ml-2">
+                              <button
+                                type="button"
+                                onClick={() => handleMoveOrderItem(idx, -1)}
+                                disabled={isFirst || canAdvance}
+                                className="p-1.5 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
+                                title="Nach oben schieben"
+                              >
+                                <ArrowUp className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleMoveOrderItem(idx, 1)}
+                                disabled={isLast || canAdvance}
+                                className="p-1.5 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
+                                title="Nach unten schieben"
+                              >
+                                <ArrowDown className="w-3.5 h-3.5" />
+                              </button>
                             </div>
                           </div>
-                          <div className="flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() => handleMoveOrderItem(idx, -1)}
-                              disabled={idx === 0 || canAdvance}
-                              className="p-1.5 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
-                              title="Nach oben verschieben"
-                            >
-                              <ArrowUp className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleMoveOrderItem(idx, 1)}
-                              disabled={idx === orderedList.length - 1 || canAdvance}
-                              className="p-1.5 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
-                              title="Nach unten verschieben"
-                            >
-                              <ArrowDown className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
 
                     {!canAdvance && (
@@ -444,13 +570,15 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         onClick={handleCheckOrder}
                         className="mt-1 bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm"
                       >
-                        Reihenfolge überprüfen
+                        Puzzlekette prüfen
                       </button>
                     )}
                   </div>
                 )}
 
-                {/* 3. COMPARISON STATION */}
+                {/* ==============================================================
+                    3. COMPARISON STATION (A/B SCENARIOS)
+                    ============================================================== */}
                 {currentStation.type === "comparison" && currentStation.comparisonScenarios && (
                   <div className="space-y-4">
                     <p className="text-xs text-[#6e6c70]">
@@ -505,7 +633,9 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                   </div>
                 )}
 
-                {/* 4. SINGLE CHOICE STATION */}
+                {/* ==============================================================
+                    4. SINGLE CHOICE STATION
+                    ============================================================== */}
                 {currentStation.type === "single_choice" && currentStation.options && (
                   <div className="space-y-3">
                     <div className="space-y-2">
@@ -573,7 +703,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     </div>
 
                     {/* Specific explanation why this selection was right or wrong */}
-                    <div className="mb-2 bg-white/70 p-2.5 rounded-lg border border-black/5">
+                    <div className="mb-2 bg-white/80 p-2.5 rounded-lg border border-black/5">
                       <strong className="block text-[#1b5c53] mb-0.5">
                         {feedback.type === "correct" ? "Warum diese Auswahl richtig ist:" : "Didaktische Erklärung:"}
                       </strong>
@@ -592,7 +722,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
                 {/* Bottom Navigation & "LÖSUNG ANZEIGEN" Button */}
                 <div className="mt-4 pt-4 border-t border-[#e3eeec] flex items-center justify-between gap-2 flex-wrap">
-                  {/* "Lösung anzeigen" Button */}
                   {!canAdvance ? (
                     <button
                       type="button"
@@ -606,11 +735,10 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                   ) : (
                     <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      Station abgeschlossen
+                      Station gelöst & abgeschlossen
                     </span>
                   )}
 
-                  {/* Advance to next station */}
                   {canAdvance && (
                     <button
                       onClick={handleNextStation}
