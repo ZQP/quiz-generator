@@ -46,6 +46,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   }
   const [pointerDrag, setPointerDrag] = useState<ActivePointerDrag | null>(null);
   const pointerDragRef = useRef<ActivePointerDrag | null>(null);
+  const hoverTargetRef = useRef<{ type: string; id: string } | null>(null);
   const wasDraggingRef = useRef<boolean>(false);
 
   // 1. MATCHING STATE
@@ -58,7 +59,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
   // 2. ORDERING STATE
   const [orderedList, setOrderedList] = useState<{ id: string; text: string; correctIndex: number; reason?: string }[]>([]);
-  const [draggedStepIdx, setDraggedStepIdx] = useState<number | null>(null);
   const [dragOverStepIdx, setDragOverStepIdx] = useState<number | null>(null);
 
   // 3. COMPARISON STATE
@@ -108,8 +108,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     setMatchedIds([]);
     setDraggedThreatId(null);
     setDragOverSolId(null);
-
-    setDraggedStepIdx(null);
     setDragOverStepIdx(null);
 
     setSelectedScenarioId(null);
@@ -288,7 +286,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     const [moved] = nextList.splice(fromIndex, 1);
     nextList.splice(toIndex, 0, moved);
     setOrderedList(nextList);
-    setDraggedStepIdx(null);
     setDragOverStepIdx(null);
   };
 
@@ -566,6 +563,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       isDragging: false,
     };
     pointerDragRef.current = initialDrag;
+    hoverTargetRef.current = null;
 
     const handlePointerMove = (moveEvt: PointerEvent) => {
       if (!pointerDragRef.current) return;
@@ -573,11 +571,13 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       const dy = moveEvt.clientY - pointerDragRef.current.startY;
       const distance = Math.hypot(dx, dy);
 
-      if (!pointerDragRef.current.isDragging && distance > 5) {
+      if (!pointerDragRef.current.isDragging && distance > 4) {
         pointerDragRef.current.isDragging = true;
       }
 
       if (pointerDragRef.current.isDragging) {
+        moveEvt.preventDefault();
+
         pointerDragRef.current.currentX = moveEvt.clientX;
         pointerDragRef.current.currentY = moveEvt.clientY;
         setPointerDrag({ ...pointerDragRef.current });
@@ -586,19 +586,29 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
         if (type === "matching") {
           const dropEl = el?.closest("[data-drop-solution-id]") as HTMLElement | null;
-          setDragOverSolId(dropEl?.dataset.dropSolutionId || null);
+          const solId = dropEl?.dataset.dropSolutionId || null;
+          setDragOverSolId(solId);
+          hoverTargetRef.current = solId ? { type: "matching", id: solId } : null;
         } else if (type === "ordering") {
           const dropEl = el?.closest("[data-drop-step-idx]") as HTMLElement | null;
-          setDragOverStepIdx(dropEl ? Number(dropEl.dataset.dropStepIdx) : null);
+          const stepIdx = dropEl ? Number(dropEl.dataset.dropStepIdx) : null;
+          setDragOverStepIdx(stepIdx);
+          hoverTargetRef.current = stepIdx !== null ? { type: "ordering", id: String(stepIdx) } : null;
         } else if (type === "myth_fact") {
           const dropEl = el?.closest("[data-drop-myth-target]") as HTMLElement | null;
-          setDragOverMythTarget((dropEl?.dataset.dropMythTarget as any) || null);
+          const mythTarget = (dropEl?.dataset.dropMythTarget as "myth" | "fact") || null;
+          setDragOverMythTarget(mythTarget);
+          hoverTargetRef.current = mythTarget ? { type: "myth_fact", id: mythTarget } : null;
         } else if (type === "bucket_sort") {
           const dropEl = el?.closest("[data-drop-bucket]") as HTMLElement | null;
-          setDragOverBucket((dropEl?.dataset.dropBucket as any) || null);
+          const bucket = (dropEl?.dataset.dropBucket as "do" | "dont") || null;
+          setDragOverBucket(bucket);
+          hoverTargetRef.current = bucket ? { type: "bucket_sort", id: bucket } : null;
         } else if (type === "fill_in_the_blank") {
           const dropEl = el?.closest("[data-drop-blank-id]") as HTMLElement | null;
-          setDragOverBlankId(dropEl?.dataset.dropBlankId || null);
+          const blankId = dropEl?.dataset.dropBlankId || null;
+          setDragOverBlankId(blankId);
+          hoverTargetRef.current = blankId ? { type: "fill_in_the_blank", id: blankId } : null;
         }
       }
     };
@@ -606,55 +616,58 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     const handlePointerUp = (upEvt: PointerEvent) => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
-      window.removeEventListener("pointercancel", handlePointerUp);
 
       const drag = pointerDragRef.current;
       if (drag && drag.isDragging) {
         wasDraggingRef.current = true;
         setTimeout(() => {
           wasDraggingRef.current = false;
-        }, 120);
+        }, 150);
 
         const el = document.elementFromPoint(upEvt.clientX, upEvt.clientY);
+        const activeHover = hoverTargetRef.current;
 
         if (drag.type === "matching") {
           const dropEl = el?.closest("[data-drop-solution-id]") as HTMLElement | null;
-          const targetSolId = dropEl?.dataset.dropSolutionId;
+          const targetSolId = dropEl?.dataset.dropSolutionId || (activeHover?.type === "matching" ? activeHover.id : undefined);
           if (targetSolId) {
             checkMatch(drag.id, targetSolId);
           }
         } else if (drag.type === "ordering") {
           const dropEl = el?.closest("[data-drop-step-idx]") as HTMLElement | null;
-          if (dropEl && dropEl.dataset.dropStepIdx !== undefined) {
-            handleReorderDrop(Number(drag.id), Number(dropEl.dataset.dropStepIdx));
+          const targetStepIdx = dropEl?.dataset.dropStepIdx !== undefined
+            ? Number(dropEl.dataset.dropStepIdx)
+            : (activeHover?.type === "ordering" ? Number(activeHover.id) : undefined);
+          if (targetStepIdx !== undefined && !isNaN(targetStepIdx)) {
+            handleReorderDrop(Number(drag.id), targetStepIdx);
           }
         } else if (drag.type === "myth_fact") {
           const dropEl = el?.closest("[data-drop-myth-target]") as HTMLElement | null;
-          const target = dropEl?.dataset.dropMythTarget;
+          const target = dropEl?.dataset.dropMythTarget || (activeHover?.type === "myth_fact" ? activeHover.id : undefined);
           if (target === "myth") handleSelectMythFact(false);
           else if (target === "fact") handleSelectMythFact(true);
         } else if (drag.type === "bucket_sort") {
           const dropEl = el?.closest("[data-drop-bucket]") as HTMLElement | null;
-          const bucket = dropEl?.dataset.dropBucket;
+          const bucket = dropEl?.dataset.dropBucket || (activeHover?.type === "bucket_sort" ? activeHover.id : undefined);
           if (bucket === "do" || bucket === "dont") {
-            handleAssignBucket(drag.id, bucket);
+            handleAssignBucket(drag.id, bucket as "do" | "dont");
           }
         } else if (drag.type === "fill_in_the_blank") {
           const dropEl = el?.closest("[data-drop-blank-id]") as HTMLElement | null;
-          const blankId = dropEl?.dataset.dropBlankId;
+          const blankId = dropEl?.dataset.dropBlankId || (activeHover?.type === "fill_in_the_blank" ? activeHover.id : undefined);
           if (blankId) {
             handleAssignWordToBlank(blankId, drag.id);
           }
         }
       }
 
+      hoverTargetRef.current = null;
       setDragOverSolId(null);
       setDragOverStepIdx(null);
       setDragOverMythTarget(null);
       setDragOverBucket(null);
       setDragOverBlankId(null);
       setDraggedThreatId(null);
-      setDraggedStepIdx(null);
       setDraggedBucketItemId(null);
       setDraggedWord(null);
       setDraggedMythStatement(false);
@@ -663,9 +676,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       setPointerDrag(null);
     };
 
-    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointermove", handlePointerMove, { passive: false });
     window.addEventListener("pointerup", handlePointerUp);
-    window.addEventListener("pointercancel", handlePointerUp);
   };
 
   const pairColorThemes = [
@@ -825,23 +837,17 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           return (
                             <div
                               key={`th-${pair.id}`}
-                              draggable={!isMatched && !canAdvance}
                               style={{ touchAction: "none" }}
                               onPointerDown={(e) => {
                                 if (!isMatched && !canAdvance) {
                                   startPointerDrag(e, "matching", pair.id, pair.threatOrTerm);
                                 }
                               }}
-                              onDragStart={(e) => {
-                                e.dataTransfer.effectAllowed = "move";
-                                e.dataTransfer.setData("text/plain", pair.id);
-                                setDraggedThreatId(pair.id);
-                              }}
-                              onDragEnd={() => setDraggedThreatId(null)}
+                              onDragStart={(e) => e.preventDefault()}
                               onClick={() => {
                                 if (!wasDraggingRef.current) handleSelectThreat(pair);
                               }}
-                              className={`zqp-papercut-card p-2 text-left cursor-grab active:cursor-grabbing transition-all ${
+                              className={`zqp-papercut-card zqp-draggable select-none p-2 text-left transition-all ${
                                 isMatched
                                   ? `zqp-papercut-matched ${theme.border} ${theme.bg} cursor-default`
                                   : isSelected
@@ -958,31 +964,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           <div
                             key={step.id}
                             data-drop-step-idx={idx}
-                            draggable={!canAdvance}
                             style={{ touchAction: "none" }}
                             onPointerDown={(e) => {
                               if (!canAdvance) {
                                 startPointerDrag(e, "ordering", String(idx), step.text);
                               }
                             }}
-                            onDragStart={(e) => {
-                              e.dataTransfer.effectAllowed = "move";
-                              e.dataTransfer.setData("text/plain", String(idx));
-                              setDraggedStepIdx(idx);
-                            }}
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              e.dataTransfer.dropEffect = "move";
-                              setDragOverStepIdx(idx);
-                            }}
-                            onDragLeave={() => setDragOverStepIdx(null)}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              setDragOverStepIdx(null);
-                              const from = Number(e.dataTransfer.getData("text/plain") ?? draggedStepIdx);
-                              if (!isNaN(from)) handleReorderDrop(from, idx);
-                            }}
-                            className={`zqp-papercut-card p-2 sm:p-2.5 flex items-center justify-between text-xs relative cursor-grab active:cursor-grabbing transition-all ${
+                            onDragStart={(e) => e.preventDefault()}
+                            className={`zqp-papercut-card zqp-draggable select-none p-2 sm:p-2.5 flex items-center justify-between text-xs relative transition-all ${
                               canAdvance
                                 ? "border-emerald-500 bg-[#edf7f4] locked cursor-default"
                                 : isDragOver
@@ -1033,20 +1022,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                 {currentStation.type === "myth_fact" && currentStation.mythFactItems?.length && (
                   <div className="space-y-3">
                     <div
-                      draggable={!canAdvance}
                       style={{ touchAction: "none" }}
                       onPointerDown={(e) => {
                         if (!canAdvance && currentStation.mythFactItems?.[0]) {
                           startPointerDrag(e, "myth_fact", "statement", currentStation.mythFactItems[0].statement);
                         }
                       }}
-                      onDragStart={(e) => {
-                        e.dataTransfer.effectAllowed = "move";
-                        e.dataTransfer.setData("text/plain", "statement");
-                        setDraggedMythStatement(true);
-                      }}
-                      onDragEnd={() => setDraggedMythStatement(false)}
-                      className={`zqp-papercut-card p-3 sm:p-4 text-center cursor-grab active:cursor-grabbing border-[#e2ddd5] transition-all ${
+                      onDragStart={(e) => e.preventDefault()}
+                      className={`zqp-papercut-card zqp-draggable select-none p-3 sm:p-4 text-center border-[#e2ddd5] transition-all ${
                         draggedMythStatement ? "opacity-60 scale-95 shadow-lg" : ""
                       }`}
                     >
@@ -1209,20 +1192,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         return (
                           <div
                             key={item.id}
-                            draggable={!canAdvance}
                             style={{ touchAction: "none" }}
                             onPointerDown={(e) => {
                               if (!canAdvance) {
                                 startPointerDrag(e, "bucket_sort", item.id, item.text);
                               }
                             }}
-                            onDragStart={(e) => {
-                              e.dataTransfer.effectAllowed = "move";
-                              e.dataTransfer.setData("text/plain", item.id);
-                              setDraggedBucketItemId(item.id);
-                            }}
-                            onDragEnd={() => setDraggedBucketItemId(null)}
-                            className={`zqp-papercut-card p-2 flex items-center justify-between text-xs cursor-grab active:cursor-grabbing transition-all ${
+                            onDragStart={(e) => e.preventDefault()}
+                            className={`zqp-papercut-card zqp-draggable select-none p-2 flex items-center justify-between text-xs transition-all ${
                               assigned === "do"
                                 ? "border-emerald-400 bg-emerald-50/50"
                                 : assigned === "dont"
@@ -1451,25 +1428,19 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           return (
                             <button
                               key={wIdx}
-                              draggable={!canAdvance && !isUsed}
                               style={{ touchAction: "none" }}
                               onPointerDown={(e) => {
                                 if (!canAdvance && !isUsed) {
                                   startPointerDrag(e, "fill_in_the_blank", word, word);
                                 }
                               }}
-                              onDragStart={(e) => {
-                                e.dataTransfer.effectAllowed = "move";
-                                e.dataTransfer.setData("text/plain", word);
-                                setDraggedWord(word);
-                              }}
-                              onDragEnd={() => setDraggedWord(null)}
+                              onDragStart={(e) => e.preventDefault()}
                               onClick={() => {
                                 if (!wasDraggingRef.current && activeBlankId) {
                                   handleAssignWordToBlank(activeBlankId, word);
                                 }
                               }}
-                              className={`px-3 py-1.5 rounded-lg zqp-papercut-card text-xs font-bold transition-all cursor-grab active:cursor-grabbing ${
+                              className={`px-3 py-1.5 rounded-lg zqp-papercut-card zqp-draggable select-none text-xs font-bold transition-all ${
                                 isUsed
                                   ? "opacity-40 border-gray-300 bg-gray-100 cursor-default"
                                   : "text-[#1b5c53] hover:border-[#247a6d]"

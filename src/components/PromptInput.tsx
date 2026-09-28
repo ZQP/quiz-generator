@@ -25,6 +25,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   );
   const [referenceText, setReferenceText] = useState<string>("");
   const [isRefOpen, setIsRefOpen] = useState<boolean>(false);
+  const [isMechanicsOpen, setIsMechanicsOpen] = useState<boolean>(false);
   const [questionCount, setQuestionCount] = useState<number>(3);
   const [targetAudience, setTargetAudience] = useState<TargetAudience>("angehoerige");
 
@@ -162,140 +163,174 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           </div>
         </div>
 
-        {/* Gamification / Mechanics Selection */}
-        <div className="border border-[#bbd1cd] rounded-xl p-3.5 bg-[#fcfaf8]">
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs font-bold text-[#1b5c53] flex items-center gap-1.5">
+        {/* Gamification / Mechanics Selection (Standardmäßig eingeklappt) */}
+        <div className="border border-[#bbd1cd] rounded-lg overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setIsMechanicsOpen(!isMechanicsOpen)}
+            className="w-full bg-[#f3f8f7] px-4 py-2.5 text-left text-xs font-semibold text-[#1b5c53] flex items-center justify-between hover:bg-[#e3eeec] transition-colors"
+          >
+            <span className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-[#247a6d]" />
-              Interaktive Spielformate (Abwechslung)
-            </label>
-            <button
-              type="button"
-              onClick={() => selectAllMechanics(true)}
-              className="text-[11px] text-[#247a6d] hover:underline font-medium"
-            >
-              ✨ Bunter Mix (Alle an)
-            </button>
-          </div>
+              <span>Interaktive Spielformate & Quizoptionen</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-[#bbd1cd] text-[#247a6d] font-bold">
+                {mechanics.length === ALL_MECHANICS.length
+                  ? "Bunter Mix (alle 9 aktiv)"
+                  : `${mechanics.length} von ${ALL_MECHANICS.length} aktiv`}
+              </span>
+            </span>
+            {isMechanicsOpen ? (
+              <ChevronDown className="w-4 h-4 text-[#247a6d]" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-[#247a6d]" />
+            )}
+          </button>
 
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("matching")}
-                onChange={() => toggleMechanic("matching")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">🧩 Zuordnungs-Puzzle</span>
-                <span className="text-[10px] text-[#6e6c70]">Drag & Drop (Gefahr ↔ Schutz)</span>
+          {isMechanicsOpen && (
+            <div className="p-3 bg-white flex flex-col gap-2.5">
+              <div className="flex items-center justify-between pb-1 border-b border-[#bbd1cd]/40">
+                <span className="text-[11px] text-[#6e6c70]">
+                  Wählen Sie, welche Stationstypen die KI generieren darf:
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => selectAllMechanics(true)}
+                    className="text-[11px] text-[#247a6d] hover:underline font-semibold"
+                  >
+                    ✨ Alle an
+                  </button>
+                  <span className="text-gray-300">•</span>
+                  <button
+                    type="button"
+                    onClick={() => selectAllMechanics(false)}
+                    className="text-[11px] text-[#6e6c70] hover:underline font-medium"
+                  >
+                    Nur Single-Choice
+                  </button>
+                </div>
               </div>
-            </label>
 
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("ordering")}
-                onChange={() => toggleMechanic("ordering")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">🔢 Ablauf / Reihenfolge</span>
-                <span className="text-[10px] text-[#6e6c70]">Schritte per Drag umsortieren</span>
-              </div>
-            </label>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("matching")}
+                    onChange={() => toggleMechanic("matching")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">🧩 Zuordnungs-Puzzle</span>
+                    <span className="text-[10px] text-[#6e6c70]">Gefahr ↔ Schutzmaßnahme</span>
+                  </div>
+                </label>
 
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("myth_fact")}
-                onChange={() => toggleMechanic("myth_fact")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">❌/💡 Mythos vs. Fakt</span>
-                <span className="text-[10px] text-[#6e6c70]">Alltagsirrtümer entlarven</span>
-              </div>
-            </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("ordering")}
+                    onChange={() => toggleMechanic("ordering")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">🔢 Ablauf / Reihenfolge</span>
+                    <span className="text-[10px] text-[#6e6c70]">Schritte per Drag umsortieren</span>
+                  </div>
+                </label>
 
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("bucket_sort")}
-                onChange={() => toggleMechanic("bucket_sort")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">📥 Dos & Don'ts</span>
-                <span className="text-[10px] text-[#6e6c70]">2-Spalten Sortier-Ablage</span>
-              </div>
-            </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("myth_fact")}
+                    onChange={() => toggleMechanic("myth_fact")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">❌/💡 Mythos vs. Fakt</span>
+                    <span className="text-[10px] text-[#6e6c70]">Alltagsirrtümer entlarven</span>
+                  </div>
+                </label>
 
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("comparison")}
-                onChange={() => toggleMechanic("comparison")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">⚖️ Situationsvergleich</span>
-                <span className="text-[10px] text-[#6e6c70]">Szenario A vs. B vergleichen</span>
-              </div>
-            </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("bucket_sort")}
+                    onChange={() => toggleMechanic("bucket_sort")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">📥 Dos & Don'ts</span>
+                    <span className="text-[10px] text-[#6e6c70]">2-Spalten Sortier-Ablage</span>
+                  </div>
+                </label>
 
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("dilemma")}
-                onChange={() => toggleMechanic("dilemma")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">🎭 Praxis-Dilemma</span>
-                <span className="text-[10px] text-[#6e6c70]">Fallbeispiel & Entscheidung</span>
-              </div>
-            </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("comparison")}
+                    onChange={() => toggleMechanic("comparison")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">⚖️ Situationsvergleich</span>
+                    <span className="text-[10px] text-[#6e6c70]">Szenario A vs. B vergleichen</span>
+                  </div>
+                </label>
 
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("checklist")}
-                onChange={() => toggleMechanic("checklist")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">📋 Checkliste</span>
-                <span className="text-[10px] text-[#6e6c70]">Lochkarten-Auswahl</span>
-              </div>
-            </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("dilemma")}
+                    onChange={() => toggleMechanic("dilemma")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">🎭 Praxis-Dilemma</span>
+                    <span className="text-[10px] text-[#6e6c70]">Fallbeispiel & Entscheidung</span>
+                  </div>
+                </label>
 
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("fill_in_the_blank")}
-                onChange={() => toggleMechanic("fill_in_the_blank")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">✍️ Wort-Lückentext</span>
-                <span className="text-[10px] text-[#6e6c70]">Wortbausteine einsetzen</span>
-              </div>
-            </label>
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("checklist")}
+                    onChange={() => toggleMechanic("checklist")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">📋 Checkliste</span>
+                    <span className="text-[10px] text-[#6e6c70]">Lochkarten-Auswahl</span>
+                  </div>
+                </label>
 
-            <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer col-span-2">
-              <input
-                type="checkbox"
-                checked={mechanics.includes("single_choice")}
-                onChange={() => toggleMechanic("single_choice")}
-                className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-              <div>
-                <span className="font-semibold block text-[#1b5c53]">💡 Wissenscheck</span>
-                <span className="text-[10px] text-[#6e6c70]">Klassische Single-Choice</span>
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("fill_in_the_blank")}
+                    onChange={() => toggleMechanic("fill_in_the_blank")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">✍️ Wort-Lückentext</span>
+                    <span className="text-[10px] text-[#6e6c70]">Wortbausteine einsetzen</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("single_choice")}
+                    onChange={() => toggleMechanic("single_choice")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <span className="font-semibold block text-[#1b5c53]">💡 Wissenscheck</span>
+                    <span className="text-[10px] text-[#6e6c70]">Klassische Single-Choice</span>
+                  </div>
+                </label>
               </div>
-            </label>
-          </div>
+            </div>
+          )}
         </div>
 
         {/* Reference Material Accordion */}
