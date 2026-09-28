@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   RotateCcw,
   Monitor,
@@ -32,6 +32,21 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [completed, setCompleted] = useState<boolean>(false);
 
   const currentStation: QuizStation | undefined = quiz.stations[currentStationIdx];
+
+  // UNIVERSAL POINTER DRAG STATE (Robust mouse & touch drag engine)
+  interface ActivePointerDrag {
+    type: "matching" | "ordering" | "myth_fact" | "bucket_sort" | "fill_in_the_blank";
+    id: string;
+    label: string;
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+    isDragging: boolean;
+  }
+  const [pointerDrag, setPointerDrag] = useState<ActivePointerDrag | null>(null);
+  const pointerDragRef = useRef<ActivePointerDrag | null>(null);
+  const wasDraggingRef = useRef<boolean>(false);
 
   // 1. MATCHING STATE
   const [selectedThreat, setSelectedThreat] = useState<{ id: string; btnId: string } | null>(null);
@@ -531,6 +546,128 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
     }
   };
 
+  // --- UNIVERSAL POINTER DRAG ENGINE ---
+  const startPointerDrag = (
+    e: React.PointerEvent,
+    type: ActivePointerDrag["type"],
+    id: string,
+    label: string
+  ) => {
+    if (e.button !== 0 || canAdvance) return;
+
+    const initialDrag: ActivePointerDrag = {
+      type,
+      id,
+      label,
+      startX: e.clientX,
+      startY: e.clientY,
+      currentX: e.clientX,
+      currentY: e.clientY,
+      isDragging: false,
+    };
+    pointerDragRef.current = initialDrag;
+
+    const handlePointerMove = (moveEvt: PointerEvent) => {
+      if (!pointerDragRef.current) return;
+      const dx = moveEvt.clientX - pointerDragRef.current.startX;
+      const dy = moveEvt.clientY - pointerDragRef.current.startY;
+      const distance = Math.hypot(dx, dy);
+
+      if (!pointerDragRef.current.isDragging && distance > 5) {
+        pointerDragRef.current.isDragging = true;
+      }
+
+      if (pointerDragRef.current.isDragging) {
+        pointerDragRef.current.currentX = moveEvt.clientX;
+        pointerDragRef.current.currentY = moveEvt.clientY;
+        setPointerDrag({ ...pointerDragRef.current });
+
+        const el = document.elementFromPoint(moveEvt.clientX, moveEvt.clientY);
+
+        if (type === "matching") {
+          const dropEl = el?.closest("[data-drop-solution-id]") as HTMLElement | null;
+          setDragOverSolId(dropEl?.dataset.dropSolutionId || null);
+        } else if (type === "ordering") {
+          const dropEl = el?.closest("[data-drop-step-idx]") as HTMLElement | null;
+          setDragOverStepIdx(dropEl ? Number(dropEl.dataset.dropStepIdx) : null);
+        } else if (type === "myth_fact") {
+          const dropEl = el?.closest("[data-drop-myth-target]") as HTMLElement | null;
+          setDragOverMythTarget((dropEl?.dataset.dropMythTarget as any) || null);
+        } else if (type === "bucket_sort") {
+          const dropEl = el?.closest("[data-drop-bucket]") as HTMLElement | null;
+          setDragOverBucket((dropEl?.dataset.dropBucket as any) || null);
+        } else if (type === "fill_in_the_blank") {
+          const dropEl = el?.closest("[data-drop-blank-id]") as HTMLElement | null;
+          setDragOverBlankId(dropEl?.dataset.dropBlankId || null);
+        }
+      }
+    };
+
+    const handlePointerUp = (upEvt: PointerEvent) => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+
+      const drag = pointerDragRef.current;
+      if (drag && drag.isDragging) {
+        wasDraggingRef.current = true;
+        setTimeout(() => {
+          wasDraggingRef.current = false;
+        }, 120);
+
+        const el = document.elementFromPoint(upEvt.clientX, upEvt.clientY);
+
+        if (drag.type === "matching") {
+          const dropEl = el?.closest("[data-drop-solution-id]") as HTMLElement | null;
+          const targetSolId = dropEl?.dataset.dropSolutionId;
+          if (targetSolId) {
+            checkMatch(drag.id, targetSolId);
+          }
+        } else if (drag.type === "ordering") {
+          const dropEl = el?.closest("[data-drop-step-idx]") as HTMLElement | null;
+          if (dropEl && dropEl.dataset.dropStepIdx !== undefined) {
+            handleReorderDrop(Number(drag.id), Number(dropEl.dataset.dropStepIdx));
+          }
+        } else if (drag.type === "myth_fact") {
+          const dropEl = el?.closest("[data-drop-myth-target]") as HTMLElement | null;
+          const target = dropEl?.dataset.dropMythTarget;
+          if (target === "myth") handleSelectMythFact(false);
+          else if (target === "fact") handleSelectMythFact(true);
+        } else if (drag.type === "bucket_sort") {
+          const dropEl = el?.closest("[data-drop-bucket]") as HTMLElement | null;
+          const bucket = dropEl?.dataset.dropBucket;
+          if (bucket === "do" || bucket === "dont") {
+            handleAssignBucket(drag.id, bucket);
+          }
+        } else if (drag.type === "fill_in_the_blank") {
+          const dropEl = el?.closest("[data-drop-blank-id]") as HTMLElement | null;
+          const blankId = dropEl?.dataset.dropBlankId;
+          if (blankId) {
+            handleAssignWordToBlank(blankId, drag.id);
+          }
+        }
+      }
+
+      setDragOverSolId(null);
+      setDragOverStepIdx(null);
+      setDragOverMythTarget(null);
+      setDragOverBucket(null);
+      setDragOverBlankId(null);
+      setDraggedThreatId(null);
+      setDraggedStepIdx(null);
+      setDraggedBucketItemId(null);
+      setDraggedWord(null);
+      setDraggedMythStatement(false);
+
+      pointerDragRef.current = null;
+      setPointerDrag(null);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+  };
+
   const pairColorThemes = [
     { border: "border-teal-500", bg: "bg-teal-50", badge: "bg-[#247a6d] text-white", label: "Paar #1" },
     { border: "border-emerald-500", bg: "bg-emerald-50", badge: "bg-emerald-600 text-white", label: "Paar #2" },
@@ -689,12 +826,21 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                             <div
                               key={`th-${pair.id}`}
                               draggable={!isMatched && !canAdvance}
+                              style={{ touchAction: "none" }}
+                              onPointerDown={(e) => {
+                                if (!isMatched && !canAdvance) {
+                                  startPointerDrag(e, "matching", pair.id, pair.threatOrTerm);
+                                }
+                              }}
                               onDragStart={(e) => {
+                                e.dataTransfer.effectAllowed = "move";
                                 e.dataTransfer.setData("text/plain", pair.id);
                                 setDraggedThreatId(pair.id);
                               }}
                               onDragEnd={() => setDraggedThreatId(null)}
-                              onClick={() => handleSelectThreat(pair)}
+                              onClick={() => {
+                                if (!wasDraggingRef.current) handleSelectThreat(pair);
+                              }}
                               className={`zqp-papercut-card p-2 text-left cursor-grab active:cursor-grabbing transition-all ${
                                 isMatched
                                   ? `zqp-papercut-matched ${theme.border} ${theme.bg} cursor-default`
@@ -741,8 +887,10 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           return (
                             <div
                               key={`sol-${pair.id}`}
+                              data-drop-solution-id={pair.id}
                               onDragOver={(e) => {
                                 e.preventDefault();
+                                e.dataTransfer.dropEffect = "move";
                                 if (!isMatched && !canAdvance) setDragOverSolId(pair.id);
                               }}
                               onDragLeave={() => setDragOverSolId(null)}
@@ -752,14 +900,16 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 const threatId = e.dataTransfer.getData("text/plain") || draggedThreatId;
                                 if (threatId) checkMatch(threatId, pair.id);
                               }}
-                              onClick={() => handleSelectSolution(pair)}
+                              onClick={() => {
+                                if (!wasDraggingRef.current) handleSelectSolution(pair);
+                              }}
                               className={`zqp-papercut-card p-2 text-left cursor-pointer transition-all ${
                                 isMatched
                                   ? `zqp-papercut-matched ${theme.border} ${theme.bg} cursor-default`
                                   : isSelected
                                   ? "zqp-papercut-selected"
                                   : isDragTarget
-                                  ? "border-dashed border-2 border-[#247a6d] bg-[#edf7f4] scale-[1.02]"
+                                  ? "border-dashed border-2 border-[#247a6d] bg-[#edf7f4] scale-[1.02] shadow-md"
                                   : ""
                               } ${canAdvance ? "locked pointer-events-none" : ""}`}
                             >
@@ -807,18 +957,28 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         return (
                           <div
                             key={step.id}
+                            data-drop-step-idx={idx}
                             draggable={!canAdvance}
+                            style={{ touchAction: "none" }}
+                            onPointerDown={(e) => {
+                              if (!canAdvance) {
+                                startPointerDrag(e, "ordering", String(idx), step.text);
+                              }
+                            }}
                             onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = "move";
                               e.dataTransfer.setData("text/plain", String(idx));
                               setDraggedStepIdx(idx);
                             }}
                             onDragOver={(e) => {
                               e.preventDefault();
+                              e.dataTransfer.dropEffect = "move";
                               setDragOverStepIdx(idx);
                             }}
                             onDragLeave={() => setDragOverStepIdx(null)}
                             onDrop={(e) => {
                               e.preventDefault();
+                              setDragOverStepIdx(null);
                               const from = Number(e.dataTransfer.getData("text/plain") ?? draggedStepIdx);
                               if (!isNaN(from)) handleReorderDrop(from, idx);
                             }}
@@ -826,7 +986,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                               canAdvance
                                 ? "border-emerald-500 bg-[#edf7f4] locked cursor-default"
                                 : isDragOver
-                                ? "border-dashed border-2 border-[#247a6d] bg-[#edf7f4]"
+                                ? "border-dashed border-2 border-[#247a6d] bg-[#edf7f4] scale-[1.01]"
                                 : ""
                             }`}
                           >
@@ -874,7 +1034,17 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                   <div className="space-y-3">
                     <div
                       draggable={!canAdvance}
-                      onDragStart={() => setDraggedMythStatement(true)}
+                      style={{ touchAction: "none" }}
+                      onPointerDown={(e) => {
+                        if (!canAdvance && currentStation.mythFactItems?.[0]) {
+                          startPointerDrag(e, "myth_fact", "statement", currentStation.mythFactItems[0].statement);
+                        }
+                      }}
+                      onDragStart={(e) => {
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", "statement");
+                        setDraggedMythStatement(true);
+                      }}
                       onDragEnd={() => setDraggedMythStatement(false)}
                       className={`zqp-papercut-card p-3 sm:p-4 text-center cursor-grab active:cursor-grabbing border-[#e2ddd5] transition-all ${
                         draggedMythStatement ? "opacity-60 scale-95 shadow-lg" : ""
@@ -896,9 +1066,11 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                       {/* Myth Target */}
                       <button
                         type="button"
+                        data-drop-myth-target="myth"
                         disabled={canAdvance}
                         onDragOver={(e) => {
                           e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
                           setDragOverMythTarget("myth");
                         }}
                         onDragLeave={() => setDragOverMythTarget(null)}
@@ -907,12 +1079,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           setDragOverMythTarget(null);
                           handleSelectMythFact(false);
                         }}
-                        onClick={() => handleSelectMythFact(false)}
+                        onClick={() => {
+                          if (!wasDraggingRef.current) handleSelectMythFact(false);
+                        }}
                         className={`zqp-papercut-card p-3 sm:p-3.5 flex flex-col items-center justify-center gap-1.5 text-center transition-all ${
                           mythFactChoice === false
                             ? "zqp-papercut-selected border-rose-500 bg-rose-50/70"
                             : dragOverMythTarget === "myth"
-                            ? "border-dashed border-2 border-rose-500 bg-rose-50 scale-105"
+                            ? "border-dashed border-2 border-rose-500 bg-rose-50 scale-105 shadow-md"
                             : "hover:border-rose-400"
                         }`}
                       >
@@ -928,9 +1102,11 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                       {/* Fact Target */}
                       <button
                         type="button"
+                        data-drop-myth-target="fact"
                         disabled={canAdvance}
                         onDragOver={(e) => {
                           e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
                           setDragOverMythTarget("fact");
                         }}
                         onDragLeave={() => setDragOverMythTarget(null)}
@@ -939,12 +1115,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           setDragOverMythTarget(null);
                           handleSelectMythFact(true);
                         }}
-                        onClick={() => handleSelectMythFact(true)}
+                        onClick={() => {
+                          if (!wasDraggingRef.current) handleSelectMythFact(true);
+                        }}
                         className={`zqp-papercut-card p-3 sm:p-3.5 flex flex-col items-center justify-center gap-1.5 text-center transition-all ${
                           mythFactChoice === true
                             ? "zqp-papercut-selected border-emerald-500 bg-emerald-50/70"
                             : dragOverMythTarget === "fact"
-                            ? "border-dashed border-2 border-emerald-500 bg-emerald-50 scale-105"
+                            ? "border-dashed border-2 border-emerald-500 bg-emerald-50 scale-105 shadow-md"
                             : "hover:border-emerald-400"
                         }`}
                       >
@@ -968,8 +1146,10 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     {/* Two Trays */}
                     <div className="grid grid-cols-2 gap-2">
                       <div
+                        data-drop-bucket="do"
                         onDragOver={(e) => {
                           e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
                           setDragOverBucket("do");
                         }}
                         onDragLeave={() => setDragOverBucket(null)}
@@ -981,7 +1161,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         }}
                         className={`rounded-lg p-2 border transition-all ${
                           dragOverBucket === "do"
-                            ? "border-dashed border-2 border-emerald-500 bg-emerald-50 scale-[1.02]"
+                            ? "border-dashed border-2 border-emerald-500 bg-emerald-50 scale-[1.02] shadow-md"
                             : "bg-[#edf7f4] border-emerald-300"
                         }`}
                       >
@@ -994,8 +1174,10 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                       </div>
 
                       <div
+                        data-drop-bucket="dont"
                         onDragOver={(e) => {
                           e.preventDefault();
+                          e.dataTransfer.dropEffect = "move";
                           setDragOverBucket("dont");
                         }}
                         onDragLeave={() => setDragOverBucket(null)}
@@ -1007,7 +1189,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         }}
                         className={`rounded-lg p-2 border transition-all ${
                           dragOverBucket === "dont"
-                            ? "border-dashed border-2 border-rose-500 bg-rose-50 scale-[1.02]"
+                            ? "border-dashed border-2 border-rose-500 bg-rose-50 scale-[1.02] shadow-md"
                             : "bg-[#fdf2f2] border-rose-300"
                         }`}
                       >
@@ -1028,12 +1210,19 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           <div
                             key={item.id}
                             draggable={!canAdvance}
+                            style={{ touchAction: "none" }}
+                            onPointerDown={(e) => {
+                              if (!canAdvance) {
+                                startPointerDrag(e, "bucket_sort", item.id, item.text);
+                              }
+                            }}
                             onDragStart={(e) => {
+                              e.dataTransfer.effectAllowed = "move";
                               e.dataTransfer.setData("text/plain", item.id);
                               setDraggedBucketItemId(item.id);
                             }}
                             onDragEnd={() => setDraggedBucketItemId(null)}
-                            className={`zqp-papercut-card p-2 flex items-center justify-between text-xs cursor-grab active:cursor-grabbing ${
+                            className={`zqp-papercut-card p-2 flex items-center justify-between text-xs cursor-grab active:cursor-grabbing transition-all ${
                               assigned === "do"
                                 ? "border-emerald-400 bg-emerald-50/50"
                                 : assigned === "dont"
@@ -1216,8 +1405,10 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                               <button
                                 key={pIdx}
                                 type="button"
+                                data-drop-blank-id={blankId}
                                 onDragOver={(e) => {
                                   e.preventDefault();
+                                  e.dataTransfer.dropEffect = "move";
                                   setDragOverBlankId(blankId);
                                 }}
                                 onDragLeave={() => setDragOverBlankId(null)}
@@ -1227,7 +1418,9 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                   const word = e.dataTransfer.getData("text/plain") || draggedWord;
                                   if (word) handleAssignWordToBlank(blankId, word);
                                 }}
-                                onClick={() => setActiveBlankId(blankId)}
+                                onClick={() => {
+                                  if (!wasDraggingRef.current) setActiveBlankId(blankId);
+                                }}
                                 className={`inline-flex items-center px-2 py-0.5 mx-1 rounded border font-bold transition-all ${
                                   currentWord
                                     ? "bg-[#edf7f4] border-[#247a6d] text-[#1b5c53]"
@@ -1258,14 +1451,23 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           return (
                             <button
                               key={wIdx}
-                              draggable={!canAdvance}
+                              draggable={!canAdvance && !isUsed}
+                              style={{ touchAction: "none" }}
+                              onPointerDown={(e) => {
+                                if (!canAdvance && !isUsed) {
+                                  startPointerDrag(e, "fill_in_the_blank", word, word);
+                                }
+                              }}
                               onDragStart={(e) => {
+                                e.dataTransfer.effectAllowed = "move";
                                 e.dataTransfer.setData("text/plain", word);
                                 setDraggedWord(word);
                               }}
                               onDragEnd={() => setDraggedWord(null)}
                               onClick={() => {
-                                if (activeBlankId) handleAssignWordToBlank(activeBlankId, word);
+                                if (!wasDraggingRef.current && activeBlankId) {
+                                  handleAssignWordToBlank(activeBlankId, word);
+                                }
                               }}
                               className={`px-3 py-1.5 rounded-lg zqp-papercut-card text-xs font-bold transition-all cursor-grab active:cursor-grabbing ${
                                 isUsed
@@ -1319,56 +1521,102 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
             {/* Completed Score & Evaluation View */}
             {completed && (
-              <div className="h-full flex flex-col items-center justify-center text-center p-2">
-                <div className="w-12 h-12 rounded-full bg-[#e3eeec] border-2 border-[#247a6d] flex items-center justify-center mb-1.5 shadow-xs">
-                  <Award className="w-6 h-6 text-[#247a6d]" />
-                </div>
-                <h3 className="text-base sm:text-lg font-bold text-[#1b5c53] mb-0.5">
-                  Glückwunsch! Alle Stationen gemeistert
-                </h3>
-                <p className="text-xs text-[#6e6c70] mb-2">
-                  Sie haben alle {quiz.stations.length} interaktiven Lernstationen abgeschlossen.
-                </p>
+              <div className="h-full flex flex-col items-center justify-center text-center p-2 sm:p-3">
+                {(() => {
+                  const solvedCount = Object.values(stationResults).filter((v) => v === "solved").length;
+                  const totalCount = quiz.stations.length;
+                  const percentage = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
 
-                {/* Score & Evaluation Box */}
-                <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3 rounded-xl text-left text-xs text-[#444] w-full space-y-1.5 shadow-xs">
-                  <div className="flex items-center justify-between pb-1.5 border-b border-[#bbd1cd]/50">
-                    <span className="font-bold text-[#1b5c53]">Ihr Praxistest-Ergebnis:</span>
-                    <span className="font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px]">
-                      {Object.values(stationResults).filter((v) => v === "solved").length} von {quiz.stations.length} Aufgaben gelöst
-                    </span>
-                  </div>
+                  let headline = "Praxistest abgeschlossen";
+                  let subtext = `Sie haben ${solvedCount} von ${totalCount} Stationen erfolgreich gelöst (${percentage}%).`;
+                  let badgeBg = "bg-teal-50 text-[#1b5c53] border-teal-300";
+                  let iconBg = "bg-[#e3eeec] border-[#247a6d]";
+                  let iconColor = "text-[#247a6d]";
 
-                  <div className="space-y-1">
-                    {quiz.stations.map((st, sIdx) => {
-                      const isSolved = stationResults[sIdx] === "solved";
-                      return (
-                        <div key={st.id || sIdx} className="flex items-center justify-between text-[11px] py-0.5">
-                          <span className="truncate pr-2">
-                            {sIdx + 1}. {st.title.replace(/^Station \d+:\s*/, "")}
-                          </span>
-                          <span
-                            className={`font-semibold shrink-0 px-1.5 py-0.2 rounded text-[10px] ${
-                              isSolved
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-amber-100 text-amber-800"
-                            }`}
-                          >
-                            {isSolved ? "Gelöst" : "Nicht gelöst"}
+                  if (solvedCount === totalCount) {
+                    headline = "Hervorragend! Alle Aufgaben gelöst";
+                    subtext = `Perfektes Ergebnis: Alle ${totalCount} Stationen eigenständig gemeistert (100%).`;
+                    badgeBg = "bg-emerald-50 text-emerald-800 border-emerald-300";
+                    iconBg = "bg-emerald-50 border-emerald-600";
+                    iconColor = "text-emerald-700";
+                  } else if (solvedCount >= Math.ceil(totalCount * 0.6)) {
+                    headline = "Gutes Ergebnis im Praxistest";
+                    subtext = `Solide Leistung: ${solvedCount} von ${totalCount} Stationen eigenständig gelöst (${percentage}%).`;
+                    badgeBg = "bg-teal-50 text-[#1b5c53] border-[#247a6d]/40";
+                    iconBg = "bg-[#e3eeec] border-[#247a6d]";
+                    iconColor = "text-[#247a6d]";
+                  } else if (solvedCount > 0) {
+                    headline = "Praxistest abgeschlossen";
+                    subtext = `${solvedCount} von ${totalCount} Stationen gelöst (${percentage}%). Nutzen Sie die ZQP-Erklärungen zur Vertiefung.`;
+                    badgeBg = "bg-amber-50 text-amber-900 border-amber-300";
+                    iconBg = "bg-amber-50 border-amber-500";
+                    iconColor = "text-amber-700";
+                  } else {
+                    headline = "Praxistest durchlaufen";
+                    subtext = `Keine Station eigenständig gelöst. Wiederholen Sie das Training, um die ZQP-Leitlinien zu festigen.`;
+                    badgeBg = "bg-stone-50 text-stone-800 border-stone-300";
+                    iconBg = "bg-stone-100 border-stone-400";
+                    iconColor = "text-stone-600";
+                  }
+
+                  return (
+                    <div className="w-full max-w-lg flex flex-col items-center">
+                      <div className={`w-9 h-9 rounded-full ${iconBg} border-2 flex items-center justify-center mb-1 shadow-xs`}>
+                        <Award className={`w-5 h-5 ${iconColor}`} />
+                      </div>
+                      <h3 className="text-sm sm:text-base font-bold text-[#1b5c53] mb-0.5 leading-tight">
+                        {headline}
+                      </h3>
+                      <p className="text-[11px] text-[#6e6c70] mb-2 leading-tight px-2">
+                        {subtext}
+                      </p>
+
+                      {/* Score & Evaluation Box (2 Columns for compact fit) */}
+                      <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-2 sm:p-2.5 rounded-xl text-left text-xs text-[#444] w-full shadow-xs">
+                        <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[#bbd1cd]/50">
+                          <span className="font-bold text-[#1b5c53] text-xs">Ihr Praxistest-Ergebnis:</span>
+                          <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] border ${badgeBg}`}>
+                            {solvedCount} von {totalCount} gelöst ({percentage}%)
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
 
-                <button
-                  onClick={handleReset}
-                  className="mt-3 px-4 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Praxistest wiederholen</span>
-                </button>
+                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 max-h-[170px] overflow-y-auto zqp-scrollbar pr-0.5">
+                          {quiz.stations.map((st, sIdx) => {
+                            const isSolved = stationResults[sIdx] === "solved";
+                            return (
+                              <div
+                                key={st.id || sIdx}
+                                className="flex items-center justify-between text-[10px] sm:text-[11px] px-2 py-1 rounded bg-white/85 border border-[#e2ddd5]"
+                              >
+                                <span className="truncate pr-1.5 font-medium text-[#3a352d]" title={st.title}>
+                                  <span className="font-bold text-[#1b5c53] mr-1">#{sIdx + 1}</span>
+                                  {st.title.replace(/^Station \d+:\s*/, "")}
+                                </span>
+                                <span
+                                  className={`font-semibold shrink-0 px-1.5 py-0.2 rounded text-[9px] ${
+                                    isSolved
+                                      ? "bg-emerald-100 text-emerald-800 font-bold"
+                                      : "bg-amber-100 text-amber-900 border border-amber-200"
+                                  }`}
+                                >
+                                  {isSolved ? "Gelöst ✓" : "Nicht gelöst"}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={handleReset}
+                        className="mt-2.5 px-4 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Praxistest wiederholen</span>
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
@@ -1380,101 +1628,120 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
           {/* 4. FIXED ACTION FOOTER */}
           <footer className="bg-white border-t border-[#bbd1cd] px-3 py-2 sm:px-4 sm:py-2.5 flex items-center justify-between gap-2 shrink-0">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={handleRevealSolution}
-                disabled={canAdvance || completed}
-                className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-[#bbd1cd] text-[#1b5c53] hover:bg-[#f3f8f7] flex items-center gap-1 disabled:opacity-40 transition-colors"
-                title="Lösung für diese Station aufdecken"
-              >
-                <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
-                <span>Lösung anzeigen</span>
-              </button>
-
-              {/* Drawer reopen toggle button if drawer was closed */}
-              {feedback && !isDrawerOpen && (
+            {completed ? (
+              <div className="flex items-center justify-between w-full">
+                <div className="text-[11px] text-[#6e6c70] font-medium flex items-center gap-1.5">
+                  <Award className="w-4 h-4 text-[#247a6d]" />
+                  <span>Praxistest vollständig abgeschlossen</span>
+                </div>
                 <button
                   type="button"
-                  onClick={() => setIsDrawerOpen(true)}
-                  className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e3eeec] text-[#1b5c53] hover:bg-[#bbd1cd] flex items-center gap-1 transition-colors"
+                  onClick={handleReset}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm flex items-center gap-1 transition-colors"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
-                  <span>Erklärung ansehen</span>
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Test neu starten</span>
                 </button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleRevealSolution}
+                    disabled={canAdvance || completed}
+                    className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-[#bbd1cd] text-[#1b5c53] hover:bg-[#f3f8f7] flex items-center gap-1 disabled:opacity-40 transition-colors"
+                    title="Lösung für diese Station aufdecken"
+                  >
+                    <Lightbulb className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Lösung anzeigen</span>
+                  </button>
 
-            <div className="flex items-center gap-2">
-              {currentStation?.type === "ordering" && !canAdvance && (
-                <button
-                  type="button"
-                  onClick={handleCheckOrder}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm transition-colors"
-                >
-                  Reihenfolge prüfen
-                </button>
-              )}
+                  {/* Drawer reopen toggle button if drawer was closed */}
+                  {feedback && !isDrawerOpen && (
+                    <button
+                      type="button"
+                      onClick={() => setIsDrawerOpen(true)}
+                      className="text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[#e3eeec] text-[#1b5c53] hover:bg-[#bbd1cd] flex items-center gap-1 transition-colors"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
+                      <span>Erklärung ansehen</span>
+                    </button>
+                  )}
+                </div>
 
-              {currentStation?.type === "comparison" && !canAdvance && (
-                <button
-                  type="button"
-                  disabled={!selectedScenarioId}
-                  onClick={handleCheckComparison}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
-                >
-                  Szenario prüfen
-                </button>
-              )}
+                <div className="flex items-center gap-2">
+                  {currentStation?.type === "ordering" && !canAdvance && (
+                    <button
+                      type="button"
+                      onClick={handleCheckOrder}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm transition-colors"
+                    >
+                      Reihenfolge prüfen
+                    </button>
+                  )}
 
-              {currentStation?.type === "checklist" && !canAdvance && (
-                <button
-                  type="button"
-                  disabled={checkedItemIds.length !== 3}
-                  onClick={handleCheckChecklist}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
-                >
-                  Checkliste prüfen
-                </button>
-              )}
+                  {currentStation?.type === "comparison" && !canAdvance && (
+                    <button
+                      type="button"
+                      disabled={!selectedScenarioId}
+                      onClick={handleCheckComparison}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                    >
+                      Szenario prüfen
+                    </button>
+                  )}
 
-              {currentStation?.type === "fill_in_the_blank" && !canAdvance && (
-                <button
-                  type="button"
-                  disabled={Object.keys(filledBlanks).length < (currentStation.fillInBlanks?.length || 2)}
-                  onClick={handleCheckFillIn}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
-                >
-                  Lösung prüfen
-                </button>
-              )}
+                  {currentStation?.type === "checklist" && !canAdvance && (
+                    <button
+                      type="button"
+                      disabled={checkedItemIds.length !== 3}
+                      onClick={handleCheckChecklist}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                    >
+                      Checkliste prüfen
+                    </button>
+                  )}
 
-              {currentStation?.type === "single_choice" && !canAdvance && (
-                <button
-                  type="button"
-                  disabled={selectedOptionIdx === null}
-                  onClick={handleCheckChoice}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
-                >
-                  Antwort prüfen
-                </button>
-              )}
+                  {currentStation?.type === "fill_in_the_blank" && !canAdvance && (
+                    <button
+                      type="button"
+                      disabled={Object.keys(filledBlanks).length < (currentStation.fillInBlanks?.length || 2)}
+                      onClick={handleCheckFillIn}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                    >
+                      Lösung prüfen
+                    </button>
+                  )}
 
-              {/* Next station button */}
-              <button
-                type="button"
-                onClick={handleNextStation}
-                disabled={!canAdvance}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 flex items-center gap-1 transition-colors"
-              >
-                <span>
-                  {currentStationIdx === quiz.stations.length - 1
-                    ? "Zur Gesamtauswertung"
-                    : "Nächste Station"}
-                </span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
+                  {currentStation?.type === "single_choice" && !canAdvance && (
+                    <button
+                      type="button"
+                      disabled={selectedOptionIdx === null}
+                      onClick={handleCheckChoice}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                    >
+                      Antwort prüfen
+                    </button>
+                  )}
+
+                  {/* Next station button */}
+                  <button
+                    type="button"
+                    onClick={handleNextStation}
+                    disabled={!canAdvance}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 flex items-center gap-1 transition-colors"
+                  >
+                    <span>
+                      {currentStationIdx === quiz.stations.length - 1
+                        ? "Zur Gesamtauswertung"
+                        : "Nächste Station"}
+                    </span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </>
+            )}
           </footer>
 
           {/* 5. SLIDE-UP DRAWER (OVERLAY WITHIN FIXED CONTAINER) */}
@@ -1548,6 +1815,20 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
           </div>
         </div>
       </div>
+
+      {/* Floating Ghost Element during Pointer Drag */}
+      {pointerDrag?.isDragging && (
+        <div
+          className="fixed pointer-events-none z-[99999] shadow-2xl rounded-xl border-2 border-[#247a6d] bg-white/95 px-3 py-2 text-xs font-bold text-[#1b5c53] flex items-center gap-2 transform -translate-x-1/2 -translate-y-1/2 rotate-2 scale-105 transition-none select-none"
+          style={{
+            left: `${pointerDrag.currentX}px`,
+            top: `${pointerDrag.currentY}px`,
+          }}
+        >
+          <span className="text-sm">🖐️</span>
+          <span className="truncate max-w-[220px]">{pointerDrag.label}</span>
+        </div>
+      )}
     </div>
   );
 };

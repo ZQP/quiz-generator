@@ -108,6 +108,19 @@ body {
               border-color 0.15s ease,
               background-color 0.15s ease;
   user-select: none;
+  -webkit-user-select: none;
+}
+
+.zqp-papercut-card[draggable="true"],
+.zqp-draggable {
+  -webkit-user-drag: element;
+  cursor: grab;
+  touch-action: none;
+}
+
+.zqp-papercut-card[draggable="true"]:active,
+.zqp-draggable:active {
+  cursor: grabbing;
 }
 
 /* Hover: zartes Anheben des Papiers (nur 1px) mit warmem Kontaktschatten */
