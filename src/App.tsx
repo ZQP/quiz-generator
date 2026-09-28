@@ -25,7 +25,7 @@ export const App: React.FC = () => {
   // Mode in left column: create new from scratch vs. refine existing
   const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">("create");
 
-  // Initial load: generate initial preview
+  // Initial load: generate initial preview without forcing refine mode
   useEffect(() => {
     handleGenerateNewQuiz({
       topicPrompt: "Sturzprävention im Alltag: Mitmachen & Prüfen",
@@ -33,7 +33,7 @@ export const App: React.FC = () => {
       questionCount: 3,
       targetAudience: "angehoerige",
       mechanics: ["matching", "ordering", "comparison"],
-    });
+    }, false);
   }, []);
 
   const handleSaveSettings = (newSettings: AppSettings) => {
@@ -42,13 +42,16 @@ export const App: React.FC = () => {
   };
 
   // Full creation from scratch
-  const handleGenerateNewQuiz = async (params: {
-    topicPrompt: string;
-    referenceText: string;
-    questionCount: number;
-    targetAudience: TargetAudience;
-    mechanics: StationType[];
-  }) => {
+  const handleGenerateNewQuiz = async (
+    params: {
+      topicPrompt: string;
+      referenceText: string;
+      questionCount: number;
+      targetAudience: TargetAudience;
+      mechanics: StationType[];
+    },
+    autoSwitchToRefine: boolean = true
+  ) => {
     setIsLoading(true);
     setLoadingStepText("Gemini API wird kontaktiert...");
 
@@ -74,7 +77,9 @@ export const App: React.FC = () => {
       const newHistory = [quiz];
       setQuizHistory(newHistory);
       setHistoryIndex(0);
-      setLeftPanelMode("refine");
+      if (autoSwitchToRefine) {
+        setLeftPanelMode("refine");
+      }
       setActiveMainTab("preview");
     } catch (err: any) {
       alert(`Fehler bei der Generierung: ${err?.message || "Unbekannter Fehler"}`);
@@ -141,35 +146,41 @@ export const App: React.FC = () => {
         {/* Left Column: Input, Customization & Refinement (5 cols) */}
         <div className="lg:col-span-5 flex flex-col gap-3">
           {/* Mode Switcher Bar */}
-          {currentQuiz && (
-            <div className="flex items-center gap-1 bg-[#e3eeec] p-1 rounded-xl border border-[#bbd1cd] text-xs font-semibold">
-              <button
-                type="button"
-                onClick={() => setLeftPanelMode("refine")}
-                className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                  leftPanelMode === "refine"
-                    ? "bg-white text-[#1b5c53] shadow-xs"
-                    : "text-[#6e6c70] hover:text-[#1b5c53]"
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
-                <span>Quiz per Prompt verfeinern</span>
-              </button>
+          <div className="flex items-center gap-1 bg-[#e3eeec] p-1 rounded-xl border border-[#bbd1cd] text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setLeftPanelMode("create")}
+              className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                leftPanelMode === "create"
+                  ? "bg-white text-[#1b5c53] shadow-xs"
+                  : "text-[#6e6c70] hover:text-[#1b5c53]"
+              }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5 text-[#247a6d]" />
+              <span>1. Neues Thema starten</span>
+            </button>
 
-              <button
-                type="button"
-                onClick={() => setLeftPanelMode("create")}
-                className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                  leftPanelMode === "create"
-                    ? "bg-white text-[#1b5c53] shadow-xs"
-                    : "text-[#6e6c70] hover:text-[#1b5c53]"
-                }`}
-              >
-                <PlusCircle className="w-3.5 h-3.5" />
-                <span>Neues Thema starten</span>
-              </button>
-            </div>
-          )}
+            <button
+              type="button"
+              onClick={() => currentQuiz && setLeftPanelMode("refine")}
+              disabled={!currentQuiz}
+              className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+                leftPanelMode === "refine"
+                  ? "bg-white text-[#1b5c53] shadow-xs"
+                  : currentQuiz
+                  ? "text-[#6e6c70] hover:text-[#1b5c53]"
+                  : "text-gray-400 opacity-50 cursor-not-allowed"
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
+              <span>2. Quiz verfeinern</span>
+              {quizHistory.length > 1 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#247a6d] text-white">
+                  v{historyIndex + 1}
+                </span>
+              )}
+            </button>
+          </div>
 
           {/* Render Refiner or Prompt Input */}
           {leftPanelMode === "refine" && currentQuiz ? (
