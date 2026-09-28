@@ -238,7 +238,7 @@ export const App: React.FC = () => {
                   }`}
                 >
                   <Code2 className="w-4 h-4 text-[#247a6d]" />
-                  <span>Code-Export (HTML, CSS, JS)</span>
+                  <span>Code-Export (HTML, CSS, JS, Tailwind)</span>
                 </button>
               </div>
 

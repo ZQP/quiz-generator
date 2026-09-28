@@ -153,7 +153,8 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
   ],
   "generatedHtml": "Semantisches HTML für WordPress (Gutenberg)",
   "generatedCss": "Ergänzende ZQP Animationen und Barrierefreiheits-Stile",
-  "generatedJs": "Reines Vanilla JS für Interaktion, Tastaturnavigation und Lösung-Anzeigen-Logik"
+  "generatedJs": "Reines Vanilla JS für Interaktion, Tastaturnavigation und Lösung-Anzeigen-Logik",
+  "tailwindConfig": "tailwind.config = { theme: { extend: { colors: { zqp: { petrol: '#247a6d', 'petrol-dark': '#1b5c53', 'petrol-deep': '#00473d', 'bg-soft': '#f3f8f7', 'bg-accent': '#e3eeec', border: '#bbd1cd', text: '#444444', alert: '#722b28' } } } } };"
 }`;
 
   const userContent = `Thema & Lernziel: ${topicPrompt}
@@ -597,6 +598,31 @@ function generateLocalDemoQuiz(
     summary: "Rund 80 % der Stürze im häuslichen Umfeld lassen sich durch einfache Wohnraumanpassungen und passendes Schuhwerk vermeiden. Informieren Sie sich in unserem ZQP-Ratgeber 'Sturzprävention' auf zqp.de.",
     needsTailwind: true,
     needsFontAwesome: false,
+    tailwindConfig: `tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        zqp: {
+          petrol: "#247a6d",
+          "petrol-dark": "#1b5c53",
+          "petrol-deep": "#00473d",
+          "bg-soft": "#f3f8f7",
+          "bg-accent": "#e3eeec",
+          border: "#bbd1cd",
+          text: "#444444",
+          alert: "#722b28",
+        }
+      },
+      fontFamily: {
+        sans: ["Inter", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "Roboto", "sans-serif"],
+      },
+      boxShadow: {
+        paper: "0 2px 4px -1px rgba(50, 42, 30, 0.04), 1.5px 1.5px 0 #ede8df",
+        "paper-hover": "0 3px 6px -1px rgba(50, 42, 30, 0.06), 2px 2px 0 rgba(36, 122, 109, 0.18)",
+      }
+    }
+  }
+};`,
     stations: finalStations,
     generatedHtml: `<!-- ZQP Interaktives Lern-Quiz (zqp.de) -->
 <div id="zqp-game-root" class="zqp-quiz-container">

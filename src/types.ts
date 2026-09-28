@@ -105,6 +105,7 @@ export interface QuizGenerationResult {
   generatedHtml: string;
   generatedCss: string;
   generatedJs: string;
+  tailwindConfig?: string;
 }
 
 export interface AppSettings {
