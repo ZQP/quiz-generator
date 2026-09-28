@@ -96,7 +96,14 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
    - Vollständige Tastaturbedienbarkeit (:focus-visible mit 2px ZQP-Petrol Ring).
    - Screenreader-Unterstützung mit aria-live="polite".
    - Mindest-Touch-Größe für Buttons und Klickkarten.
-4. RÜCKGABESCHEMA (reines, valides JSON):
+4. STABILES LAYOUT & MOBIL-OPTIMIERUNG (KEIN HÖHENSPRINGEN / CLS = 0):
+   - Das generierte HTML/CSS/JS MUSS zwingend als 3-Zonen-Flexbox aufgebaut sein:
+     * Fester Außencontainer: '#zqp-game-root' (Desktop: h: 620px, max-h: 85vh; Mobil: h: 590px, max-h: 88vh; display: flex; flex-direction: column; overflow: hidden). Das Quiz darf beim Umschalten zwischen Stationen oder Anzeigen von Lösungen NIEMALS die Gesamthöhe verändern!
+     * Fester Header: '#zqp-game-header' (flex-shrink: 0) mit ZQP-Petrol-Verlauf, Stationstitel und Fortschrittsbalken.
+     * Scrollbarer Inhaltsbereich: '#zqp-game-stage' (flex: 1; min-height: 0; overflow-y: auto) für Fragen, Puzzleteile und didaktische Erklärungsboxen.
+     * Feste Fußleiste (Pinned Footer): '#zqp-game-footer' (flex-shrink: 0; border-top: 1px solid #bbd1cd) am unteren Rand mit fest verankerten Buttons für "💡 Lösung anzeigen" (links) und "Prüfen" / "Nächste Station ➔" (rechts).
+   - Auf Smartphones passt das Quiz so zu 100 % in den Viewport, ohne dass Knöpfe aus dem Bildschirm springen.
+5. RÜCKGABESCHEMA (reines, valides JSON):
 {
   "title": "string",
   "targetAudience": "${targetAudience}",
@@ -369,30 +376,269 @@ function generateLocalDemoQuiz(
       },
     ],
     generatedHtml: `<!-- ZQP Interaktives Lern-Quiz (zqp.de) -->
-<div id="zqp-game-root" class="max-w-2xl mx-auto bg-white border border-[#bbd1cd] rounded-2xl shadow-sm overflow-hidden font-sans">
-  <header class="bg-[#247a6d] text-white p-5">
-    <div class="flex justify-between text-xs text-[#bbd1cd] font-bold uppercase tracking-wider">
-      <span>ZQP Wissenstest</span>
-      <span id="zqp-game-progress">Station 1 von 3</span>
+<div id="zqp-game-root" class="zqp-quiz-container">
+  <header id="zqp-game-header">
+    <div class="zqp-header-top">
+      <span class="zqp-badge">🧩 ZQP Wissenstest</span>
+      <span id="zqp-station-counter">Station 1 von 3</span>
     </div>
-    <h2 class="text-xl font-bold mt-1">Sturzprävention im Alltag</h2>
+    <h2 id="zqp-game-title">Sturzprävention im Alltag</h2>
+    <div class="zqp-progress-bar">
+      <div id="zqp-progress-fill" style="width: 33.3%;"></div>
+    </div>
   </header>
-  <div id="zqp-game-stage" class="p-6">
-    <!-- Barrierefreie Stationen mit Soforterklärung und Lösung anzeigen -->
-  </div>
+
+  <main id="zqp-game-stage" class="zqp-stage">
+    <div id="zqp-station-content">
+      <!-- Station-Inhalt wird dynamisch gerendert -->
+    </div>
+    <div id="zqp-feedback-container" style="display: none;"></div>
+  </main>
+
+  <footer id="zqp-game-footer">
+    <div id="zqp-footer-left">
+      <button id="zqp-btn-reveal" type="button" class="zqp-btn-secondary">
+        💡 Lösung anzeigen
+      </button>
+    </div>
+    <div id="zqp-footer-right">
+      <button id="zqp-btn-action" type="button" class="zqp-btn-primary">
+        Nächste Station ➔
+      </button>
+    </div>
+  </footer>
 </div>`,
-    generatedCss: `/* ZQP Design-Stile */
-#zqp-game-root :focus-visible {
-  outline: 2px solid #247a6d !important;
-  outline-offset: 2px !important;
+    generatedCss: `/* ZQP Quiz Embed Styles: Feste Höhe & Keine Layout-Verschiebungen */
+.zqp-quiz-container {
+  width: 100%;
+  max-width: 672px;
+  height: 620px;
+  max-height: 85vh;
+  margin: 1.5rem auto;
+  background-color: #ffffff;
+  border: 1px solid #bbd1cd;
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #444444;
 }
+
+@media (max-width: 640px) {
+  .zqp-quiz-container {
+    max-width: 100%;
+    height: 590px;
+    max-height: 88vh;
+    border-radius: 0.75rem;
+  }
+}
+
+#zqp-game-header {
+  flex-shrink: 0;
+  background: linear-gradient(to right, #247a6d, #1b5c53);
+  color: #ffffff;
+  padding: 1rem 1.25rem;
+}
+
+.zqp-header-top {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: #bbd1cd;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-bottom: 0.25rem;
+}
+
+#zqp-game-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  margin: 0;
+  color: #ffffff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.zqp-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: #00473d;
+  border-radius: 9999px;
+  margin-top: 0.625rem;
+  overflow: hidden;
+}
+
+#zqp-progress-fill {
+  height: 100%;
+  background: #34d399;
+  border-radius: 9999px;
+  transition: width 0.4s ease;
+}
+
+.zqp-stage {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: #bbd1cd #f3f8f7;
+}
+
+.zqp-stage::-webkit-scrollbar {
+  width: 6px;
+}
+
+.zqp-stage::-webkit-scrollbar-thumb {
+  background-color: #bbd1cd;
+  border-radius: 4px;
+}
+
+#zqp-game-footer {
+  flex-shrink: 0;
+  border-top: 1px solid #bbd1cd;
+  background-color: #ffffff;
+  padding: 0.75rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.zqp-btn-primary {
+  background-color: #247a6d;
+  color: #ffffff;
+  border: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.zqp-btn-primary:hover {
+  background-color: #1b5c53;
+}
+
+.zqp-btn-secondary {
+  background-color: #f3f8f7;
+  color: #1b5c53;
+  border: 1px solid #bbd1cd;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.85rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.zqp-btn-secondary:hover {
+  background-color: #e3eeec;
+  color: #247a6d;
+}
+
+.puzzle-piece {
+  border: 2px solid #bbd1cd;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  cursor: pointer;
+  background: #ffffff;
+  transition: all 0.2s;
+}
+
 .puzzle-piece:hover {
-  transform: translateY(-2px);
   border-color: #247a6d;
+  background: #f3f8f7;
 }`,
-    generatedJs: `/* ZQP Quiz Interaktion */
+    generatedJs: `/* ZQP Quiz Interaktion (Vanilla JS) */
 (function() {
-  console.log("ZQP Quiz initialisiert");
+  var root = document.getElementById("zqp-game-root");
+  if (!root) return;
+
+  var currentStation = 0;
+  var totalStations = 3;
+
+  var btnReveal = document.getElementById("zqp-btn-reveal");
+  var btnAction = document.getElementById("zqp-btn-action");
+  var counter = document.getElementById("zqp-station-counter");
+  var progressFill = document.getElementById("zqp-progress-fill");
+  var stage = document.getElementById("zqp-game-stage");
+  var content = document.getElementById("zqp-station-content");
+  var feedback = document.getElementById("zqp-feedback-container");
+
+  function renderStation(idx) {
+    if (stage) stage.scrollTop = 0;
+    if (feedback) feedback.style.display = "none";
+    if (counter) counter.textContent = "Station " + (idx + 1) + " von " + totalStations;
+    if (progressFill) progressFill.style.width = (((idx + 1) / totalStations) * 100) + "%";
+
+    if (idx === 0) {
+      content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 1: Zuordnungs-Puzzle</h3>' +
+        '<p style="font-size:0.875rem; margin-bottom:1rem;">Verbinden Sie jede typische Gefahrenstelle mit der passenden Schutzmaßnahme:</p>' +
+        '<div class="puzzle-piece" onclick="window.zqpSelectMatch(1)">⚠️ Nasse Fliesen in Dusche & Bad ➔ Feste Haltegriffe & Antirutschmatte</div>' +
+        '<div class="puzzle-piece" onclick="window.zqpSelectMatch(2)">⚠️ Dunkler Flur bei Nacht ➔ Orientierungsbeleuchtung</div>' +
+        '<div class="puzzle-piece" onclick="window.zqpSelectMatch(3)">⚠️ Rutschige Wollsocken ➔ Geschlossene Hausschuhe</div>';
+      btnAction.textContent = "Nächste Station ➔";
+    } else if (idx === 1) {
+      content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 2: Ablauf-Reihenfolge beim Aufstehen</h3>' +
+        '<p style="font-size:0.875rem; margin-bottom:1rem;">Richtige biomechanische Reihenfolge für sicheres Aufstehen:</p>' +
+        '<div class="puzzle-piece">1. An die vordere Stuhlkante vorrutschen</div>' +
+        '<div class="puzzle-piece">2. Füße schulterbreit fest aufstellen</div>' +
+        '<div class="puzzle-piece">3. Mit Vorneigung aufrichten</div>';
+      btnAction.textContent = "Nächste Station ➔";
+    } else if (idx === 2) {
+      content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 3: A/B-Situationsvergleich</h3>' +
+        '<p style="font-size:0.875rem; margin-bottom:1rem;">Wählen Sie das sturzsichere Szenario:</p>' +
+        '<div class="puzzle-piece" style="border-color:#247a6d; background:#f3f8f7;">' +
+        '<strong>Szenario B (Sturzpräventiv ✓):</strong> Freie Wege, fixierte Kabel, Sockellicht.' +
+        '</div>';
+      btnAction.textContent = "Zur Gesamtauswertung ➔";
+    }
+  }
+
+  window.zqpSelectMatch = function(id) {
+    showExplanation("Hervorragend verzahnt!", "Diese Maßnahme neutralisiert die Gefahrenquelle nachweislich und schützt nachhaltig.");
+  };
+
+  if (btnReveal) {
+    btnReveal.addEventListener("click", function() {
+      showExplanation("Lösung aufgedeckt & Puzzleteile verzahnt", "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP (zqp.de).");
+    });
+  }
+
+  if (btnAction) {
+    btnAction.addEventListener("click", function() {
+      if (currentStation < totalStations - 1) {
+        currentStation++;
+        renderStation(currentStation);
+      } else {
+        content.innerHTML = '<div style="text-align:center; padding:1.5rem;">' +
+          '<h3 style="color:#1b5c53; font-size:1.25rem; font-weight:700;">Glückwunsch! Alle Stationen gemeistert</h3>' +
+          '<p style="font-size:0.875rem; margin-top:0.5rem;">Sie haben alle Stationen erfolgreich absolviert. Mehr Infos auf zqp.de.</p>' +
+          '</div>';
+        if (feedback) feedback.style.display = "none";
+        if (btnReveal) btnReveal.style.display = "none";
+        btnAction.textContent = "Quiz neu starten";
+        btnAction.onclick = function() { location.reload(); };
+      }
+    });
+  }
+
+  function showExplanation(title, text) {
+    if (!feedback) return;
+    feedback.innerHTML = '<div style="margin-top:1rem; padding:0.875rem; background:#ecfdf5; border:1px solid #10b981; border-radius:0.5rem; font-size:0.8125rem;">' +
+      '<strong style="color:#065f46; display:block; margin-bottom:0.25rem;">✓ ' + title + '</strong>' +
+      '<p style="margin:0; color:#1e293b;">' + text + '</p>' +
+      '</div>';
+    feedback.style.display = "block";
+    if (stage) stage.scrollTo({ top: stage.scrollHeight, behavior: "smooth" });
+  }
+
+  renderStation(0);
 })();`,
   };
 }

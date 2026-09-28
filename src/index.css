@@ -53,3 +53,28 @@ body {
   overflow: visible;
   border-radius: 14px;
 }
+
+/* Custom sleek ZQP scrollbar for fixed-height quiz viewport */
+.zqp-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #bbd1cd #f3f8f7;
+}
+
+.zqp-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.zqp-scrollbar::-webkit-scrollbar-track {
+  background: #f3f8f7;
+  border-radius: 4px;
+}
+
+.zqp-scrollbar::-webkit-scrollbar-thumb {
+  background: #bbd1cd;
+  border-radius: 4px;
+}
+
+.zqp-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #247a6d;
+}

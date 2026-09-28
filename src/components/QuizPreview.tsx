@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, AlertTriangle, HelpCircle, Puzzle, Check } from "lucide-react";
 import { QuizGenerationResult, QuizStation, MatchingPair } from "../types";
 
@@ -11,6 +11,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
   const [currentStationIdx, setCurrentStationIdx] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   const currentStation: QuizStation | undefined = quiz.stations[currentStationIdx];
 
@@ -46,6 +47,23 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   }
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [canAdvance, setCanAdvance] = useState<boolean>(false);
+
+  // Reset stage scroll position on station change or completion
+  useEffect(() => {
+    if (stageRef.current) {
+      stageRef.current.scrollTo({ top: 0, behavior: "instant" });
+    }
+  }, [currentStationIdx, completed]);
+
+  // Smooth scroll down to feedback card when shown without changing outer container height
+  useEffect(() => {
+    if (feedback && stageRef.current) {
+      const timer = setTimeout(() => {
+        stageRef.current?.scrollTo({ top: stageRef.current.scrollHeight, behavior: "smooth" });
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [feedback]);
 
   // Reset station state on change
   useEffect(() => {
@@ -286,7 +304,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   return (
     <div className="flex flex-col h-full">
       {/* Top Viewport & Reset Bar */}
-      <div className="flex items-center justify-between pb-3 mb-4 border-b border-[#bbd1cd]">
+      <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#bbd1cd] shrink-0">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold text-[#1b5c53]">
             {completed
@@ -338,16 +356,18 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         </div>
       </div>
 
-      {/* Main Responsive Quiz Viewport */}
-      <div className="flex-1 flex justify-center items-start overflow-y-auto">
+      {/* Main Responsive Quiz Viewport with STABLE HEIGHT (Zero Layout Shifts) */}
+      <div className="flex-1 flex justify-center items-center overflow-hidden py-1 px-1">
         <div
-          className={`w-full bg-white border border-[#bbd1cd] rounded-2xl shadow-md overflow-hidden transition-all duration-300 ${
-            viewport === "mobile" ? "max-w-[395px]" : "max-w-2xl"
+          className={`w-full bg-white border border-[#bbd1cd] rounded-2xl shadow-md overflow-hidden transition-all duration-300 flex flex-col ${
+            viewport === "mobile"
+              ? "max-w-[380px] h-[590px] max-h-[85vh]"
+              : "max-w-2xl h-[620px] max-h-[85vh]"
           }`}
         >
-          {/* Header with ZQP Petrol & dynamic progress bar */}
-          <div className="bg-gradient-to-r from-[#247a6d] to-[#1b5c53] text-white p-5 shadow-sm">
-            <div className="flex items-center justify-between text-xs text-[#bbd1cd] font-semibold uppercase tracking-wider mb-1.5">
+          {/* 1. FIXED HEADER (shrink-0) */}
+          <header className="bg-gradient-to-r from-[#247a6d] to-[#1b5c53] text-white px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm shrink-0">
+            <div className="flex items-center justify-between text-[11px] text-[#bbd1cd] font-semibold uppercase tracking-wider mb-1">
               <span className="flex items-center gap-1.5">
                 <Puzzle className="w-3.5 h-3.5 text-emerald-400" />
                 ZQP Interaktiver Praxistest
@@ -358,10 +378,12 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                   : `Station ${currentStationIdx + 1} von ${quiz.stations.length}`}
               </span>
             </div>
-            <h2 className="text-xl font-bold leading-tight text-white">{quiz.title}</h2>
+            <h2 className="text-base sm:text-lg font-bold leading-tight text-white line-clamp-1">
+              {quiz.title}
+            </h2>
 
             {/* Stepper Progress Bar */}
-            <div className="w-full bg-[#00473d] h-2 rounded-full mt-3 overflow-hidden shadow-inner">
+            <div className="w-full bg-[#00473d] h-1.5 rounded-full mt-2.5 overflow-hidden shadow-inner">
               <div
                 className="bg-emerald-400 h-full transition-all duration-500 rounded-full"
                 style={{
@@ -371,14 +393,17 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                 }}
               />
             </div>
-          </div>
+          </header>
 
-          {/* Station Body */}
-          <div className="p-6">
+          {/* 2. SCROLLABLE STAGE (flex-1 min-h-0 overflow-y-auto zqp-scrollbar) */}
+          <div
+            ref={stageRef}
+            className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 zqp-scrollbar"
+          >
             {!completed && currentStation && (
               <div className="flex flex-col gap-4">
                 <div>
-                  <h3 className="text-base md:text-lg font-bold text-[#1b5c53] leading-snug">
+                  <h3 className="text-sm sm:text-base font-bold text-[#1b5c53] leading-snug">
                     {currentStation.promptOrInstruction}
                   </h3>
                 </div>
@@ -621,15 +646,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         );
                       })}
                     </div>
-
-                    {!canAdvance && (
-                      <button
-                        onClick={handleCheckOrder}
-                        className="mt-1 bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm"
-                      >
-                        Puzzlekette überprüfen
-                      </button>
-                    )}
                   </div>
                 )}
 
@@ -677,16 +693,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         );
                       })}
                     </div>
-
-                    {!canAdvance && (
-                      <button
-                        onClick={handleCheckComparison}
-                        disabled={!selectedScenarioId}
-                        className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm disabled:opacity-50"
-                      >
-                        Auswahl begründen & prüfen
-                      </button>
-                    )}
                   </div>
                 )}
 
@@ -722,23 +728,13 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         );
                       })}
                     </div>
-
-                    {!canAdvance && (
-                      <button
-                        onClick={handleCheckChoice}
-                        disabled={selectedOptionIdx === null}
-                        className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2.5 rounded-lg shadow-sm disabled:opacity-50"
-                      >
-                        Antwort überprüfen
-                      </button>
-                    )}
                   </div>
                 )}
 
                 {/* === DETAILED EXPLANATION CARD ("WARUM RICHTIG / FALSCH") === */}
                 {feedback && (
                   <div
-                    className={`mt-4 p-4 rounded-xl border-2 text-xs transition-all ${
+                    className={`p-4 rounded-xl border-2 text-xs transition-all ${
                       feedback.type === "correct"
                         ? "border-emerald-500 bg-emerald-50 text-emerald-950"
                         : feedback.type === "revealed"
@@ -774,58 +770,24 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     </div>
                   </div>
                 )}
-
-                {/* Bottom Navigation & "LÖSUNG ANZEIGEN" Button */}
-                <div className="mt-4 pt-4 border-t border-[#e3eeec] flex items-center justify-between gap-2 flex-wrap">
-                  {!canAdvance ? (
-                    <button
-                      type="button"
-                      onClick={handleRevealSolution}
-                      className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors"
-                      title="Antwort und didaktische Erklärung aufdecken"
-                    >
-                      <HelpCircle className="w-4 h-4 text-[#247a6d]" />
-                      <span>Ich weiß es nicht / Lösung anzeigen</span>
-                    </button>
-                  ) : (
-                    <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      Station gelöst & abgeschlossen
-                    </span>
-                  )}
-
-                  {canAdvance && (
-                    <button
-                      onClick={handleNextStation}
-                      className="bg-[#247a6d] hover:bg-[#1b5c53] text-white font-semibold text-xs px-5 py-2.5 rounded-lg shadow-sm flex items-center gap-1.5 transition-all"
-                    >
-                      <span>
-                        {currentStationIdx === quiz.stations.length - 1
-                          ? "Zur Gesamtauswertung"
-                          : "Nächste Station"}
-                      </span>
-                      <ArrowRight className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
               </div>
             )}
 
             {/* Completed Score & Certificate View */}
             {completed && (
-              <div className="p-6 text-center flex flex-col items-center">
-                <div className="w-16 h-16 rounded-full bg-[#e3eeec] border-2 border-[#247a6d] flex items-center justify-center mb-3 shadow-sm">
-                  <Award className="w-8 h-8 text-[#247a6d]" />
+              <div className="h-full flex flex-col items-center justify-center text-center p-2 sm:p-4">
+                <div className="w-14 h-14 rounded-full bg-[#e3eeec] border-2 border-[#247a6d] flex items-center justify-center mb-3 shadow-xs">
+                  <Award className="w-7 h-7 text-[#247a6d]" />
                 </div>
-                <h3 className="text-xl font-bold text-[#1b5c53] mb-1">
+                <h3 className="text-lg font-bold text-[#1b5c53] mb-1">
                   Glückwunsch! Alle Stationen gemeistert
                 </h3>
-                <p className="text-xs text-[#444] mb-4">
+                <p className="text-xs text-[#444] mb-3">
                   Sie haben alle {quiz.stations.length} interaktiven Lernstationen des Themas erfolgreich absolviert.
                 </p>
 
-                <div className="bg-[#f3f8f7] border-2 border-[#bbd1cd] p-4 rounded-xl text-left text-xs text-[#444] mb-5 w-full space-y-2 shadow-xs">
-                  <strong className="text-[#1b5c53] block font-bold text-sm">
+                <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3.5 rounded-xl text-left text-xs text-[#444] w-full space-y-2 shadow-xs">
+                  <strong className="text-[#1b5c53] block font-bold text-xs sm:text-sm">
                     ZQP-Praxisfazit für den Alltag:
                   </strong>
                   <p className="leading-relaxed">
@@ -835,16 +797,110 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     Tipp: Nutzen Sie die ZQP-Ratgeber und Sicherheits-Checklisten auf <strong>zqp.de</strong> für die barrierearme Wohnraumanpassung.
                   </div>
                 </div>
-
-                <button
-                  onClick={handleReset}
-                  className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-5 py-2.5 rounded-lg shadow-sm transition-colors"
-                >
-                  Lernreise erneut starten
-                </button>
               </div>
             )}
           </div>
+
+          {/* 3. PINNED BOTTOM ACTION BAR (shrink-0) */}
+          <footer className="shrink-0 border-t border-[#bbd1cd] bg-white px-4 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-2 shadow-xs">
+            {!completed ? (
+              <>
+                {/* Left: Solution reveal or Status */}
+                <div>
+                  {!canAdvance ? (
+                    <button
+                      type="button"
+                      onClick={handleRevealSolution}
+                      className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                      title="Antwort und didaktische Erklärung aufdecken"
+                    >
+                      <HelpCircle className="w-4 h-4 text-[#247a6d] shrink-0" />
+                      <span className="hidden sm:inline">Ich weiß es nicht / </span>
+                      <span>Lösung anzeigen</span>
+                    </button>
+                  ) : (
+                    <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Station gelöst</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Right: Check action OR Next station */}
+                <div>
+                  {!canAdvance ? (
+                    <>
+                      {currentStation?.type === "matching" && (
+                        <span className="text-xs font-semibold text-[#1b5c53] bg-[#f3f8f7] px-3 py-1.5 rounded-lg border border-[#bbd1cd]">
+                          {matchedIds.length} von {currentStation.matchingPairs?.length || 0} verzahnt
+                        </span>
+                      )}
+
+                      {currentStation?.type === "ordering" && (
+                        <button
+                          type="button"
+                          onClick={handleCheckOrder}
+                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                        >
+                          Reihenfolge prüfen
+                        </button>
+                      )}
+
+                      {currentStation?.type === "comparison" && (
+                        <button
+                          type="button"
+                          onClick={handleCheckComparison}
+                          disabled={!selectedScenarioId}
+                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                        >
+                          Szenario prüfen
+                        </button>
+                      )}
+
+                      {currentStation?.type === "single_choice" && (
+                        <button
+                          type="button"
+                          onClick={handleCheckChoice}
+                          disabled={selectedOptionIdx === null}
+                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                        >
+                          Antwort prüfen
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleNextStation}
+                      className="bg-[#247a6d] hover:bg-[#1b5c53] text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition-all focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                    >
+                      <span>
+                        {currentStationIdx === quiz.stations.length - 1
+                          ? "Zur Auswertung"
+                          : "Nächste Station"}
+                      </span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="w-full flex items-center justify-between">
+                <span className="text-xs text-[#6e6c70] flex items-center gap-1">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  Lerneinheit abgeschlossen
+                </span>
+                <button
+                  type="button"
+                  onClick={handleReset}
+                  className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Lernreise erneut starten</span>
+                </button>
+              </div>
+            )}
+          </footer>
         </div>
       </div>
     </div>
