@@ -1,4 +1,4 @@
-import { AppSettings, QuizGenerationResult, TargetAudience, StationType } from "../types";
+import { AppSettings, QuizGenerationResult, TargetAudience, StationType, QuizStation } from "../types";
 
 const SETTINGS_STORAGE_KEY = "zqp_quiz_generator_settings";
 
@@ -285,109 +285,303 @@ ${refinementPrompt}`;
 // Built-in authentic ZQP demo quiz generator (used when offline or testing without key)
 function generateLocalDemoQuiz(
   topic: string,
-  _count: number,
+  count: number,
   audience: TargetAudience
 ): QuizGenerationResult {
+  const allDemoStations: QuizStation[] = [
+    {
+      id: "st-1",
+      type: "matching",
+      title: "Station 1: Zuordnungs-Puzzle Sturzgefahren",
+      promptOrInstruction: "Verbinden Sie jede typische Gefahrenstelle mit der passenden ZQP-Schutzmaßnahme:",
+      zqpRationale: "Antirutschmatten, Haltegriffe und feste Schuhe verringern die Sturzgefahr im Badezimmer um über 70 %.",
+      solutionExplanation: "Die ideale Absicherung: Nasse Fliesen brauchen Antirutschmatten und feste Haltegriffe. Bei nächtlichem Harndrang schützt eine Orientierungsbeleuchtung. Auf glatten Böden geben geschlossene Hausschuhe mit Fersenhalt festen Stand.",
+      matchingPairs: [
+        {
+          id: "1",
+          threatOrTerm: "Nasse Fliesen in Dusche & Bad",
+          solutionOrDef: "Haltegriffe & gummierte Antirutschmatte",
+          explanation: "Wasser auf glatten Keramikfliesen hebt die Reibung fast vollständig auf. Feste Haltegriffe bieten mechanischen Halt beim Ein- und Aussteigen."
+        },
+        {
+          id: "2",
+          threatOrTerm: "Dunkler Flur bei nächtlichem Aufstehen",
+          solutionOrDef: "Bewegungsgesteuertes Orientierungslicht",
+          explanation: "Nach dem Aufwachen ist der Blutdruck oft niedrig und die Augen gewöhnen sich nur langsam an die Dunkelheit. Blendfreies Sockellicht weist den Weg sicher zum WC."
+        },
+        {
+          id: "3",
+          threatOrTerm: "Rutschige Wollsocken oder Schlappen",
+          solutionOrDef: "Geschlossene Hausschuhe mit Profilsohle",
+          explanation: "Lose Schlappen ('Schlupfschuhe') rutschen beim Gehen leicht von der Ferse ab und führen zum Umknicken. Feste Fersenkappen geben verlässliche Stabilität."
+        },
+      ],
+    },
+    {
+      id: "st-2",
+      type: "ordering",
+      title: "Station 2: Ablauf-Reihenfolge beim Aufstehen",
+      promptOrInstruction: "Bringen Sie die 3 biomechanischen Schritte für ein sicheres Aufstehen aus dem Sessel in die richtige Reihenfolge:",
+      zqpRationale: "Erst vorrutschen, dann die Standfläche unter dem Körperschwerpunkt sichern, dann mit Vorneigung aufrichten.",
+      solutionExplanation: "Die richtige Reihenfolge: 1. Zuerst mit dem Gesäß an die vordere Kante vorrutschen (verkürzt den Hebelarm). 2. Füße schulterbreit fest aufstellen mit den Fersen leicht nach hinten (stabilisiert die Standfläche). 3. Erst jetzt den Oberkörper mit Schwung nach vorne neigen und über die Beine aufrichten.",
+      orderingSteps: [
+        {
+          id: "o1",
+          text: "Mit dem Gesäß an die vordere Stuhlkante vorrutschen",
+          correctIndex: 0,
+          reason: "Schritt 1: Verkürzt den Hebelarm zum Körperschwerpunkt, sodass deutlich weniger Kraftaufwand nötig ist."
+        },
+        {
+          id: "o2",
+          text: "Füße schulterbreit fest aufstellen, Fersen leicht nach hinten",
+          correctIndex: 1,
+          reason: "Schritt 2: Schafft eine stabile Unterstützungsfläche direkt unter den Knien, bevor das Körpergewicht verlagert wird."
+        },
+        {
+          id: "o3",
+          text: "Oberkörper mit Vorneigung über die Beine aufrichten",
+          correctIndex: 2,
+          reason: "Schritt 3: Verlagert den Schwerpunkt dynamisch über die Füße, wodurch die Oberschenkelmuskulatur optimal arbeiten kann."
+        },
+      ],
+    },
+    {
+      id: "st-3",
+      type: "comparison",
+      title: "Station 3: A/B-Situationsvergleich im Wohnbereich",
+      promptOrInstruction: "Vergleichen Sie beide Wohnraumsituationen: Welche Variante entspricht den Kriterien für ein sturzsicheres Zuhause?",
+      zqpRationale: "Freie Laufwege und fixierte Kabel sind essenziell, um Stürze älterer Menschen im Alltag zu verhindern.",
+      solutionExplanation: "Szenario B ist die sturzsichere Variante: Lose Teppichkanten und querliegende Kabel (aus Szenario A) sind für über 45 % aller häuslichen Stolperstürze verantwortlich. Feste Kabelkanäle und schattenfreie Beleuchtung beseitigen diese Gefahren nachhaltig.",
+      comparisonScenarios: [
+        {
+          id: "A",
+          title: "Szenario A: Lose Teppiche & freie Kabel",
+          badge: "Hohes Risiko ⚠️",
+          description: "Ein gemütlicher Flur mit mehreren kleinen Orientteppichen auf Parkett und einem quer über den Laufweg gespannten Ladekabel.",
+          isCorrect: false,
+          explanation: "Warum dies gefährlich ist: Lose Teppichläufer ohne gummierte Unterseite rutschen bei jedem Schritt weg. Kanten rollen sich auf und werden zu Stolperfallen. Das querliegende Kabel fängt die Fußspitze ein."
+        },
+        {
+          id: "B",
+          title: "Szenario B: Freie Wege & fixierte Kabel",
+          badge: "Sturzpräventiv ✓",
+          description: "Freie Laufwege ohne lose Vorleger, Kabel sind sauber an der Fußleiste befestigt und nachts leuchtet eine schattenfreie Sockelleuchte.",
+          isCorrect: true,
+          explanation: "Warum dies optimal ist: Durch den Verzicht auf lose Läufer bleibt der Bodenkontakt plan. Fixierte Kabel schalten Stolperfallen aus und die Sockelbeleuchtung nimmt Sehunsicherheiten bei Dämmerung."
+        },
+      ],
+    },
+    {
+      id: "st-4",
+      type: "single_choice",
+      title: "Station 4: Wissenscheck: Sturzsicheres Schuhwerk",
+      promptOrInstruction: "Welche Schuhmerkmale bieten älteren und pflegebedürftigen Menschen in der Wohnung nachweislich den sichersten Halt?",
+      zqpRationale: "Schuhe mit stabiler Fersenkappe und Profilsohle verringern die Sturzgefahr im Haushalt signifikant.",
+      solutionExplanation: "Geschlossene Hausschuhe mit fester Fersenkappe und rutschfester Profilsohle stützen das Sprunggelenk optimal.",
+      options: [
+        {
+          text: "Geschlossene Hausschuhe mit Fersenhalt und rutschfester Profilsohle",
+          isCorrect: true,
+          explanation: "Richtig: Eine feste Fersenkappe verhindert ein Wegrutschen oder Umknicken des Fußes bei Richtungswechseln."
+        },
+        {
+          text: "Bequeme Schlappen ohne Fersenriemen zum schnellen Hineinschlüpfen",
+          isCorrect: false,
+          explanation: "Falsch: Offene Schlappen rutschen beim Gehen leicht vom Fuß ab und zwingen zu einem unsicheren Schlurfschritt."
+        },
+        {
+          text: "Dicke Wollsocken ohne Gummierung für maximalen Komfort",
+          isCorrect: false,
+          explanation: "Falsch: Glatte Wollsocken bieten auf Holz- oder Fliesenböden keinerlei Bodenhaftung – akute Rutschgefahr!"
+        }
+      ]
+    },
+    {
+      id: "st-5",
+      type: "matching",
+      title: "Station 5: Zuordnungs-Puzzle: Barrierearmes Badezimmer",
+      promptOrInstruction: "Ordnen Sie den typischen Gefahrenzonen im Bad das passende Hilfsmittel zu:",
+      zqpRationale: "Das Badezimmer ist der häufigste Ort schwerer Stürze im häuslichen Bereich.",
+      solutionExplanation: "Haltegriffe, Toilettensitzerhöhungen und ebenerdige Duschen mit Antirutschbeschichtung minimieren Gefahrenquellen im Nassbereich.",
+      matchingPairs: [
+        {
+          id: "m5-1",
+          threatOrTerm: "Hoher Einstieg in die Duschkabine",
+          solutionOrDef: "Bodengleiche Dusche oder stabiler Tritt mit Haltegriff",
+          explanation: "Hohe Duschtassen erfordern Einbeinstand auf rutschigem Boden. Bodengleiche Zugänge beseitigen diese Barriere."
+        },
+        {
+          id: "m5-2",
+          threatOrTerm: "Niedrige Toilette erschwert das Aufstehen",
+          solutionOrDef: "Toilettensitzerhöhung mit klappbaren Armlehnen",
+          explanation: "Eine Sitzerhöhung reduziert den Beugewinkel der Kniegelenke und erleichtert das kraftsparende Aufstehen."
+        },
+        {
+          id: "m5-3",
+          threatOrTerm: "Glatter Wannenboden beim Duschen",
+          solutionOrDef: "Geprüfte Saugnapf-Antirutschmatte & Wandhaltestange",
+          explanation: "Die Kombination aus mechanischem Halt und hoher Haftreibung schützt vor plötzlichem Wegrutschen."
+        }
+      ]
+    },
+    {
+      id: "st-6",
+      type: "ordering",
+      title: "Station 6: Notfallkette nach einem häuslichen Sturz",
+      promptOrInstruction: "Welche Reihenfolge ist unmittelbar nach einem Sturz einer pflegebedürftigen Person einzuhalten?",
+      zqpRationale: "Überstürztes Aufrichten nach einem Sturz kann Frakturen und Kreislaufkollapse verschlimmern.",
+      solutionExplanation: "Die richtige Notfallfolge: 1. Ruhe bewahren und Schmerzen/Atmung prüfen. 2. Notruf oder Hausnotrufknopf betätigen, wenn kein schmerzfreies Aufstehen möglich ist. 3. Person warmhalten und betreuen.",
+      orderingSteps: [
+        {
+          id: "notfall-1",
+          text: "Ruhe bewahren, nach Schmerzen fragen und Ansprechbarkeit prüfen",
+          correctIndex: 0,
+          reason: "Schritt 1: Verschaffen Sie sich erst einen Überblick, um Schock oder Brüche nicht durch voreilige Bewegung zu verschlimmern."
+        },
+        {
+          id: "notfall-2",
+          text: "Hausnotruf oder 112 auslösen, falls eigenständiges Aufstehen unmöglich ist",
+          correctIndex: 1,
+          reason: "Schritt 2: Professionelle Hilfe herbeirufen, bevor ungeeignete Hebeversuche unternommen werden."
+        },
+        {
+          id: "notfall-3",
+          text: "Person mit einer Decke wärmen und bis zum Eintreffen der Hilfe beruhigend begleiten",
+          correctIndex: 2,
+          reason: "Schritt 3: Auskühlung auf kaltem Boden verhindern und psychischen Halt geben."
+        }
+      ]
+    },
+    {
+      id: "st-7",
+      type: "comparison",
+      title: "Station 7: A/B-Situationsvergleich: Beleuchtungskonzepte",
+      promptOrInstruction: "Vergleichen Sie die Beleuchtung: Welches Konzept sorgt nachts für maximale Gangsicherheit?",
+      zqpRationale: "Im Alter lässt die Hell-Dunkel-Adaption des Auges nach. Blendung führt zu Orientierungsverlust.",
+      solutionExplanation: "Szenario B sorgt mit blendfreiem, gleichmäßigem Sockellicht für klare Kontraste ohne Blendung.",
+      comparisonScenarios: [
+        {
+          id: "A",
+          title: "Szenario A: Eine helle Deckenlampe am Ende des Flurs",
+          badge: "Blendungsgefahr ⚠️",
+          description: "Ein starker Deckenstrahler blendet beim Blick nach vorn und wirft lange, irritierende Schatten auf den Boden.",
+          isCorrect: false,
+          explanation: "Blendung lässt Bodenunebenheiten und Kanten im Schatten verschwinden – das Auge kann Abstände nicht mehr abschätzen."
+        },
+        {
+          id: "B",
+          title: "Szenario B: Durchgehende, diffuse Sockelleuchten",
+          badge: "Blendfrei & Sicher ✓",
+          description: "Bodennahe LED-Lichtbänder leuchten die Lauffläche schattenfrei aus, ohne die Augen zu blenden.",
+          isCorrect: true,
+          explanation: "Die bodennahe Ausleuchtung markiert den Laufweg kontinuierlich und schont die Nachtsicht."
+        }
+      ]
+    },
+    {
+      id: "st-8",
+      type: "single_choice",
+      title: "Station 8: Wissenscheck: Medikamente & Sturzrisiko",
+      promptOrInstruction: "Welche Arzneimittelgruppe erhöht durch Nebenwirkungen wie Schwindel oder Sedierung das Sturzrisiko besonders?",
+      zqpRationale: "Polypharmazie (Einnahme von mehr als 5 Medikamenten) verdoppelt das Sturzrisiko älterer Menschen.",
+      solutionExplanation: "Schlaf- und Beruhigungsmittel (z. B. Benzodiazepine) sowie stark blutdrucksenkende Mittel sind Hauptrisikofaktoren.",
+      options: [
+        {
+          text: "Schlaf- und Beruhigungsmittel sowie stark blutdrucksenkende Präparate",
+          isCorrect: true,
+          explanation: "Richtig: Diese Wirkstoffe können Schläfrigkeit, Muskelschwäche und orthostatischen Blutdruckabfall auslösen."
+        },
+        {
+          text: "Freiverkäufliche Vitamin-D- und Calciumtabletten",
+          isCorrect: false,
+          explanation: "Falsch: Vitamin D stärkt im Gegenteil Muskelkraft und Knochendichte und kann Stürzen vorbeugen."
+        },
+        {
+          text: "Magentropfen auf pflanzlicher Basis",
+          isCorrect: false,
+          explanation: "Falsch: Reine pflanzliche Verdauungshilfen haben in der Regel keinen Einfluss auf Gangstabilität und Motorik."
+        }
+      ]
+    },
+    {
+      id: "st-9",
+      type: "matching",
+      title: "Station 9: Zuordnungs-Puzzle: Wohnraumanpassung",
+      promptOrInstruction: "Verbinden Sie die bauliche Barriere mit der passenden Lösung nach ZQP-Standard:",
+      zqpRationale: "Bereits kleine Wohnraumanpassungen (z. B. Pflegekassen-Zuschuss bis 4.000 €) schaffen Barrierefreiheit.",
+      solutionExplanation: "Schwellenrampen, beidseitige Handläufe und rutschhemmende Beläge schaffen eine sichere Bewegungsumgebung.",
+      matchingPairs: [
+        {
+          id: "w9-1",
+          threatOrTerm: "Türschwelle zum Balkon / zur Terrasse",
+          solutionOrDef: "Flache Schwellenbrücke oder Ausgleichsrampe",
+          explanation: "Nimmt die Stolperkante und erlaubt schwellenfreies Rollator- oder Gehwagennutzen."
+        },
+        {
+          id: "w9-2",
+          threatOrTerm: "Treppenhaus mit nur einem einseitigen Geländer",
+          solutionOrDef: "Zweiter durchgehender Handlauf an Wandseite",
+          explanation: "Erlaubt sicheren beidseitigen Halt beim Auf- und Absteigen."
+        },
+        {
+          id: "w9-3",
+          threatOrTerm: "Spiegelndes, glattes Parkett im Wohnzimmer",
+          solutionOrDef: "Rutschhemmende Pflegebehandlung oder matter Belag",
+          explanation: "Reduziert gefährliche Gleiteffekte und verhindert optische Täuschungen durch Reflexionen."
+        }
+      ]
+    },
+    {
+      id: "st-10",
+      type: "single_choice",
+      title: "Station 10: Wissenscheck: Bewegung & Prävention",
+      promptOrInstruction: "Welche Maßnahme stärkt die Gangsicherheit und Sturzprophylaxe im Alltag am nachhaltigsten?",
+      zqpRationale: "Regelmäßiges Balance- und Krafttraining erhält die Gehfähigkeit bis ins hohe Alter.",
+      solutionExplanation: "Regelmäßige gezielte Kraft- und Balanceübungen für die Beine und den Rumpf halten die Muskulatur reaktionsfähig.",
+      options: [
+        {
+          text: "Regelmäßiges, angepasstes Kraft- und Gleichgewichtstraining",
+          isCorrect: true,
+          explanation: "Richtig: Trainierte Muskeln fangen Fehltritte reaktiv ab und schützen vor schweren Verletzungen."
+        },
+        {
+          text: "Möglichst viel Bettruhe und Schonung, um Risiken komplett zu vermeiden",
+          isCorrect: false,
+          explanation: "Falsch: Bewegungsmangel führt zu raschem Muskelabbau und verschlimmert die Gangunsicherheit drastisch."
+        },
+        {
+          text: "Ausschließliche Nutzung eines Rollstuhls zur Vermeidung von Stehzeiten",
+          isCorrect: false,
+          explanation: "Falsch: Unnötiges Ruhigstellen schwächt Gleichgewichtssinn und Knochendichte."
+        }
+      ]
+    }
+  ];
+
+  const targetCount = Math.max(1, Math.min(10, count || 3));
+  const finalStations = allDemoStations.slice(0, targetCount).map((s, idx) => ({
+    ...s,
+    id: `st-${idx + 1}`,
+    title: `Station ${idx + 1}: ${s.title.split(": ")[1] || s.title}`,
+  }));
+
   return {
     title: topic.trim() ? topic : "Sturzprävention im Alltag: Interaktive ZQP-Lernreise",
     targetAudience: audience,
     summary: "Rund 80 % der Stürze im häuslichen Umfeld lassen sich durch einfache Wohnraumanpassungen und passendes Schuhwerk vermeiden. Informieren Sie sich in unserem ZQP-Ratgeber 'Sturzprävention' auf zqp.de.",
     needsTailwind: true,
     needsFontAwesome: false,
-    stations: [
-      {
-        id: "st-1",
-        type: "matching",
-        title: "Station 1: Zuordnungs-Puzzle",
-        promptOrInstruction: "Verbinden Sie jede typische Gefahrenstelle mit der passenden ZQP-Schutzmaßnahme:",
-        zqpRationale: "Antirutschmatten, Haltegriffe und feste Schuhe verringern die Sturzgefahr im Badezimmer um über 70 %.",
-        solutionExplanation: "Die ideale Absicherung: Nasse Fliesen brauchen Antirutschmatten und feste Haltegriffe. Bei nächtlichem Harndrang schützt eine bewegungsgesteuerte Orientierungsbeleuchtung vor Desorientierung. Auf glatten Böden geben geschlossene Hausschuhe mit Fersenhalt festen Stand.",
-        matchingPairs: [
-          {
-            id: "1",
-            threatOrTerm: "Nasse Fliesen in Dusche & Bad",
-            solutionOrDef: "Haltegriffe & gummierte Antirutschmatte",
-            explanation: "Wasser auf glatten Keramikfliesen hebt die Reibung fast vollständig auf. Feste Haltegriffe bieten mechanischen Halt beim Ein- und Aussteigen."
-          },
-          {
-            id: "2",
-            threatOrTerm: "Dunkler Flur bei nächtlichem Aufstehen",
-            solutionOrDef: "Bewegungsgesteuertes Orientierungslicht",
-            explanation: "Nach dem Aufwachen ist der Blutdruck oft niedrig und die Augen gewöhnen sich nur langsam an die Dunkelheit. Blendfreies Sockellicht weist den Weg sicher zum WC."
-          },
-          {
-            id: "3",
-            threatOrTerm: "Rutschige Wollsocken oder Schlappen",
-            solutionOrDef: "Geschlossene Hausschuhe mit Profilsohle",
-            explanation: "Lose Schlappen ('Schlupfschuhe') rutschen beim Gehen leicht von der Ferse ab und führen zum Umknicken. Feste Fersenkappen geben verlässliche Stabilität."
-          },
-        ],
-      },
-      {
-        id: "st-2",
-        type: "ordering",
-        title: "Station 2: Ablauf-Reihenfolge beim Aufstehen",
-        promptOrInstruction: "Bringen Sie die 3 biomechanischen Schritte für ein sicheres Aufstehen aus dem Sessel in die richtige Reihenfolge:",
-        zqpRationale: "Erst vorrutschen, dann die Standfläche unter dem Körperschwerpunkt sichern, dann mit Vorneigung aufrichten.",
-        solutionExplanation: "Die richtige Reihenfolge: 1. Zuerst mit dem Gesäß an die vordere Kante vorrutschen (verkürzt den Hebelarm). 2. Füße schulterbreit fest aufstellen mit den Fersen leicht nach hinten (stabilisiert die Standfläche). 3. Erst jetzt den Oberkörper mit Schwung nach vorne neigen und über die Beine aufrichten.",
-        orderingSteps: [
-          {
-            id: "o1",
-            text: "Mit dem Gesäß an die vordere Stuhlkante vorrutschen",
-            correctIndex: 0,
-            reason: "Schritt 1: Verkürzt den Hebelarm zum Körperschwerpunkt, sodass deutlich weniger Kraftaufwand nötig ist."
-          },
-          {
-            id: "o2",
-            text: "Füße schulterbreit fest aufstellen, Fersen leicht nach hinten",
-            correctIndex: 1,
-            reason: "Schritt 2: Schafft eine stabile Unterstützungsfläche direkt unter den Knien, bevor das Körpergewicht verlagert wird."
-          },
-          {
-            id: "o3",
-            text: "Oberkörper mit Vorneigung über die Beine aufrichten",
-            correctIndex: 2,
-            reason: "Schritt 3: Verlagert den Schwerpunkt dynamisch über die Füße, wodurch die Oberschenkelmuskulatur optimal arbeiten kann."
-          },
-        ],
-      },
-      {
-        id: "st-3",
-        type: "comparison",
-        title: "Station 3: A/B-Situationsvergleich im Wohnbereich",
-        promptOrInstruction: "Vergleichen Sie beide Wohnraumsituationen: Welche Variante entspricht den Kriterien für ein sturzsicheres Zuhause?",
-        zqpRationale: "Freie Laufwege und fixierte Kabel sind essenziell, um Stürze älterer Menschen im Alltag zu verhindern.",
-        solutionExplanation: "Szenario B ist die sturzsichere Variante: Lose Teppichkanten und querliegende Kabel (aus Szenario A) sind für über 45 % aller häuslichen Stolperstürze verantwortlich. Feste Kabelkanäle und schattenfreie Beleuchtung beseitigen diese Gefahren nachhaltig.",
-        comparisonScenarios: [
-          {
-            id: "A",
-            title: "Szenario A: Lose Teppiche & freie Kabel",
-            badge: "Hohes Risiko ⚠️",
-            description: "Ein gemütlicher Flur mit mehreren kleinen Orientteppichen auf Parkett und einem quer über den Laufweg gespannten Ladekabel.",
-            isCorrect: false,
-            explanation: "Warum dies gefährlich ist: Lose Teppichläufer ohne gummierte Unterseite rutschen bei jedem Schritt weg. Kanten rollen sich auf und werden zu Stolperfallen. Das querliegende Kabel fängt die Fußspitze ein.",
-          },
-          {
-            id: "B",
-            title: "Szenario B: Freie Wege & fixierte Kabel",
-            badge: "Sturzpräventiv ✓",
-            description: "Freie Laufwege ohne lose Vorleger, Kabel sind sauber an der Fußleiste befestigt und nachts leuchtet eine schattenfreie Sockelleuchte.",
-            isCorrect: true,
-            explanation: "Warum dies optimal ist: Durch den Verzicht auf lose Läufer bleibt der Bodenkontakt plan. Fixierte Kabel schalten Stolperfallen aus und die Sockelbeleuchtung nimmt Sehunsicherheiten bei Dämmerung.",
-          },
-        ],
-      },
-    ],
+    stations: finalStations,
     generatedHtml: `<!-- ZQP Interaktives Lern-Quiz (zqp.de) -->
 <div id="zqp-game-root" class="zqp-quiz-container">
   <header id="zqp-game-header">
     <div class="zqp-header-top">
       <span class="zqp-badge">🧩 ZQP Praxistest</span>
-      <span id="zqp-station-counter">Station 1 von 3</span>
+      <span id="zqp-station-counter">Station 1 von ${targetCount}</span>
     </div>
     <h2 id="zqp-game-title">Sturzprävention im Alltag</h2>
     <div class="zqp-progress-bar">
-      <div id="zqp-progress-fill" style="width: 33.3%;"></div>
+      <div id="zqp-progress-fill" style="width: ${(1 / targetCount) * 100}%;"></div>
     </div>
   </header>
 
@@ -405,7 +599,7 @@ function generateLocalDemoQuiz(
     </div>
     <div id="zqp-footer-right">
       <button id="zqp-btn-action" type="button" class="zqp-btn-primary" disabled>
-        Nächste Station ➔
+        ${targetCount === 1 ? "Zur Gesamtauswertung ➔" : "Nächste Station ➔"}
       </button>
     </div>
   </footer>
@@ -425,7 +619,7 @@ function generateLocalDemoQuiz(
     <div id="zqp-drawer-body" class="zqp-drawer-body"></div>
     <div class="zqp-drawer-actions">
       <button id="zqp-btn-drawer-next" type="button" class="zqp-btn-primary">
-        Nächste Station ➔
+        ${targetCount === 1 ? "Zur Gesamtauswertung ➔" : "Nächste Station ➔"}
       </button>
     </div>
   </div>
@@ -504,8 +698,8 @@ function generateLocalDemoQuiz(
 .zqp-stage {
   flex: 1 1 0%;
   min-height: 0;
-  overflow: hidden;
-  padding: 1.25rem;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
   position: relative;
 }
 
@@ -571,13 +765,14 @@ function generateLocalDemoQuiz(
 }
 
 .puzzle-piece {
-  border: 2px solid #bbd1cd;
+  border: 1.5px solid #bbd1cd;
   border-radius: 0.75rem;
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
+  padding: 0.625rem 0.875rem;
+  margin-bottom: 0.35rem;
   cursor: pointer;
   background: #ffffff;
-  transition: all 0.2s;
+  transition: all 0.15s;
+  font-size: 0.8125rem;
 }
 
 .puzzle-piece:hover {
@@ -672,14 +867,15 @@ function generateLocalDemoQuiz(
   border-top: 1px solid rgba(0,0,0,0.06);
   background: rgba(255,255,255,0.7);
 }`,
-    generatedJs: `/* ZQP Quiz Interaktion (Vanilla JS mit Drawer & Score-Tracking) */
+    generatedJs: `/* ZQP Quiz Interaktion (Vanilla JS mit dynamischem Stations-Array) */
 (function() {
   var root = document.getElementById("zqp-game-root");
   if (!root) return;
 
   var currentStation = 0;
-  var totalStations = 3;
-  var stationResults = {}; // sIdx -> "independent" | "revealed"
+  var stationsData = ${JSON.stringify(finalStations)};
+  var totalStations = stationsData.length;
+  var stationResults = {}; // sIdx -> "solved" | "unsolved"
   var canAdvance = false;
 
   var btnReveal = document.getElementById("zqp-btn-reveal");
@@ -724,24 +920,49 @@ function generateLocalDemoQuiz(
     if (counter) counter.textContent = "Station " + (idx + 1) + " von " + totalStations;
     if (progressFill) progressFill.style.width = (((idx + 1) / totalStations) * 100) + "%";
 
-    if (idx === 0) {
-      content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 1: Zuordnungs-Puzzle</h3>' +
-        '<p style="font-size:0.875rem; margin-bottom:1rem;">Klicken Sie auf ein Gefahrenpaar, um die passenden Puzzleteile zu verzahnen:</p>' +
-        '<div class="puzzle-piece" id="p1" onclick="window.zqpSelectMatch(1)">⚠️ Nasse Fliesen in Dusche & Bad ➔ Feste Haltegriffe & Antirutschmatte</div>' +
-        '<div class="puzzle-piece" id="p2" onclick="window.zqpSelectMatch(2)">⚠️ Dunkler Flur bei Nacht ➔ Orientierungsbeleuchtung</div>' +
-        '<div class="puzzle-piece" id="p3" onclick="window.zqpSelectMatch(3)">⚠️ Rutschige Wollsocken ➔ Geschlossene Hausschuhe</div>';
-    } else if (idx === 1) {
-      content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 2: Ablauf-Reihenfolge beim Aufstehen</h3>' +
-        '<p style="font-size:0.875rem; margin-bottom:1rem;">Wählen Sie den korrekten ersten biomechanischen Schritt:</p>' +
-        '<div class="puzzle-piece" onclick="window.zqpSelectOrder(1)">1. An die vordere Stuhlkante vorrutschen (Hebelarm verkürzen)</div>' +
-        '<div class="puzzle-piece" onclick="window.zqpSelectOrder(2)">2. Füße schulterbreit fest aufstellen (Fersen leicht zurück)</div>' +
-        '<div class="puzzle-piece" onclick="window.zqpSelectOrder(3)">3. Mit Vorneigung dynamisch aufrichten</div>';
-    } else if (idx === 2) {
-      content.innerHTML = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.75rem;">Station 3: A/B-Situationsvergleich</h3>' +
-        '<p style="font-size:0.875rem; margin-bottom:1rem;">Wählen Sie die sturzsichere Wohnsituation:</p>' +
-        '<div class="puzzle-piece" onclick="window.zqpSelectCompare(\\'A\\')"><strong>Szenario A:</strong> Gemütlicher Flur mit losen Läufern & losem Kabel quer über den Weg</div>' +
-        '<div class="puzzle-piece" onclick="window.zqpSelectCompare(\\'B\\')"><strong>Szenario B (Sturzpräventiv ✓):</strong> Freie Wege, fixierte Kabel, schattenfreie Sockelleuchte</div>';
+    var st = stationsData[idx];
+    if (!st) return;
+
+    var html = '<h3 style="color:#1b5c53; font-weight:700; margin-bottom:0.5rem; font-size:1rem;">' + st.title + '</h3>' +
+      '<p style="font-size:0.8125rem; margin-bottom:0.875rem; color:#444;">' + st.promptOrInstruction + '</p>';
+
+    if (st.type === "matching" && st.matchingPairs) {
+      html += '<div style="display:flex; flex-direction:column; gap:0.4rem;">';
+      st.matchingPairs.forEach(function(pair, pIdx) {
+        html += '<div class="puzzle-piece" onclick="window.zqpSelectMatch(' + idx + ',' + pIdx + ')">' +
+          '<strong>⚠️ ' + pair.threatOrTerm + '</strong> ➔ ' + pair.solutionOrDef +
+          '</div>';
+      });
+      html += '</div>';
+    } else if (st.type === "ordering" && st.orderingSteps) {
+      html += '<div style="display:flex; flex-direction:column; gap:0.4rem;">';
+      st.orderingSteps.forEach(function(step, sIdx) {
+        html += '<div class="puzzle-piece" onclick="window.zqpSelectOrder(' + idx + ',' + sIdx + ')">' +
+          step.text +
+          '</div>';
+      });
+      html += '</div>';
+    } else if (st.type === "comparison" && st.comparisonScenarios) {
+      html += '<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">';
+      st.comparisonScenarios.forEach(function(sc, cIdx) {
+        html += '<div class="puzzle-piece" style="margin-bottom:0;" onclick="window.zqpSelectCompare(' + idx + ',' + cIdx + ')">' +
+          '<span style="display:inline-block; font-size:0.6875rem; font-weight:700; padding:0.125rem 0.375rem; border-radius:0.25rem; margin-bottom:0.25rem; background:#f1f5f9;">' + sc.badge + '</span>' +
+          '<div style="font-weight:700; font-size:0.8125rem; color:#1b5c53; margin-bottom:0.25rem;">' + sc.title + '</div>' +
+          '<div style="font-size:0.75rem; color:#555;">' + sc.description + '</div>' +
+          '</div>';
+      });
+      html += '</div>';
+    } else if (st.type === "single_choice" && st.options) {
+      html += '<div style="display:flex; flex-direction:column; gap:0.4rem;">';
+      st.options.forEach(function(opt, oIdx) {
+        html += '<div class="puzzle-piece" onclick="window.zqpSelectChoice(' + idx + ',' + oIdx + ')">' +
+          opt.text +
+          '</div>';
+      });
+      html += '</div>';
     }
+
+    content.innerHTML = html;
   }
 
   function markStationCompleted(mode, explanation, zqpInfo) {
@@ -752,23 +973,39 @@ function generateLocalDemoQuiz(
     openDrawer(mode === "solved" ? "correct" : "revealed", mode === "solved" ? "Richtig gelöst!" : "Lösung aufgedeckt", explanation, zqpInfo);
   }
 
-  window.zqpSelectMatch = function(id) {
-    markStationCompleted("solved", "Alle Schutzmaßnahmen neutralisieren die jeweiligen Gefahrenquellen nachhaltig.", "Haltegriffe und Antirutschmatten verringern das Sturzrisiko im Badezimmer um über 70 %.");
+  window.zqpSelectMatch = function(stIdx, pIdx) {
+    var st = stationsData[stIdx];
+    var pair = st.matchingPairs[pIdx];
+    markStationCompleted("solved", pair.explanation, st.zqpRationale);
   };
 
-  window.zqpSelectOrder = function(id) {
-    if (id === 1) {
-      markStationCompleted("solved", "Richtig: Vorrutschen an die Stuhlkante verkürzt den Hebelarm zum Körperschwerpunkt.", "Schafft die biomechanische Basis vor dem Aufstehen.");
+  window.zqpSelectOrder = function(stIdx, sIdx) {
+    var st = stationsData[stIdx];
+    var step = st.orderingSteps[sIdx];
+    if (step.correctIndex === 0) {
+      markStationCompleted("solved", st.solutionExplanation || "Richtig sortiert!", st.zqpRationale);
     } else {
-      openDrawer("incorrect", "Noch nicht optimal", "Vor dem Aufrichten muss zuerst an die vordere Kante vorgerutscht werden.", "Anderenfalls ist der Kraftaufwand viel zu hoch.");
+      openDrawer("incorrect", "Reihenfolge prüfen", step.reason || "Überlegen Sie, welcher Schritt zuerst Stabilität verleiht.", st.zqpRationale);
     }
   };
 
-  window.zqpSelectCompare = function(choice) {
-    if (choice === "B") {
-      markStationCompleted("solved", "Ausgezeichnet! Szenario B beseitigt lose Teppichkanten und Stolperfallen.", "Lose Teppichläufer sind für über 45 % aller Stürze verantwortlich.");
+  window.zqpSelectCompare = function(stIdx, cIdx) {
+    var st = stationsData[stIdx];
+    var sc = st.comparisonScenarios[cIdx];
+    if (sc.isCorrect) {
+      markStationCompleted("solved", sc.explanation, st.zqpRationale);
     } else {
-      openDrawer("incorrect", "Hohes Sturzrisiko", "Lose Teppiche auf Parkett und querliegende Kabel fangen Fußspitzen ein.", "Beseitigen Sie lose Vorleger und fixieren Sie Kabel.");
+      openDrawer("incorrect", "Erhöhtes Sturzrisiko", sc.explanation, st.zqpRationale);
+    }
+  };
+
+  window.zqpSelectChoice = function(stIdx, oIdx) {
+    var st = stationsData[stIdx];
+    var opt = st.options[oIdx];
+    if (opt.isCorrect) {
+      markStationCompleted("solved", opt.explanation, st.zqpRationale);
+    } else {
+      openDrawer("incorrect", "Nicht empfohlen", opt.explanation, st.zqpRationale);
     }
   };
 
@@ -776,14 +1013,15 @@ function generateLocalDemoQuiz(
 
   if (btnReveal) {
     btnReveal.addEventListener("click", function() {
+      var st = stationsData[currentStation];
       if (canAdvance) {
         if (drawer && drawer.classList.contains("open")) {
           closeDrawer();
         } else {
-          openDrawer(stationResults[currentStation] === "solved" ? "correct" : "revealed", "Erklärung", "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP (zqp.de).", "Regelmäßige Sensibilität für Gefahrenquellen schützt nachhaltig.");
+          openDrawer(stationResults[currentStation] === "solved" ? "correct" : "revealed", "Erklärung", st.solutionExplanation || "Fachlich fundiert nach den Empfehlungen der Stiftung ZQP (zqp.de).", st.zqpRationale);
         }
       } else {
-        markStationCompleted("unsolved", "Hier ist die empfohlene Lösung: Schutzmaßnahmen neutralisieren Gefahrenquellen konsequent.", "ZQP-Expertenrat: Achten Sie im Alltag auf ebene Flächen und feste Schuhe.");
+        markStationCompleted("unsolved", st.solutionExplanation || "Hier ist die empfohlene Lösung nach den Richtlinien der Stiftung ZQP.", st.zqpRationale);
       }
     });
   }
@@ -795,21 +1033,26 @@ function generateLocalDemoQuiz(
       renderStation(currentStation);
     } else {
       var solvedCount = Object.keys(stationResults).filter(function(k) { return stationResults[k] === "solved"; }).length;
-      content.innerHTML = '<div style="text-align:center; padding:1.25rem;">' +
-        '<div style="width:48px; height:48px; border-radius:50%; background:#e3eeec; border:2px solid #247a6d; margin:0 auto 0.75rem auto; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">🏆</div>' +
-        '<h3 style="color:#1b5c53; font-size:1.125rem; font-weight:700; margin-bottom:0.25rem;">Glückwunsch! Praxistest beendet</h3>' +
-        '<p style="font-size:0.8125rem; color:#6e6c70; margin-bottom:0.75rem;">Sie haben alle Stationen abgeschlossen.</p>' +
+      var breakdownHtml = '';
+      for (var i = 0; i < totalStations; i++) {
+        var isSol = stationResults[i] === 'solved';
+        breakdownHtml += '<div style="display:flex; justify-content:space-between; padding:0.25rem 0; border-bottom:1px solid rgba(0,0,0,0.05);">' +
+          '<span style="max-width:70%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Station ' + (i + 1) + ': ' + (stationsData[i].title.replace(/^Station \\d+:\\s*/, '')) + '</span>' +
+          '<span style="font-weight:600; color:' + (isSol ? '#047857' : '#991b1b') + '; shrink:0;">' + (isSol ? '✓ Gelöst' : '✕ Nicht gelöst') + '</span>' +
+          '</div>';
+      }
+
+      content.innerHTML = '<div style="text-align:center; padding:1rem;">' +
+        '<div style="width:44px; height:44px; border-radius:50%; background:#e3eeec; border:2px solid #247a6d; margin:0 auto 0.5rem auto; display:flex; align-items:center; justify-content:center; font-size:1.35rem;">🏆</div>' +
+        '<h3 style="color:#1b5c53; font-size:1.1rem; font-weight:700; margin-bottom:0.2rem;">Glückwunsch! Praxistest beendet</h3>' +
+        '<p style="font-size:0.75rem; color:#6e6c70; margin-bottom:0.75rem;">Sie haben alle ' + totalStations + ' Stationen abgeschlossen.</p>' +
         '<div style="background:#f3f8f7; border:1px solid #bbd1cd; border-radius:0.75rem; padding:0.75rem; text-align:left; font-size:0.75rem;">' +
         '<div style="display:flex; justify-content:space-between; font-weight:700; color:#1b5c53; margin-bottom:0.5rem; border-bottom:1px solid rgba(0,0,0,0.06); padding-bottom:0.35rem;">' +
         '<span>Ihr Testergebnis:</span>' +
         '<span style="background:#d1fae5; color:#065f46; padding:0.125rem 0.5rem; border-radius:9999px;">' + solvedCount + ' von ' + totalStations + ' Aufgaben gelöst</span>' +
         '</div>' +
-        '<div style="line-height:1.6;">' +
-        '<div>Station 1: ' + (stationResults[0] === "solved" ? "✓ Gelöst" : "✕ Nicht gelöst") + '</div>' +
-        '<div>Station 2: ' + (stationResults[1] === "solved" ? "✓ Gelöst" : "✕ Nicht gelöst") + '</div>' +
-        '<div>Station 3: ' + (stationResults[2] === "solved" ? "✓ Gelöst" : "✕ Nicht gelöst") + '</div>' +
-        '</div>' +
-        '<div style="margin-top:0.5rem; padding-top:0.5rem; border-top:1px solid rgba(0,0,0,0.06); font-size:0.6875rem; color:#475569;">' +
+        '<div style="line-height:1.5; margin-bottom:0.5rem;">' + breakdownHtml + '</div>' +
+        '<div style="margin-top:0.35rem; padding-top:0.35rem; border-top:1px solid rgba(0,0,0,0.06); font-size:0.6875rem; color:#475569;">' +
         '<strong>ZQP-Fazit:</strong> Rund 80 % der Stürze im Alltag lassen sich durch Wohnraumanpassungen und passendes Schuhwerk verhindern. Ratgeber auf zqp.de.' +
         '</div>' +
         '</div>' +
@@ -826,6 +1069,7 @@ function generateLocalDemoQuiz(
   if (btnAction) btnAction.addEventListener("click", advanceStation);
   if (btnDrawerNext) btnDrawerNext.addEventListener("click", advanceStation);
 
+  renderStation(0);
 })();`,
   };
 }

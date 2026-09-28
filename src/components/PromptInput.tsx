@@ -259,25 +259,8 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           )}
         </div>
 
-        {/* Question Count & Target Audience */}
-        <div className="grid grid-cols-2 gap-3 pt-1">
-          <div>
-            <label htmlFor="station-count" className="block text-xs font-semibold text-[#1b5c53] mb-1">
-              Stationen / Aufgaben
-            </label>
-            <select
-              id="station-count"
-              value={questionCount}
-              onChange={(e) => setQuestionCount(Number(e.target.value))}
-              disabled={isLoading}
-              className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-2 focus:ring-[#247a6d] outline-none"
-            >
-              <option value={3}>3 Stationen (Kompakt)</option>
-              <option value={5}>5 Stationen (Standard)</option>
-              <option value={7}>7 Stationen (Lernreise)</option>
-            </select>
-          </div>
-
+        {/* Target Audience & Station Count Slider */}
+        <div className="space-y-3 pt-1">
           <div>
             <label htmlFor="audience" className="block text-xs font-semibold text-[#1b5c53] mb-1">
               Zielgruppe
@@ -294,6 +277,43 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               <option value="senioren">Senior:innen / Einfache Sprache</option>
               <option value="allgemein">Allgemeinbevölkerung</option>
             </select>
+          </div>
+
+          {/* Schieberegler für Anzahl der Lernstationen (1 bis 10) */}
+          <div className="bg-[#f3f8f7] border border-[#bbd1cd] rounded-xl p-3">
+            <div className="flex items-center justify-between mb-2">
+              <label htmlFor="station-slider" className="text-xs font-semibold text-[#1b5c53]">
+                Anzahl der Lernstationen
+              </label>
+              <span className="font-bold text-xs bg-[#247a6d] text-white px-2.5 py-0.5 rounded-full shadow-xs">
+                {questionCount} {questionCount === 1 ? "Station" : "Stationen"}
+              </span>
+            </div>
+
+            <input
+              id="station-slider"
+              type="range"
+              min={1}
+              max={10}
+              step={1}
+              value={questionCount}
+              onChange={(e) => setQuestionCount(Number(e.target.value))}
+              disabled={isLoading}
+              className="w-full h-2 bg-[#bbd1cd]/60 rounded-lg appearance-none cursor-pointer accent-[#247a6d] focus:outline-none focus:ring-2 focus:ring-[#247a6d]"
+            />
+
+            <div className="flex justify-between text-[10px] text-[#6e6c70] font-medium px-0.5 mt-1 select-none">
+              <span>1</span>
+              <span>2</span>
+              <span>3</span>
+              <span>4</span>
+              <span>5</span>
+              <span>6</span>
+              <span>7</span>
+              <span>8</span>
+              <span>9</span>
+              <span>10</span>
+            </div>
           </div>
         </div>
 
