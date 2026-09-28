@@ -96,14 +96,14 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
    - Vollständige Tastaturbedienbarkeit (:focus-visible mit 2px ZQP-Petrol Ring).
    - Screenreader-Unterstützung mit aria-live="polite".
    - Mindest-Touch-Größe für Buttons und Klickkarten.
-4. STABILES LAYOUT & MOBIL-OPTIMIERUNG (KEIN HÖHENSPRINGEN / CLS = 0):
-   - Das generierte HTML/CSS/JS MUSS zwingend als 3-Zonen-Flexbox aufgebaut sein:
-     * Fester Außencontainer: '#zqp-game-root' (Desktop: h: 620px, max-h: 85vh; Mobil: h: 590px, max-h: 88vh; display: flex; flex-direction: column; overflow: hidden). Das Quiz darf beim Umschalten zwischen Stationen oder Anzeigen von Lösungen NIEMALS die Gesamthöhe verändern!
-     * Fester Header: '#zqp-game-header' (flex-shrink: 0) mit ZQP-Petrol-Verlauf, Stationstitel und Fortschrittsbalken.
-     * Scrollbarer Inhaltsbereich: '#zqp-game-stage' (flex: 1; min-height: 0; overflow-y: auto) für Fragen, Puzzleteile und didaktische Erklärungsboxen.
-     * Feste Fußleiste (Pinned Footer): '#zqp-game-footer' (flex-shrink: 0; border-top: 1px solid #bbd1cd) am unteren Rand mit fest verankerten Buttons für "💡 Lösung anzeigen" (links) und "Prüfen" / "Nächste Station ➔" (rechts).
-   - Auf Smartphones passt das Quiz so zu 100 % in den Viewport, ohne dass Knöpfe aus dem Bildschirm springen.
-5. RÜCKGABESCHEMA (reines, valides JSON):
+4. STABILES LAYOUT & KEINE SCROLLBALKEN (KEIN HÖHENSPRINGEN / CLS = 0 / MOBIL-PASSGENAU):
+   - Der Quiz-Container '#zqp-game-root' MUSS zwingend OHNE Scrollbalken auskommen (overflow: hidden, feste Höhe ca. 560-580px, max-h: 85vh).
+   - Das Quiz darf beim Umschalten zwischen Stationen oder Anzeigen von Lösungen NIEMALS die Höhe verändern.
+   - Didaktische Erklärungen ("Warum richtig / falsch" + "ZQP-Praxiswissen") erscheinen bei Klick auf "Prüfen" oder "Lösung anzeigen" als eleganter Bottom-Drawer (Slide-up Overlay vom unteren Rand), sodass keine Scrollbalken entstehen und das Quiz 100% stabil bleibt.
+5. ZQP-FUSSZEILE (OBLIGATORISCH):
+   - Jedes Quiz MUSS am alleruntersten Rand eine dezente Fußzeile besitzen:
+     "Stiftung Zentrum für Qualität in der Pflege • [Aktuelles Kalenderjahr]" (z. B. "Stiftung Zentrum für Qualität in der Pflege • ${new Date().getFullYear()}").
+6. RÜCKGABESCHEMA (reines, valides JSON):
 {
   "title": "string",
   "targetAudience": "${targetAudience}",
@@ -407,12 +407,15 @@ function generateLocalDemoQuiz(
       </button>
     </div>
   </footer>
+  <div class="zqp-copyright-footer">
+    Stiftung Zentrum für Qualität in der Pflege • ${new Date().getFullYear()}
+  </div>
 </div>`,
-    generatedCss: `/* ZQP Quiz Embed Styles: Feste Höhe & Keine Layout-Verschiebungen */
+    generatedCss: `/* ZQP Quiz Embed Styles: Feste Höhe, Keine Layout-Verschiebungen & Keine Scrollbalken */
 .zqp-quiz-container {
   width: 100%;
   max-width: 672px;
-  height: 620px;
+  height: 570px;
   max-height: 85vh;
   margin: 1.5rem auto;
   background-color: #ffffff;
@@ -422,6 +425,7 @@ function generateLocalDemoQuiz(
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #444444;
 }
@@ -429,7 +433,7 @@ function generateLocalDemoQuiz(
 @media (max-width: 640px) {
   .zqp-quiz-container {
     max-width: 100%;
-    height: 590px;
+    height: 570px;
     max-height: 88vh;
     border-radius: 0.75rem;
   }
@@ -481,19 +485,20 @@ function generateLocalDemoQuiz(
 .zqp-stage {
   flex: 1 1 0%;
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   padding: 1.25rem;
-  scrollbar-width: thin;
-  scrollbar-color: #bbd1cd #f3f8f7;
 }
 
-.zqp-stage::-webkit-scrollbar {
-  width: 6px;
-}
-
-.zqp-stage::-webkit-scrollbar-thumb {
-  background-color: #bbd1cd;
-  border-radius: 4px;
+.zqp-copyright-footer {
+  flex-shrink: 0;
+  background-color: #f3f8f7;
+  border-top: 1px solid rgba(187, 209, 205, 0.6);
+  padding: 0.35rem 1rem;
+  text-align: center;
+  font-size: 0.6875rem;
+  color: #6e6c70;
+  font-weight: 500;
+  letter-spacing: 0.025em;
 }
 
 #zqp-game-footer {

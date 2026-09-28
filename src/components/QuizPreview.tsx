@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { RotateCcw, Monitor, Smartphone, ArrowRight, ArrowUp, ArrowDown, Award, Lightbulb, CheckCircle2, AlertTriangle, HelpCircle, Puzzle, Check } from "lucide-react";
 import { QuizGenerationResult, QuizStation, MatchingPair } from "../types";
 
@@ -11,7 +11,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
   const [currentStationIdx, setCurrentStationIdx] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
-  const stageRef = useRef<HTMLDivElement>(null);
 
   const currentStation: QuizStation | undefined = quiz.stations[currentStationIdx];
 
@@ -21,13 +20,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [matchedIds, setMatchedIds] = useState<string[]>([]);
   // Shuffled solutions so they are NEVER in the same order as threats!
   const [shuffledSolutions, setShuffledSolutions] = useState<MatchingPair[]>([]);
-  // Store connected pairs with details for persistent visual interlocking
-  const [connectedPairs, setConnectedPairs] = useState<{
-    id: string;
-    threat: string;
-    solution: string;
-    explanation?: string;
-  }[]>([]);
 
   // Ordering state
   const [orderedList, setOrderedList] = useState<{ id: string; text: string; correctIndex: number; reason?: string }[]>([]);
@@ -48,29 +40,11 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
   const [feedback, setFeedback] = useState<FeedbackState | null>(null);
   const [canAdvance, setCanAdvance] = useState<boolean>(false);
 
-  // Reset stage scroll position on station change or completion
-  useEffect(() => {
-    if (stageRef.current) {
-      stageRef.current.scrollTo({ top: 0, behavior: "instant" });
-    }
-  }, [currentStationIdx, completed]);
-
-  // Smooth scroll down to feedback card when shown without changing outer container height
-  useEffect(() => {
-    if (feedback && stageRef.current) {
-      const timer = setTimeout(() => {
-        stageRef.current?.scrollTo({ top: stageRef.current.scrollHeight, behavior: "smooth" });
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [feedback]);
-
   // Reset station state on change
   useEffect(() => {
     setSelectedThreat(null);
     setSelectedSolution(null);
     setMatchedIds([]);
-    setConnectedPairs([]);
     setSelectedScenarioId(null);
     setSelectedOptionIdx(null);
     setFeedback(null);
@@ -114,14 +88,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
 
     if (currentStation.type === "matching" && currentStation.matchingPairs) {
       setMatchedIds(currentStation.matchingPairs.map((p) => p.id));
-      setConnectedPairs(
-        currentStation.matchingPairs.map((p) => ({
-          id: p.id,
-          threat: p.threatOrTerm,
-          solution: p.solutionOrDef,
-          explanation: p.explanation,
-        }))
-      );
       setSelectedThreat(null);
       setSelectedSolution(null);
     } else if (currentStation.type === "ordering" && currentStation.orderingSteps) {
@@ -163,23 +129,13 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
       const nextMatched = [...matchedIds, threatId];
       setMatchedIds(nextMatched);
 
-      setConnectedPairs((prev) => [
-        ...prev,
-        {
-          id: pair.id,
-          threat: pair.threatOrTerm,
-          solution: pair.solutionOrDef,
-          explanation: pair.explanation,
-        },
-      ]);
-
       setSelectedThreat(null);
       setSelectedSolution(null);
 
       const allSolved = nextMatched.length === (currentStation?.matchingPairs?.length || 0);
       setFeedback({
         type: "correct",
-        title: allSolved ? "Großartig! Alle Puzzleteile perfekt verzahnt" : "Puzzleteile erfolgreich eingerastet! ✓",
+        title: allSolved ? "Großartig! Alle Puzzleteile perfekt verzahnt" : "Puzzleteil erfolgreich eingerastet! ✓",
         selectionExplanation: pair.explanation || "Diese beiden Puzzleteile greifen inhaltlich exakt ineinander.",
         zqpBackground: allSolved
           ? (currentStation?.zqpRationale || "Alle Schutzmaßnahmen neutralisieren die jeweiligen Gefahrenquellen nachhaltig.")
@@ -356,13 +312,13 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         </div>
       </div>
 
-      {/* Main Responsive Quiz Viewport with STABLE HEIGHT (Zero Layout Shifts) */}
+      {/* Main Responsive Quiz Viewport with STABLE HEIGHT & ZERO SCROLLBARS */}
       <div className="flex-1 flex justify-center items-center overflow-hidden py-1 px-1">
         <div
-          className={`w-full bg-white border border-[#bbd1cd] rounded-2xl shadow-md overflow-hidden transition-all duration-300 flex flex-col ${
+          className={`w-full bg-white border border-[#bbd1cd] rounded-2xl shadow-md overflow-hidden transition-all duration-300 relative flex flex-col ${
             viewport === "mobile"
-              ? "max-w-[380px] h-[590px] max-h-[85vh]"
-              : "max-w-2xl h-[620px] max-h-[85vh]"
+              ? "max-w-[380px] h-[570px] max-h-[85vh]"
+              : "max-w-2xl h-[570px] max-h-[85vh]"
           }`}
         >
           {/* 1. FIXED HEADER (shrink-0) */}
@@ -395,13 +351,10 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
             </div>
           </header>
 
-          {/* 2. SCROLLABLE STAGE (flex-1 min-h-0 overflow-y-auto zqp-scrollbar) */}
-          <div
-            ref={stageRef}
-            className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 zqp-scrollbar"
-          >
+          {/* 2. COMPACT STAGE (flex-1 overflow-hidden p-4 sm:p-5 flex flex-col justify-start) */}
+          <div className="flex-1 min-h-0 overflow-hidden p-4 sm:p-5 flex flex-col justify-start">
             {!completed && currentStation && (
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-3 h-full">
                 <div>
                   <h3 className="text-sm sm:text-base font-bold text-[#1b5c53] leading-snug">
                     {currentStation.promptOrInstruction}
@@ -409,30 +362,25 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                 </div>
 
                 {/* ==============================================================
-                    1. AUTHENTIC MATCHING PUZZLE (SHUFFLED & CLEARLY LINKED)
+                    1. AUTHENTIC MATCHING PUZZLE (COMPACT 2-COLUMNS, IN-PLACE DOCKING)
                     ============================================================== */}
                 {currentStation.type === "matching" && currentStation.matchingPairs && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between text-xs text-[#6e6c70] bg-[#f3f8f7] p-2.5 rounded-lg border border-[#bbd1cd]">
-                      <span>
-                        Wählen Sie links ein Puzzleteil (Gefahr) und rechts die passende Lösung zum Verzahnen:
+                  <div className="space-y-2.5">
+                    <div className="flex items-center justify-between text-xs text-[#6e6c70] bg-[#f3f8f7] px-2.5 py-1.5 rounded-lg border border-[#bbd1cd]">
+                      <span className="text-[11px] sm:text-xs">
+                        Wählen Sie links die Gefahr und rechts die passende Schutzmaßnahme:
                       </span>
-                      <span className="font-bold text-[#1b5c53] shrink-0 ml-2">
+                      <span className="font-bold text-[#1b5c53] shrink-0 ml-2 text-xs">
                         {matchedIds.length} von {currentStation.matchingPairs.length} verzahnt
                       </span>
                     </div>
 
-                    {/* Interactive Grid: Left (Threats) & Right (Shuffled Solutions) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-2">
                       {/* Left: Threats */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wider flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                            Gefahrenquelle (Links)
-                          </span>
-                        </div>
-
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block px-1">
+                          ⚠️ Gefahrenquelle
+                        </span>
                         {currentStation.matchingPairs.map((pair, idx) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedThreat?.id === pair.id;
@@ -442,37 +390,28 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                             <div
                               key={`th-${pair.id}`}
                               onClick={() => handleSelectThreat(pair)}
-                              className={`puzzle-piece rounded-xl border-2 p-3 text-left relative transition-all cursor-pointer ${
+                              className={`rounded-xl border-2 p-2 sm:p-2.5 text-left transition-all cursor-pointer ${
                                 isMatched
                                   ? `${theme.border} ${theme.bg} shadow-xs`
                                   : isSelected
-                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-md"
-                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7] shadow-xs"
+                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-sm"
+                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7]"
                               }`}
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300">
                                   Teil A-{idx + 1}
                                 </span>
-
                                 {isMatched ? (
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${theme.badge} flex items-center gap-1 shadow-xs`}>
-                                    <Check className="w-3 h-3" />
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${theme.badge} flex items-center gap-0.5 shadow-xs`}>
+                                    <Check className="w-2.5 h-2.5" />
                                     <span>{theme.label}</span>
                                   </span>
                                 ) : isSelected ? (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#247a6d] text-white animate-pulse">
-                                    Ausgewählt ➔
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-medium text-[#6e6c70] flex items-center gap-1">
-                                    <Puzzle className="w-3 h-3 text-[#247a6d]" />
-                                    <span>Einrasten</span>
-                                  </span>
-                                )}
+                                  <span className="text-[9px] font-bold text-[#247a6d]">Wählen ➔</span>
+                                ) : null}
                               </div>
-
-                              <p className="text-xs font-semibold text-[#444] leading-relaxed">
+                              <p className="text-[11px] sm:text-xs font-semibold text-[#444] leading-tight">
                                 {pair.threatOrTerm}
                               </p>
                             </div>
@@ -480,15 +419,11 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         })}
                       </div>
 
-                      {/* Right: Shuffled Solutions (Mischung garantiert!) */}
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between px-1">
-                          <span className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wider flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            Schutzmaßnahme (Rechts gemischt)
-                          </span>
-                        </div>
-
+                      {/* Right: Shuffled Solutions */}
+                      <div className="space-y-2">
+                        <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider block px-1">
+                          🛡️ Schutzmaßnahme
+                        </span>
                         {shuffledSolutions.map((pair, idx) => {
                           const isMatched = matchedIds.includes(pair.id);
                           const isSelected = selectedSolution?.id === pair.id;
@@ -498,37 +433,28 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                             <div
                               key={`sol-${pair.id}`}
                               onClick={() => handleSelectSolution(pair)}
-                              className={`puzzle-piece rounded-xl border-2 p-3 text-left relative transition-all cursor-pointer ${
+                              className={`rounded-xl border-2 p-2 sm:p-2.5 text-left transition-all cursor-pointer ${
                                 isMatched
                                   ? `${theme.border} ${theme.bg} shadow-xs`
                                   : isSelected
-                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-md"
-                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7] shadow-xs"
+                                  ? "border-[#247a6d] bg-[#e3eeec] ring-2 ring-[#247a6d] shadow-sm"
+                                  : "border-[#bbd1cd] bg-white hover:border-[#247a6d] hover:bg-[#f3f8f7]"
                               }`}
                             >
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
+                              <div className="flex items-center justify-between mb-0.5">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300">
                                   Teil B-{idx + 1}
                                 </span>
-
                                 {isMatched ? (
-                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${theme.badge} flex items-center gap-1 shadow-xs`}>
-                                    <Check className="w-3 h-3" />
+                                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${theme.badge} flex items-center gap-0.5 shadow-xs`}>
+                                    <Check className="w-2.5 h-2.5" />
                                     <span>{theme.label}</span>
                                   </span>
                                 ) : isSelected ? (
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#247a6d] text-white animate-pulse">
-                                    Ausgewählt ➔
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-medium text-[#6e6c70] flex items-center gap-1">
-                                    <Puzzle className="w-3 h-3 text-[#247a6d]" />
-                                    <span>Einrasten</span>
-                                  </span>
-                                )}
+                                  <span className="text-[9px] font-bold text-[#247a6d]">Wählen ➔</span>
+                                ) : null}
                               </div>
-
-                              <p className="text-xs font-semibold text-[#444] leading-relaxed">
+                              <p className="text-[11px] sm:text-xs font-semibold text-[#444] leading-tight">
                                 {pair.solutionOrDef}
                               </p>
                             </div>
@@ -536,54 +462,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         })}
                       </div>
                     </div>
-
-                    {/* === PERSISTENT VISUAL INTERLOCKING SECTION === */}
-                    {connectedPairs.length > 0 && (
-                      <div className="mt-4 pt-3 border-t-2 border-dashed border-[#bbd1cd] space-y-3">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#1b5c53] flex items-center gap-1.5">
-                            <Puzzle className="w-4 h-4 text-[#247a6d]" />
-                            <span>Erfolgreich ineinander eingerastete Puzzleteile ({connectedPairs.length}):</span>
-                          </span>
-                        </div>
-
-                        {connectedPairs.map((cp) => {
-                          const theme = getPairTheme(cp.id);
-                          return (
-                            <div
-                              key={`docked-${cp.id}`}
-                              className={`p-3.5 rounded-xl border-2 ${theme.border} ${theme.bg} flex flex-col gap-2 animate-puzzle-snap shadow-xs`}
-                            >
-                              {/* Interlocking Puzzle Pair Block */}
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 relative">
-                                <div className="p-2.5 rounded-lg bg-white border border-[#bbd1cd] flex flex-col justify-between">
-                                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
-                                    Gefahr
-                                  </span>
-                                  <span className="text-xs font-semibold text-[#444]">{cp.threat}</span>
-                                </div>
-
-                                <div className="p-2.5 rounded-lg bg-white border border-[#bbd1cd] flex flex-col justify-between">
-                                  <span className="text-[10px] font-bold text-emerald-800 uppercase tracking-wider mb-1 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                                    Schutzmaßnahme
-                                  </span>
-                                  <span className="text-xs font-semibold text-[#444]">{cp.solution}</span>
-                                </div>
-                              </div>
-
-                              {/* Why they interlock */}
-                              {cp.explanation && (
-                                <p className="text-[11px] text-[#444] bg-white/80 p-2.5 rounded-lg border border-black/5 leading-relaxed">
-                                  <strong className="text-[#1b5c53]">Warum diese Puzzleteile verzahnen:</strong> {cp.explanation}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -591,35 +469,28 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     2. ORDERING STATION (VERTICAL JIGSAW PUZZLE CHAIN)
                     ============================================================== */}
                 {currentStation.type === "ordering" && (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     <p className="text-xs text-[#6e6c70]">
-                      Ordnen Sie die Puzzlekette mit den Pfeiltasten in die richtige biomechanische Reihenfolge:
+                      Ordnen Sie die Schritte mit den Pfeiltasten in die richtige biomechanische Reihenfolge:
                     </p>
-                    <div className="space-y-2 relative">
+                    <div className="space-y-2">
                       {orderedList.map((step, idx) => {
                         const isFirst = idx === 0;
                         const isLast = idx === orderedList.length - 1;
                         return (
                           <div
                             key={step.id}
-                            className={`p-3.5 rounded-xl border-2 border-[#bbd1cd] bg-white flex items-center justify-between text-xs shadow-xs relative transition-all ${
+                            className={`p-2.5 sm:p-3 rounded-xl border-2 border-[#bbd1cd] bg-white flex items-center justify-between text-xs shadow-xs relative transition-all ${
                               canAdvance ? "border-emerald-500 bg-emerald-50/50" : "hover:border-[#247a6d]"
                             }`}
                           >
-                            <div className="flex items-center gap-3">
-                              <span className="w-7 h-7 rounded-lg bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span className="w-6 h-6 rounded-md bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs shadow-xs shrink-0">
                                 #{idx + 1}
                               </span>
-                              <div>
-                                <span className="font-semibold text-[#444] block text-xs leading-snug">
-                                  {step.text}
-                                </span>
-                                {canAdvance && step.reason && (
-                                  <span className="text-[11px] text-[#1b5c53] mt-1 block">
-                                    💡 {step.reason}
-                                  </span>
-                                )}
-                              </div>
+                              <span className="font-semibold text-[#444] text-xs leading-snug truncate">
+                                {step.text}
+                              </span>
                             </div>
 
                             <div className="flex gap-1 shrink-0 ml-2">
@@ -627,7 +498,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 type="button"
                                 onClick={() => handleMoveOrderItem(idx, -1)}
                                 disabled={isFirst || canAdvance}
-                                className="p-1.5 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
+                                className="p-1 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
                                 title="Nach oben schieben"
                               >
                                 <ArrowUp className="w-3.5 h-3.5" />
@@ -636,7 +507,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                                 type="button"
                                 onClick={() => handleMoveOrderItem(idx, 1)}
                                 disabled={isLast || canAdvance}
-                                className="p-1.5 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
+                                className="p-1 rounded hover:bg-[#f3f8f7] text-[#1b5c53] border border-[#bbd1cd] disabled:opacity-30"
                                 title="Nach unten schieben"
                               >
                                 <ArrowDown className="w-3.5 h-3.5" />
@@ -653,39 +524,39 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     3. COMPARISON STATION (A/B SCENARIOS)
                     ============================================================== */}
                 {currentStation.type === "comparison" && currentStation.comparisonScenarios && (
-                  <div className="space-y-4">
+                  <div className="space-y-2.5">
                     <p className="text-xs text-[#6e6c70]">
                       Klicken Sie auf das Szenario, das die ZQP-Präventionskriterien erfüllt:
                     </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {currentStation.comparisonScenarios.map((scen) => {
                         const isSelected = selectedScenarioId === scen.id;
                         return (
                           <div
                             key={scen.id}
                             onClick={() => !canAdvance && setSelectedScenarioId(scen.id)}
-                            className={`puzzle-piece cursor-pointer p-4 rounded-xl border-2 flex flex-col justify-between transition-all ${
+                            className={`puzzle-piece cursor-pointer p-3 rounded-xl border-2 flex flex-col justify-between transition-all ${
                               isSelected
                                 ? "border-[#247a6d] bg-[#f3f8f7] ring-2 ring-[#247a6d] shadow-sm"
                                 : "border-[#bbd1cd] bg-white hover:border-[#247a6d]"
                             }`}
                           >
                             <div>
-                              <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center justify-between mb-1.5">
                                 <span className="font-bold text-xs text-[#1b5c53]">
                                   {scen.title}
                                 </span>
-                                <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-white border border-[#bbd1cd] text-[#6e6c70]">
+                                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-white border border-[#bbd1cd] text-[#6e6c70]">
                                   {scen.badge}
                                 </span>
                               </div>
-                              <p className="text-xs text-[#444] leading-relaxed">
+                              <p className="text-[11px] text-[#444] leading-snug line-clamp-3">
                                 {scen.description}
                               </p>
                             </div>
-                            <div className="mt-3 pt-2 border-t border-[#e3eeec] text-xs font-semibold text-[#1b5c53] flex justify-between items-center">
+                            <div className="mt-2 pt-1.5 border-t border-[#e3eeec] text-[11px] font-semibold text-[#1b5c53] flex justify-between items-center">
                               <span>{isSelected ? "Ausgewählt" : "Szenario wählen"}</span>
-                              <span className="w-5 h-5 rounded-full border-2 border-[#247a6d] flex items-center justify-center font-bold text-xs">
+                              <span className="w-4 h-4 rounded-full border-2 border-[#247a6d] flex items-center justify-center font-bold text-[10px]">
                                 {isSelected ? "✓" : ""}
                               </span>
                             </div>
@@ -700,14 +571,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     4. SINGLE CHOICE STATION
                     ============================================================== */}
                 {currentStation.type === "single_choice" && currentStation.options && (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     <div className="space-y-2">
                       {currentStation.options.map((opt, idx) => {
                         const isSelected = selectedOptionIdx === idx;
                         return (
                           <label
                             key={idx}
-                            className={`flex items-start gap-3 p-3.5 rounded-xl border-2 cursor-pointer transition-all ${
+                            className={`flex items-start gap-2.5 p-2.5 sm:p-3 rounded-xl border-2 cursor-pointer transition-all ${
                               isSelected
                                 ? "border-[#247a6d] bg-[#f3f8f7] ring-1 ring-[#247a6d]"
                                 : "border-[#e3eeec] bg-white hover:border-[#247a6d]"
@@ -719,9 +590,9 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                               disabled={canAdvance}
                               checked={isSelected}
                               onChange={() => setSelectedOptionIdx(idx)}
-                              className="mt-1 text-[#247a6d] focus:ring-[#247a6d]"
+                              className="mt-0.5 text-[#247a6d] focus:ring-[#247a6d]"
                             />
-                            <span className="text-xs font-medium text-[#444] leading-relaxed">
+                            <span className="text-xs font-medium text-[#444] leading-snug">
                               {opt.text}
                             </span>
                           </label>
@@ -730,70 +601,30 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     </div>
                   </div>
                 )}
-
-                {/* === DETAILED EXPLANATION CARD ("WARUM RICHTIG / FALSCH") === */}
-                {feedback && (
-                  <div
-                    className={`p-4 rounded-xl border-2 text-xs transition-all ${
-                      feedback.type === "correct"
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-950"
-                        : feedback.type === "revealed"
-                        ? "border-amber-500 bg-amber-50 text-amber-950"
-                        : "border-[#722b28] bg-rose-50 text-[#722b28]"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 font-bold mb-2">
-                      {feedback.type === "correct" && (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0" />
-                      )}
-                      {feedback.type === "revealed" && (
-                        <Lightbulb className="w-5 h-5 text-amber-600 shrink-0" />
-                      )}
-                      {feedback.type === "incorrect" && (
-                        <AlertTriangle className="w-5 h-5 text-[#722b28] shrink-0" />
-                      )}
-                      <span className="text-sm">{feedback.title}</span>
-                    </div>
-
-                    <div className="mb-2 bg-white/80 p-2.5 rounded-lg border border-black/5">
-                      <strong className="block text-[#1b5c53] mb-0.5">
-                        {feedback.type === "correct" ? "Warum diese Auswahl richtig ist:" : "Didaktische Erklärung:"}
-                      </strong>
-                      <p className="leading-relaxed">{feedback.selectionExplanation}</p>
-                    </div>
-
-                    <div className="p-2.5 rounded-lg bg-[#247a6d]/10 border border-[#247a6d]/20 text-[#1b5c53]">
-                      <strong className="block font-bold mb-0.5">
-                        ZQP-Hintergrundwissen für die Praxis:
-                      </strong>
-                      <p className="leading-relaxed">{feedback.zqpBackground}</p>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
             {/* Completed Score & Certificate View */}
             {completed && (
-              <div className="h-full flex flex-col items-center justify-center text-center p-2 sm:p-4">
-                <div className="w-14 h-14 rounded-full bg-[#e3eeec] border-2 border-[#247a6d] flex items-center justify-center mb-3 shadow-xs">
-                  <Award className="w-7 h-7 text-[#247a6d]" />
+              <div className="h-full flex flex-col items-center justify-center text-center p-2">
+                <div className="w-12 h-12 rounded-full bg-[#e3eeec] border-2 border-[#247a6d] flex items-center justify-center mb-2 shadow-xs">
+                  <Award className="w-6 h-6 text-[#247a6d]" />
                 </div>
-                <h3 className="text-lg font-bold text-[#1b5c53] mb-1">
+                <h3 className="text-base sm:text-lg font-bold text-[#1b5c53] mb-1">
                   Glückwunsch! Alle Stationen gemeistert
                 </h3>
                 <p className="text-xs text-[#444] mb-3">
-                  Sie haben alle {quiz.stations.length} interaktiven Lernstationen des Themas erfolgreich absolviert.
+                  Sie haben alle {quiz.stations.length} interaktiven Lernstationen erfolgreich absolviert.
                 </p>
 
-                <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3.5 rounded-xl text-left text-xs text-[#444] w-full space-y-2 shadow-xs">
-                  <strong className="text-[#1b5c53] block font-bold text-xs sm:text-sm">
+                <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3 rounded-xl text-left text-xs text-[#444] w-full space-y-1.5 shadow-xs">
+                  <strong className="text-[#1b5c53] block font-bold text-xs">
                     ZQP-Praxisfazit für den Alltag:
                   </strong>
-                  <p className="leading-relaxed">
+                  <p className="leading-relaxed text-[11px] sm:text-xs">
                     {quiz.summary || "Regelmäßiges Auffrischen von Pflegewissen und Sensibilität für Gefahrenquellen schützen nachhaltig im häuslichen Umfeld."}
                   </p>
-                  <div className="pt-2 border-t border-[#bbd1cd]/50 text-[11px] text-[#6e6c70]">
+                  <div className="pt-1.5 border-t border-[#bbd1cd]/50 text-[10px] sm:text-[11px] text-[#6e6c70]">
                     Tipp: Nutzen Sie die ZQP-Ratgeber und Sicherheits-Checklisten auf <strong>zqp.de</strong> für die barrierearme Wohnraumanpassung.
                   </div>
                 </div>
@@ -802,7 +633,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
           </div>
 
           {/* 3. PINNED BOTTOM ACTION BAR (shrink-0) */}
-          <footer className="shrink-0 border-t border-[#bbd1cd] bg-white px-4 py-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-2 shadow-xs">
+          <div className="shrink-0 border-t border-[#bbd1cd] bg-white px-4 py-2 sm:px-5 sm:py-2.5 flex items-center justify-between gap-2 shadow-xs">
             {!completed ? (
               <>
                 {/* Left: Solution reveal or Status */}
@@ -814,13 +645,13 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                       className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
                       title="Antwort und didaktische Erklärung aufdecken"
                     >
-                      <HelpCircle className="w-4 h-4 text-[#247a6d] shrink-0" />
+                      <HelpCircle className="w-3.5 h-3.5 text-[#247a6d] shrink-0" />
                       <span className="hidden sm:inline">Ich weiß es nicht / </span>
                       <span>Lösung anzeigen</span>
                     </button>
                   ) : (
-                    <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="text-xs text-emerald-800 font-semibold flex items-center gap-1.5 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                       <span>Station gelöst</span>
                     </span>
                   )}
@@ -840,7 +671,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                         <button
                           type="button"
                           onClick={handleCheckOrder}
-                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
                         >
                           Reihenfolge prüfen
                         </button>
@@ -851,7 +682,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           type="button"
                           onClick={handleCheckComparison}
                           disabled={!selectedScenarioId}
-                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
                         >
                           Szenario prüfen
                         </button>
@@ -862,7 +693,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                           type="button"
                           onClick={handleCheckChoice}
                           disabled={selectedOptionIdx === null}
-                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                          className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm disabled:opacity-40 transition-colors focus-visible:ring-2 focus-visible:ring-[#247a6d]"
                         >
                           Antwort prüfen
                         </button>
@@ -872,14 +703,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
                     <button
                       type="button"
                       onClick={handleNextStation}
-                      className="bg-[#247a6d] hover:bg-[#1b5c53] text-white font-semibold text-xs px-4 py-2 rounded-lg shadow-sm flex items-center gap-1.5 transition-all focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                      className="bg-[#247a6d] hover:bg-[#1b5c53] text-white font-semibold text-xs px-4 py-1.5 rounded-lg shadow-sm flex items-center gap-1.5 transition-all focus-visible:ring-2 focus-visible:ring-[#247a6d]"
                     >
                       <span>
                         {currentStationIdx === quiz.stations.length - 1
                           ? "Zur Auswertung"
                           : "Nächste Station"}
                       </span>
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-3.5 h-3.5" />
                     </button>
                   )}
                 </div>
@@ -887,20 +718,133 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
             ) : (
               <div className="w-full flex items-center justify-between">
                 <span className="text-xs text-[#6e6c70] flex items-center gap-1">
-                  <Check className="w-4 h-4 text-emerald-600" />
+                  <Check className="w-3.5 h-3.5 text-emerald-600" />
                   Lerneinheit abgeschlossen
                 </span>
                 <button
                   type="button"
                   onClick={handleReset}
-                  className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                  className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors flex items-center gap-1.5 focus-visible:ring-2 focus-visible:ring-[#247a6d]"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  <RotateCcw className="w-3 h-3" />
                   <span>Lernreise erneut starten</span>
                 </button>
               </div>
             )}
+          </div>
+
+          {/* 4. ZQP COPYRIGHT & KALENDERJAHR FOOTER (shrink-0) */}
+          <footer className="shrink-0 bg-[#f3f8f7] border-t border-[#bbd1cd]/60 px-4 py-1.5 text-center text-[10px] sm:text-[11px] text-[#6e6c70] font-medium tracking-wide">
+            Stiftung Zentrum für Qualität in der Pflege • {new Date().getFullYear()}
           </footer>
+
+          {/* 5. SLIDE-UP FEEDBACK DRAWER (DUOLINGO-STYLE: NO SCROLLBARS, ZERO LAYOUT SHIFT) */}
+          <div
+            className={`absolute bottom-0 inset-x-0 bg-white border-t-2 shadow-2xl transition-all duration-300 ease-out z-20 flex flex-col ${
+              feedback
+                ? "translate-y-0 opacity-100"
+                : "translate-y-full opacity-0 pointer-events-none"
+            } ${
+              feedback?.type === "correct"
+                ? "border-emerald-500 bg-emerald-50/98 text-emerald-950"
+                : feedback?.type === "revealed"
+                ? "border-amber-500 bg-amber-50/98 text-amber-950"
+                : "border-[#722b28] bg-rose-50/98 text-rose-950"
+            }`}
+            style={{ maxHeight: "78%" }}
+          >
+            {/* Drawer Top Status Bar */}
+            <div className="px-4 py-2 flex items-center justify-between border-b border-black/5 shrink-0">
+              <div className="flex items-center gap-2 font-bold text-xs sm:text-sm">
+                {feedback?.type === "correct" && (
+                  <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 shrink-0" />
+                )}
+                {feedback?.type === "revealed" && (
+                  <Lightbulb className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 shrink-0" />
+                )}
+                {feedback?.type === "incorrect" && (
+                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-[#722b28] shrink-0" />
+                )}
+                <span>{feedback?.title}</span>
+              </div>
+
+              {feedback?.type === "incorrect" && (
+                <button
+                  type="button"
+                  onClick={() => setFeedback(null)}
+                  className="px-2 py-0.5 rounded text-[#722b28] hover:bg-rose-100 text-xs font-semibold"
+                  title="Schließen & erneut versuchen"
+                >
+                  ✕ Schließen
+                </button>
+              )}
+            </div>
+
+            {/* Drawer Body (Explanation & Didactics) */}
+            <div className="p-3 space-y-2 text-xs overflow-hidden">
+              <div className="bg-white/90 p-2.5 rounded-lg border border-black/5 shadow-2xs">
+                <strong className="block text-[#1b5c53] font-bold text-[11px] mb-0.5">
+                  {feedback?.type === "correct" ? "Warum diese Auswahl richtig ist:" : "Didaktische Erklärung:"}
+                </strong>
+                <p className="leading-snug text-[#444] text-[11px] sm:text-xs">
+                  {feedback?.selectionExplanation}
+                </p>
+              </div>
+
+              <div className="p-2 rounded-lg bg-[#247a6d]/10 border border-[#247a6d]/20 text-[#1b5c53]">
+                <strong className="block font-bold text-[10px] sm:text-[11px] mb-0.5">
+                  ZQP-Hintergrundwissen für die Praxis:
+                </strong>
+                <p className="leading-snug text-[10px] sm:text-[11px]">
+                  {feedback?.zqpBackground}
+                </p>
+              </div>
+            </div>
+
+            {/* Drawer Bottom Actions */}
+            <div className="px-4 py-2 bg-white border-t border-[#bbd1cd] flex items-center justify-between gap-2 shrink-0">
+              {feedback?.type === "incorrect" ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleRevealSolution}
+                    className="text-xs text-[#1b5c53] hover:text-[#247a6d] font-semibold flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-[#f3f8f7] hover:bg-[#e3eeec] transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5 text-[#247a6d]" />
+                    <span>Lösung anzeigen</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setFeedback(null)}
+                    className="bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold px-4 py-1.5 rounded-lg shadow-sm transition-colors"
+                  >
+                    Erneut versuchen ↺
+                  </button>
+                </>
+              ) : (
+                <div className="w-full flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleNextStation}
+                    className="w-full sm:w-auto bg-[#247a6d] hover:bg-[#1b5c53] text-white font-semibold text-xs px-5 py-2 rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-all focus-visible:ring-2 focus-visible:ring-[#247a6d]"
+                  >
+                    <span>
+                      {currentStationIdx === quiz.stations.length - 1
+                        ? "Zur Auswertung"
+                        : "Nächste Station"}
+                    </span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ZQP Copyright strip inside drawer */}
+            <div className="bg-[#f3f8f7] border-t border-[#bbd1cd]/50 px-4 py-1 text-center text-[10px] text-[#6e6c70]">
+              Stiftung Zentrum für Qualität in der Pflege • {new Date().getFullYear()}
+            </div>
+          </div>
         </div>
       </div>
     </div>
