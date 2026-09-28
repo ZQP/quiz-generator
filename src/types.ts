@@ -6,12 +6,14 @@ export interface MatchingPair {
   id: string;
   threatOrTerm: string;
   solutionOrDef: string;
+  explanation?: string; // Why this pair matches
 }
 
 export interface OrderingStep {
   id: string;
   text: string;
   correctIndex: number;
+  reason?: string; // Why this step has this position
 }
 
 export interface ComparisonScenario {
@@ -20,13 +22,13 @@ export interface ComparisonScenario {
   badge: string;
   description: string;
   isCorrect: boolean;
-  explanation: string;
+  explanation: string; // Detailed reasoning why this is safe or risky
 }
 
 export interface QuizQuestionOption {
   text: string;
   isCorrect: boolean;
-  explanation: string;
+  explanation: string; // Specific rationale explaining why this option is correct or false
 }
 
 export interface QuizStation {
@@ -35,6 +37,7 @@ export interface QuizStation {
   title: string;
   promptOrInstruction: string;
   zqpRationale: string;
+  solutionExplanation?: string; // Complete solution breakdown for "Lösung anzeigen"
   matchingPairs?: MatchingPair[];
   orderingSteps?: OrderingStep[];
   comparisonScenarios?: ComparisonScenario[];

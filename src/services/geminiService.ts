@@ -78,40 +78,56 @@ export async function generateQuizWithGemini(
     return generateLocalDemoQuiz(topicPrompt, questionCount, targetAudience);
   }
 
-  const promptSystem = `Du bist ein erfahrener Bildungs- und Barrierefreiheits-Entwickler für die deutsche Stiftung ZQP (Zentrum für Qualität in der Pflege - zqp.de).
-Deine Aufgabe ist es, ein hochwertiges, interaktives, barrierearmes HTML5-Quiz für zqp.de zu erstellen.
-Wichtige Richtlinien:
-1. ZQP CI-Farbpalette: Primär ZQP-Petrol (#247a6d, Hover #1b5c53), sanfte Hintergründe (#f3f8f7, #e3eeec), Text (#444444), Warnung/Fehler (#722b28), Erfolg (#10b981).
-2. Schriftart: Inter, sans-serif.
-3. Barrierefreiheit (BITV 2.0 / WCAG 2.1 AA): Eindeutige Tastaturfokussierung (:focus-visible), Screenreader-Begründungen (aria-live), Farbkontraste mindestens 4.5:1.
-4. Abwechslungsreiche Stationen (Gamification): Nutze nach Möglichkeit folgende Typen:
-   - "matching": Zuordnungs-Puzzle (Gefahren ↔ Lösungen)
-   - "ordering": Ablauf-Reihenfolge (z. B. richtige Schritte eines Transfers)
-   - "comparison": A/B-Situationsvergleich (Zwei Situationen gegenüberstellen)
-   - "single_choice": Klassischer Wissenscheck mit ZQP-Erklärungsbox
-5. Ausgabe MUSS valides JSON im folgenden Schema sein:
+  const promptSystem = `Du bist ein preisgekrönter UI/UX-Designer und Fachredakteur für die Stiftung ZQP (Zentrum für Qualität in der Pflege - zqp.de).
+Deine Aufgabe ist es, ein visuell ansprechendes ("schickes", modernes), interaktives und barrierearmes HTML5-Lernspiel für zqp.de zu erstellen.
+
+WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
+1. ZQP Corporate Design (modern, elegant):
+   - Primär ZQP-Petrol (#247a6d, Hover #1b5c53, Dark #00473d).
+   - Hintergründe: Heller, freundlicher Look (#ffffff, sanftes Sand/Mint #f3f8f7, Akzent #e3eeec, dezente Ränder #bbd1cd).
+   - Textfarbe: #444444 (hoher Kontrast, WCAG AA / AAA).
+   - Formensprache: Elegante, großzügige Rundungen (rounded-2xl), sanfte Schatten (shadow-sm bis shadow-md), klare visuelle Hierarchien.
+2. DIDAKTISCHE QUALITÄT ("Warum richtig / Warum falsch"):
+   - Erkläre bei JEDER Antwortoption ausführlich und verständlich, WARUM sie richtig oder falsch ist!
+     * Beispiel bei falscher Antwort: "Nicht optimal: Dicke Wollsocken ohne Gummierung bieten auf glattem Parkett keinerlei Haftung. Der Fuß rutscht weg, was das Sturzrisiko verdreifacht."
+     * Beispiel bei richtiger Antwort: "Richtig: Feste Schuhe mit Profilsohle und Fersenkappe stabilisieren das Sprunggelenk und verhindern ein Umknicken."
+   - Jede Station muss ein Feld 'solutionExplanation' enthalten, das den Gesamtzusammenhang und die ZQP-Lösung prägnant auf den Punkt bringt, falls der Nutzer auf "Lösung anzeigen" klickt.
+3. BARRIEREFREIHEIT (BITV 2.0 / WCAG 2.1 AA):
+   - Vollständige Tastaturbedienbarkeit (:focus-visible mit 2px ZQP-Petrol Ring).
+   - Screenreader-Unterstützung mit aria-live="polite".
+   - Mindest-Touch-Größe für Buttons und Klickkarten.
+4. RÜCKGABESCHEMA (reines, valides JSON):
 {
   "title": "string",
   "targetAudience": "${targetAudience}",
-  "summary": "string (1-2 Sätze fachlicher ZQP-Kontext)",
+  "summary": "string (Praxistipp für die Auswertung)",
   "needsTailwind": true,
   "needsFontAwesome": false,
   "stations": [
     {
       "id": "s1",
       "type": "matching" | "ordering" | "comparison" | "single_choice",
-      "title": "Kurzer Stationstitel",
-      "promptOrInstruction": "Anweisung für den Nutzer",
-      "zqpRationale": "Ausführliche ZQP-Erklärung nach der Lösung",
-      "matchingPairs": [ { "id": "1", "threatOrTerm": "...", "solutionOrDef": "..." } ],
-      "orderingSteps": [ { "id": "1", "text": "...", "correctIndex": 0 } ],
-      "comparisonScenarios": [ { "id": "A", "title": "...", "badge": "...", "description": "...", "isCorrect": true, "explanation": "..." } ],
-      "options": [ { "text": "...", "isCorrect": true, "explanation": "..." } ]
+      "title": "Stationstitel",
+      "promptOrInstruction": "Anweisung",
+      "zqpRationale": "ZQP-Hintergrundwissen zur Station",
+      "solutionExplanation": "Vollständige Lösungserklärung für Nutzer, die auf 'Lösung anzeigen' klicken",
+      "matchingPairs": [
+        { "id": "1", "threatOrTerm": "...", "solutionOrDef": "...", "explanation": "Warum dieses Paar zusammengehört" }
+      ],
+      "orderingSteps": [
+        { "id": "1", "text": "...", "correctIndex": 0, "reason": "Warum dieser Schritt an dieser Stelle steht" }
+      ],
+      "comparisonScenarios": [
+        { "id": "A", "title": "...", "badge": "...", "description": "...", "isCorrect": true, "explanation": "Detaillierte Analyse, warum A sicher oder gefährlich ist" }
+      ],
+      "options": [
+        { "text": "...", "isCorrect": true, "explanation": "Erklärung warum Option richtig oder falsch ist" }
+      ]
     }
   ],
-  "generatedHtml": "Sauberes, semantisches HTML-Fragment ohne <html> oder <body> tags, fertig zum Einfügen in WordPress",
-  "generatedCss": "Ergänzende CSS-Regeln für Animationen und Barrierefreiheit",
-  "generatedJs": "Reines Vanilla-JS für die Interaktionslogik, modular gekapselt"
+  "generatedHtml": "Semantisches HTML für WordPress (Gutenberg)",
+  "generatedCss": "Ergänzende ZQP Animationen und Barrierefreiheits-Stile",
+  "generatedJs": "Reines Vanilla JS für Interaktion, Tastaturnavigation und Lösung-Anzeigen-Logik"
 }`;
 
   const userContent = `Thema & Lernziel: ${topicPrompt}
@@ -170,7 +186,7 @@ function generateLocalDemoQuiz(
   return {
     title: topic.trim() ? topic : "Sturzprävention im Alltag: Interaktive ZQP-Lernreise",
     targetAudience: audience,
-    summary: "Interaktives Lernmodul mit Zuordnungs-Puzzle, Ablauf-Sortierung und Situationsvergleich nach aktuellem ZQP-Wissensstand.",
+    summary: "Rund 80 % der Stürze im häuslichen Umfeld lassen sich durch einfache Wohnraumanpassungen und passendes Schuhwerk vermeiden. Informieren Sie sich in unserem ZQP-Ratgeber 'Sturzprävention' auf zqp.de.",
     needsTailwind: true,
     needsFontAwesome: false,
     stations: [
@@ -178,48 +194,81 @@ function generateLocalDemoQuiz(
         id: "st-1",
         type: "matching",
         title: "Station 1: Zuordnungs-Puzzle",
-        promptOrInstruction: "Verbinden Sie die Sturzgefahr mit der passenden Schutzmaßnahme:",
-        zqpRationale: "Antirutschmatten und feste Haltegriffe reduzieren Badezimmerunfälle um über 70%.",
+        promptOrInstruction: "Verbinden Sie jede typische Gefahrenstelle mit der passenden ZQP-Schutzmaßnahme:",
+        zqpRationale: "Antirutschmatten, Haltegriffe und feste Schuhe verringern die Sturzgefahr im Badezimmer um über 70 %.",
+        solutionExplanation: "Die ideale Absicherung: Nasse Fliesen brauchen Antirutschmatten und feste Haltegriffe. Bei nächtlichem Harndrang schützt eine bewegungsgesteuerte Orientierungsbeleuchtung vor Desorientierung. Auf glatten Böden geben geschlossene Hausschuhe mit Fersenhalt festen Stand.",
         matchingPairs: [
-          { id: "1", threatOrTerm: "Nasse Fliesen in der Dusche", solutionOrDef: "Haltegriffe & gummierte Antirutschmatte" },
-          { id: "2", threatOrTerm: "Dunkler Flur in der Nacht", solutionOrDef: "Bewegungsgesteuertes Orientierungslicht" },
-          { id: "3", threatOrTerm: "Rutschige Wollsocken auf Parkett", solutionOrDef: "Geschlossene Hausschuhe mit Profilsohle" },
+          {
+            id: "1",
+            threatOrTerm: "Nasse Fliesen in Dusche & Bad",
+            solutionOrDef: "Haltegriffe & gummierte Antirutschmatte",
+            explanation: "Wasser auf glatten Keramikfliesen hebt die Reibung fast vollständig auf. Feste Haltegriffe bieten mechanischen Halt beim Ein- und Aussteigen."
+          },
+          {
+            id: "2",
+            threatOrTerm: "Dunkler Flur bei nächtlichem Aufstehen",
+            solutionOrDef: "Bewegungsgesteuertes Orientierungslicht",
+            explanation: "Nach dem Aufwachen ist der Blutdruck oft niedrig und die Augen gewöhnen sich nur langsam an die Dunkelheit. Blendfreies Sockellicht weist den Weg sicher zum WC."
+          },
+          {
+            id: "3",
+            threatOrTerm: "Rutschige Wollsocken oder Schlappen",
+            solutionOrDef: "Geschlossene Hausschuhe mit Profilsohle",
+            explanation: "Lose Schlappen ('Schlupfschuhe') rutschen beim Gehen leicht von der Ferse ab und führen zum Umknicken. Feste Fersenkappen geben verlässliche Stabilität."
+          },
         ],
       },
       {
         id: "st-2",
         type: "ordering",
-        title: "Station 2: Ablauf-Reihenfolge",
-        promptOrInstruction: "Bringen Sie die Schritte für ein sicheres Aufstehen aus dem Sessel in die richtige Reihenfolge:",
-        zqpRationale: "Erst vorrutschen, dann Standfläche sichern, dann mit Vorneigung aufstehen.",
+        title: "Station 2: Ablauf-Reihenfolge beim Aufstehen",
+        promptOrInstruction: "Bringen Sie die 3 biomechanischen Schritte für ein sicheres Aufstehen aus dem Sessel in die richtige Reihenfolge:",
+        zqpRationale: "Erst vorrutschen, dann die Standfläche unter dem Körperschwerpunkt sichern, dann mit Vorneigung aufrichten.",
+        solutionExplanation: "Die richtige Reihenfolge: 1. Zuerst mit dem Gesäß an die vordere Kante vorrutschen (verkürzt den Hebelarm). 2. Füße schulterbreit fest aufstellen mit den Fersen leicht nach hinten (stabilisiert die Standfläche). 3. Erst jetzt den Oberkörper mit Schwung nach vorne neigen und über die Beine aufrichten.",
         orderingSteps: [
-          { id: "o1", text: "Mit dem Gesäß an die vordere Stuhlkante vorrutschen", correctIndex: 0 },
-          { id: "o2", text: "Füße schulterbreit fest aufstellen, Fersen leicht nach hinten", correctIndex: 1 },
-          { id: "o3", text: "Oberkörper mit Vorneigung über die Beine aufrichten", correctIndex: 2 },
+          {
+            id: "o1",
+            text: "Mit dem Gesäß an die vordere Stuhlkante vorrutschen",
+            correctIndex: 0,
+            reason: "Schritt 1: Verkürzt den Hebelarm zum Körperschwerpunkt, sodass deutlich weniger Kraftaufwand nötig ist."
+          },
+          {
+            id: "o2",
+            text: "Füße schulterbreit fest aufstellen, Fersen leicht nach hinten",
+            correctIndex: 1,
+            reason: "Schritt 2: Schafft eine stabile Unterstützungsfläche direkt unter den Knien, bevor das Körpergewicht verlagert wird."
+          },
+          {
+            id: "o3",
+            text: "Oberkörper mit Vorneigung über die Beine aufrichten",
+            correctIndex: 2,
+            reason: "Schritt 3: Verlagert den Schwerpunkt dynamisch über die Füße, wodurch die Oberschenkelmuskulatur optimal arbeiten kann."
+          },
         ],
       },
       {
         id: "st-3",
         type: "comparison",
-        title: "Station 3: Situations-Vergleich",
-        promptOrInstruction: "Welches Wohnraumszenario entspricht den Kriterien für ein sturzsicheres Zuhause?",
-        zqpRationale: "Freie Laufwege und fixierte Kabel sind essenziell, um Stürze im Alter zu vermeiden.",
+        title: "Station 3: A/B-Situationsvergleich im Wohnbereich",
+        promptOrInstruction: "Vergleichen Sie beide Wohnraumsituationen: Welche Variante entspricht den Kriterien für ein sturzsicheres Zuhause?",
+        zqpRationale: "Freie Laufwege und fixierte Kabel sind essenziell, um Stürze älterer Menschen im Alltag zu verhindern.",
+        solutionExplanation: "Szenario B ist die sturzsichere Variante: Lose Teppichkanten und querliegende Kabel (aus Szenario A) sind für über 45 % aller häuslichen Stolperstürze verantwortlich. Feste Kabelkanäle und schattenfreie Beleuchtung beseitigen diese Gefahren nachhaltig.",
         comparisonScenarios: [
           {
             id: "A",
-            title: "Szenario A: Lose Teppiche & Kabel",
-            badge: "Hohes Risiko",
-            description: "Ein langer Flur mit mehreren kleinen Vorlegern und einem lose über den Boden verlaufenden Telefonkabel.",
+            title: "Szenario A: Lose Teppiche & freie Kabel",
+            badge: "Hohes Risiko ⚠️",
+            description: "Ein gemütlicher Flur mit mehreren kleinen Orientteppichen auf Parkett und einem quer über den Laufweg gespannten Ladekabel.",
             isCorrect: false,
-            explanation: "Lose Teppichkanten und querliegende Kabel zählen zu den häufigsten Stolperfallen.",
+            explanation: "Warum dies gefährlich ist: Lose Teppichläufer ohne gummierte Unterseite rutschen bei jedem Schritt weg. Kanten rollen sich auf und werden zu Stolperfallen. Das querliegende Kabel fängt die Fußspitze ein.",
           },
           {
             id: "B",
-            title: "Szenario B: Freie Wege & Nachtlicht",
-            badge: "Sturzpräventiv",
-            description: "Freie Laufwege ohne lose Läufer, fixierte Kabel und eine schattenarme Sockelbeleuchtung zum Bad.",
+            title: "Szenario B: Freie Wege & fixierte Kabel",
+            badge: "Sturzpräventiv ✓",
+            description: "Freie Laufwege ohne lose Vorleger, Kabel sind sauber an der Fußleiste befestigt und nachts leuchtet eine schattenfreie Sockelleuchte.",
             isCorrect: true,
-            explanation: "Szenario B erfüllt alle ZQP-Kriterien für Barrierearmut und Sturzprophylaxe.",
+            explanation: "Warum dies optimal ist: Durch den Verzicht auf lose Läufer bleibt der Bodenkontakt plan. Fixierte Kabel schalten Stolperfallen aus und die Sockelbeleuchtung nimmt Sehunsicherheiten bei Dämmerung.",
           },
         ],
       },
@@ -234,7 +283,7 @@ function generateLocalDemoQuiz(
     <h2 class="text-xl font-bold mt-1">Sturzprävention im Alltag</h2>
   </header>
   <div id="zqp-game-stage" class="p-6">
-    <!-- Barrierefreie Stationen -->
+    <!-- Barrierefreie Stationen mit Soforterklärung und Lösung anzeigen -->
   </div>
 </div>`,
     generatedCss: `/* ZQP Design-Stile */
