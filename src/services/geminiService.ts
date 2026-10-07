@@ -1,4 +1,5 @@
 import { AppSettings, QuizGenerationResult, TargetAudience, StationType, QuizStation } from "../types";
+import { compileQuizToBundle } from "./exportCompiler";
 
 const SETTINGS_STORAGE_KEY = "zqp_quiz_generator_settings";
 
@@ -197,6 +198,11 @@ ${referenceText ? `ZQP-Referenzinhalte / Wissensbasis:\n${referenceText}` : ""}`
 
   try {
     const parsed: QuizGenerationResult = JSON.parse(textOutput);
+    const compiled = compileQuizToBundle(parsed);
+    parsed.generatedHtml = compiled.html;
+    parsed.generatedCss = compiled.css;
+    parsed.generatedJs = compiled.js;
+    parsed.tailwindConfig = compiled.tailwindConfig;
     return parsed;
   } catch (err) {
     console.error("Failed to parse Gemini JSON:", err, textOutput);
@@ -292,6 +298,11 @@ ${refinementPrompt}`;
 
   try {
     const parsed: QuizGenerationResult = JSON.parse(textOutput);
+    const compiled = compileQuizToBundle(parsed);
+    parsed.generatedHtml = compiled.html;
+    parsed.generatedCss = compiled.css;
+    parsed.generatedJs = compiled.js;
+    parsed.tailwindConfig = compiled.tailwindConfig;
     return parsed;
   } catch (err) {
     console.error("Failed to parse Gemini JSON:", err, textOutput);
