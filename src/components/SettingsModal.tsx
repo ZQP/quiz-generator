@@ -227,7 +227,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 Automatische Updates
               </span>
               <span className="text-[11px] text-[#6e6c70]">
-                GitHub Releases (ZQP/quiz-generator) • Version 1.0.0
+                GitHub Releases (ZQP/quiz-generator) • v0.1.0 (Beta)
               </span>
             </div>
             <label className="flex items-center gap-2 cursor-pointer">
