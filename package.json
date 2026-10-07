@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "tauri": "tauri",
-    "app": "tauri dev"
+    "app": "tauri dev",
+    "build:app": "pwsh -NoProfile -Command \"$key = (Get-Content src-tauri/zqp-updater.key -Raw).Trim(); $env:TAURI_SIGNING_PRIVATE_KEY = $key; $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ''; npx tauri build; New-Item -ItemType Directory -Force -Path release; Copy-Item 'src-tauri/target/release/bundle/nsis/*.exe' -Destination 'release/ZQP-Quiz-Generator-Setup.exe' -Force; Copy-Item 'src-tauri/target/release/app.exe' -Destination 'release/ZQP-Quiz-Generator.exe' -Force\""
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",
