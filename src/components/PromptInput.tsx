@@ -15,6 +15,58 @@ interface PromptInputProps {
   loadingStepText: string;
 }
 
+interface ZqpTemplate {
+  title: string;
+  badge: string;
+  topic: string;
+  audience: TargetAudience;
+  count: number;
+  mechanics: StationType[];
+}
+
+const ZQP_TEMPLATES: ZqpTemplate[] = [
+  {
+    title: "Sturzprävention in der Häuslichkeit",
+    badge: "Sturzschutz",
+    topic: "Sturzprävention im Alltag: Stolperfallen im Wohnbereich, sicheres Schuhwerk und Bewegungssicherheit",
+    audience: "angehoerige",
+    count: 4,
+    mechanics: ["matching", "ordering", "myth_fact", "bucket_sort", "comparison"],
+  },
+  {
+    title: "Demenz: Verstehender Umgang",
+    badge: "Demenz",
+    topic: "Demenz im Alltag: Empathische Kommunikation und verstehendes Handeln bei herausforderndem Verhalten",
+    audience: "angehoerige",
+    count: 4,
+    mechanics: ["dilemma", "comparison", "myth_fact", "single_choice"],
+  },
+  {
+    title: "Gewaltprävention & Überlastung",
+    badge: "Gewaltprävention",
+    topic: "Gewaltprävention & Überlastung: Warnsignale erkennen, eigene Grenzen wahrnehmen und rechtzeitig Entlastung organisieren",
+    audience: "angehoerige",
+    count: 3,
+    mechanics: ["dilemma", "checklist", "single_choice"],
+  },
+  {
+    title: "Medikationssicherheit",
+    badge: "Medikation",
+    topic: "Medikationssicherheit in der häuslichen Pflege: Richten, Einnahmehilfen und Wechselwirkungen vermeiden",
+    audience: "angehoerige",
+    count: 4,
+    mechanics: ["checklist", "ordering", "myth_fact", "bucket_sort"],
+  },
+  {
+    title: "Selbstfürsorge & Entlastung",
+    badge: "Selbstfürsorge",
+    topic: "Entlastung & Selbstfürsorge: Physische und psychische Gesundheit für pflegende Angehörige stärken",
+    audience: "angehoerige",
+    count: 3,
+    mechanics: ["dilemma", "myth_fact", "bucket_sort", "checklist"],
+  },
+];
+
 export const PromptInput: React.FC<PromptInputProps> = ({
   onGenerate,
   isLoading,
@@ -28,6 +80,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const [isMechanicsOpen, setIsMechanicsOpen] = useState<boolean>(false);
   const [questionCount, setQuestionCount] = useState<number>(3);
   const [targetAudience, setTargetAudience] = useState<TargetAudience>("angehoerige");
+  const [templateLoadedMsg, setTemplateLoadedMsg] = useState<string | null>(null);
+
+  const applyTemplate = (tpl: ZqpTemplate) => {
+    setTopicPrompt(tpl.topic);
+    setTargetAudience(tpl.audience);
+    setQuestionCount(tpl.count);
+    setMechanics(tpl.mechanics);
+    setTemplateLoadedMsg(tpl.badge);
+    setTimeout(() => setTemplateLoadedMsg(null), 2500);
+  };
 
   const [mechanics, setMechanics] = useState<StationType[]>([
     "matching",
@@ -124,42 +186,39 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             placeholder="Beschreiben Sie das Thema, z. B.: 'Quiz zu Sturzprävention für Angehörige mit Zuordnung und Reihenfolge...'"
           />
 
-          {/* Quick Examples */}
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            <span className="text-xs text-[#6e6c70]">Vorlagen:</span>
-            <button
-              type="button"
-              onClick={() =>
-                setTopicPrompt(
-                  "Erstelle ein 3-Stationen-Quiz zur Sturzprophylaxe im häuslichen Umfeld. Mit Zuordnungs-Puzzle, Ablauf-Sortierung und A/B-Situationsvergleich. Für Angehörige."
-                )
-              }
-              className="text-xs bg-[#f3f8f7] hover:bg-[#e3eeec] text-[#1b5c53] px-2 py-0.5 rounded border border-[#bbd1cd]"
-            >
-              Sturzprophylaxe (Mix)
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setTopicPrompt(
-                  "Quiz 'Demenz verstehen': 1 Zuordnungsaufgabe (Verhalten ↔ Bedürfnis), 1 Wahr/Falsch-Vergleich, 1 Reihenfolge bei der Deeskalation. Einfühlsame Sprache."
-                )
-              }
-              className="text-xs bg-[#f3f8f7] hover:bg-[#e3eeec] text-[#1b5c53] px-2 py-0.5 rounded border border-[#bbd1cd]"
-            >
-              Demenz-Verstehen
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setTopicPrompt(
-                  "Rettungskette & Notfallmanagement im Pflegeheim: Reihenfolge der Sofortmaßnahmen, Zuordnung von Notfallnummern und Symptomvergleich für Fachkräfte."
-                )
-              }
-              className="text-xs bg-[#f3f8f7] hover:bg-[#e3eeec] text-[#1b5c53] px-2 py-0.5 rounded border border-[#bbd1cd]"
-            >
-              Notfall-Kette
-            </button>
+          {/* ZQP Quick-Start Templates */}
+          <div className="mt-3 pt-2.5 border-t border-[#e3eeec]">
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-xs font-bold text-[#1b5c53] flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span>ZQP-Themenvorlagen (1-Klick-Setup):</span>
+              </span>
+              {templateLoadedMsg && (
+                <span className="text-[11px] font-semibold text-emerald-700 animate-in fade-in">
+                  ✓ Vorlage „{templateLoadedMsg}“ geladen!
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+              {ZQP_TEMPLATES.map((tpl) => (
+                <button
+                  key={tpl.badge}
+                  type="button"
+                  onClick={() => applyTemplate(tpl)}
+                  className="text-left p-2 rounded-lg bg-[#f3f8f7] hover:bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] transition-all flex flex-col justify-between group cursor-pointer"
+                >
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-[10px] font-bold text-[#1b5c53] bg-white px-1.5 py-0.2 rounded border border-[#bbd1cd]">
+                      {tpl.badge}
+                    </span>
+                    <span className="text-[10px] text-[#6e6c70]">{tpl.count} Stationen</span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-[#3a352d] leading-tight line-clamp-1 group-hover:text-[#1b5c53]">
+                    {tpl.title}
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

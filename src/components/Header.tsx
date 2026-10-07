@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { Settings, RefreshCw, DownloadCloud, CheckCircle2 } from "lucide-react";
+import { Settings, RefreshCw, DownloadCloud, CheckCircle2, FolderOpen, ShieldCheck } from "lucide-react";
 import { AppSettings } from "../types";
 import { checkForAppUpdates, installAppUpdate, isTauriApp } from "../services/updaterService";
 
 interface HeaderProps {
   settings: AppSettings;
   onOpenSettings: () => void;
+  onOpenLibrary: () => void;
+  onOpenAudit: () => void;
+  hasCurrentQuiz: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ settings, onOpenSettings }) => {
+export const Header: React.FC<HeaderProps> = ({
+  settings,
+  onOpenSettings,
+  onOpenLibrary,
+  onOpenAudit,
+  hasCurrentQuiz,
+}) => {
   const [updateStatus, setUpdateStatus] = useState<string>("App aktuell (v0.1.0 Beta)");
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
   const [availableVersion, setAvailableVersion] = useState<string | null>(null);
@@ -125,6 +134,28 @@ export const Header: React.FC<HeaderProps> = ({ settings, onOpenSettings }) => {
           <span className="font-semibold">Modell:</span>
           <span>{settings.selectedModel}</span>
         </div>
+
+        {/* Library Button */}
+        <button
+          onClick={onOpenLibrary}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors focus:ring-2 focus:ring-[#247a6d] focus:outline-none"
+          title="Gespeicherte Quiz-Entwürfe öffnen und verwalten"
+        >
+          <FolderOpen className="w-3.5 h-3.5 text-[#247a6d]" />
+          <span>Meine Entwürfe</span>
+        </button>
+
+        {/* Quality Audit Button */}
+        {hasCurrentQuiz && (
+          <button
+            onClick={onOpenAudit}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#d5e7e4] text-xs font-semibold text-[#1b5c53] transition-colors focus:ring-2 focus:ring-[#247a6d] focus:outline-none"
+            title="Barrierefreiheits- & Qualitätsprüfung (WCAG 2.1 AA & Flesch-Index) anzeigen"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-[#247a6d]" />
+            <span className="hidden sm:inline">Qualitäts-Audit</span>
+          </button>
+        )}
 
         {/* Settings Button */}
         <button

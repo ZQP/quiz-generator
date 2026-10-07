@@ -14,6 +14,7 @@ import {
   Check,
   GripVertical,
   Sparkles,
+  Edit3,
 } from "lucide-react";
 import {
   QuizGenerationResult,
@@ -24,9 +25,10 @@ import {
 interface QuizPreviewProps {
   quiz: QuizGenerationResult;
   onReset: () => void;
+  onEditStation?: (stationIdx: number) => void;
 }
 
-export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
+export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset, onEditStation }) => {
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
   const [currentStationIdx, setCurrentStationIdx] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
@@ -726,6 +728,17 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset }) => {
         </div>
 
         <div className="flex items-center gap-2">
+          {onEditStation && !completed && (
+            <button
+              onClick={() => onEditStation(currentStationIdx)}
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#1b5c53] bg-white hover:bg-[#e3eeec] rounded-lg border border-[#bbd1cd] hover:border-[#247a6d] shadow-2xs transition-colors cursor-pointer"
+              title="Diese Station direkt im WYSIWYG-Editor ohne KI anpassen"
+            >
+              <Edit3 className="w-3.5 h-3.5 text-[#247a6d]" />
+              <span className="hidden sm:inline">Station bearbeiten</span>
+            </button>
+          )}
+
           <div className="flex bg-[#e3eeec] p-0.5 rounded-lg border border-[#bbd1cd]">
             <button
               onClick={() => setViewport("desktop")}

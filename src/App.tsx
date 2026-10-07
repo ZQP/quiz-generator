@@ -5,8 +5,19 @@ import { QuizRefiner } from "./components/QuizRefiner";
 import { QuizPreview } from "./components/QuizPreview";
 import { CodeExport } from "./components/CodeExport";
 import { SettingsModal } from "./components/SettingsModal";
+import { ProjectLibraryModal } from "./components/ProjectLibraryModal";
+import { QualityAuditModal } from "./components/QualityAuditModal";
+import { StationEditorModal } from "./components/StationEditorModal";
 import { AppSettings, QuizGenerationResult, TargetAudience, StationType } from "./types";
 import { loadSettings, saveSettings, generateQuizWithGemini, refineQuizWithGemini } from "./services/geminiService";
+import {
+  QuizProject,
+  loadProjects,
+  createNewProject,
+  updateProjectHistory,
+  getActiveProjectId,
+  setActiveProjectId,
+} from "./services/projectStorage";
 import { Eye, Code2, Sparkles, PlusCircle } from "lucide-react";
 
 const DRAFT_STORAGE_KEY = "zqp_quiz_generator_draft_v1";
@@ -33,23 +44,48 @@ function loadInitialDraft(): SavedQuizDraft | null {
 export const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
-  const [activeMainTab, setActiveMainTab] = useState<"preview" | "code">("preview");
+  const [isLibraryOpen, setIsLibraryOpen] = useState<boolean>(false);
+  const [isAuditOpen, setIsAuditOpen] = useState<boolean>(false);
+  const [isStationEditorOpen, setIsStationEditorOpen] = useState<boolean>(false);
+  const [stationEditorIndex, setStationEditorIndex] = useState<number>(0);
 
+  const [activeMainTab, setActiveMainTab] = useState<"preview" | "code">("preview");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingStepText, setLoadingStepText] = useState<string>("");
 
-  // Quiz history & current version with localStorage persistence
-  const [initialDraft] = useState<SavedQuizDraft | null>(loadInitialDraft);
-  const [quizHistory, setQuizHistory] = useState<QuizGenerationResult[]>(() => initialDraft?.history || []);
-  const [historyIndex, setHistoryIndex] = useState<number>(() => (initialDraft ? initialDraft.index : -1));
+  // Project ID & history state
+  const [activeProjectId, setActiveProjId] = useState<string | null>(getActiveProjectId);
+
+  const [quizHistory, setQuizHistory] = useState<QuizGenerationResult[]>(() => {
+    const projects = loadProjects();
+    const currentId = getActiveProjectId();
+    const matchingProj = projects.find((p) => p.id === currentId);
+    if (matchingProj && matchingProj.history.length > 0) {
+      return matchingProj.history;
+    }
+    const draft = loadInitialDraft();
+    return draft?.history || [];
+  });
+
+  const [historyIndex, setHistoryIndex] = useState<number>(() => {
+    const projects = loadProjects();
+    const currentId = getActiveProjectId();
+    const matchingProj = projects.find((p) => p.id === currentId);
+    if (matchingProj && typeof matchingProj.currentIndex === "number") {
+      return matchingProj.currentIndex;
+    }
+    const draft = loadInitialDraft();
+    return draft ? draft.index : -1;
+  });
+
   const currentQuiz: QuizGenerationResult | null = historyIndex >= 0 ? quizHistory[historyIndex] : null;
 
   // Mode in left column: create new from scratch vs. refine existing
   const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">(() =>
-    initialDraft && initialDraft.history.length > 0 ? "refine" : "create"
+    quizHistory.length > 0 ? "refine" : "create"
   );
 
-  // Save current quiz history to localStorage whenever it changes
+  // Save current quiz history to localStorage & active project whenever it changes
   useEffect(() => {
     if (quizHistory.length > 0 && historyIndex >= 0) {
       try {
@@ -60,8 +96,12 @@ export const App: React.FC = () => {
       } catch (err) {
         console.warn("Konnte Entwurf nicht in localStorage speichern:", err);
       }
+
+      if (activeProjectId) {
+        updateProjectHistory(activeProjectId, quizHistory, historyIndex);
+      }
     }
-  }, [quizHistory, historyIndex]);
+  }, [quizHistory, historyIndex, activeProjectId]);
 
   const handleSaveSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
@@ -99,6 +139,11 @@ export const App: React.FC = () => {
 
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
+
+      // Create new project in library
+      const proj = createNewProject(quiz);
+      setActiveProjId(proj.id);
+      setActiveProjectId(proj.id);
 
       // Add to history
       const newHistory = [quiz];
@@ -150,6 +195,13 @@ export const App: React.FC = () => {
     }
   };
 
+  // Direct WYSIWYG Station Edit Save
+  const handleSaveStationEdit = (updatedQuiz: QuizGenerationResult) => {
+    const newHistory = [...quizHistory.slice(0, historyIndex + 1), updatedQuiz];
+    setQuizHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
+  };
+
   // Undo / Redo
   const handleUndo = () => {
     if (historyIndex > 0) {
@@ -163,10 +215,37 @@ export const App: React.FC = () => {
     }
   };
 
+  // Library project selection
+  const handleSelectProject = (proj: QuizProject) => {
+    setActiveProjId(proj.id);
+    setActiveProjectId(proj.id);
+    setQuizHistory(proj.history);
+    setHistoryIndex(proj.currentIndex);
+    setLeftPanelMode("refine");
+    setActiveMainTab("preview");
+  };
+
+  const handleStartFreshProject = () => {
+    setActiveProjId(null);
+    setActiveProjectId(null);
+    setQuizHistory([]);
+    setHistoryIndex(-1);
+    setLeftPanelMode("create");
+    try {
+      localStorage.removeItem(DRAFT_STORAGE_KEY);
+    } catch {}
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#f7faf9] text-[#444444]">
       {/* Header */}
-      <Header settings={settings} onOpenSettings={() => setIsSettingsOpen(true)} />
+      <Header
+        settings={settings}
+        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenLibrary={() => setIsLibraryOpen(true)}
+        onOpenAudit={() => setIsAuditOpen(true)}
+        hasCurrentQuiz={!!currentQuiz}
+      />
 
       {/* Main Two-Column Content */}
       <main className="flex-1 max-w-[1700px] w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -177,7 +256,7 @@ export const App: React.FC = () => {
             <button
               type="button"
               onClick={() => setLeftPanelMode("create")}
-              className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
+              className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                 leftPanelMode === "create"
                   ? "bg-white text-[#1b5c53] shadow-xs"
                   : "text-[#6e6c70] hover:text-[#1b5c53]"
@@ -193,9 +272,9 @@ export const App: React.FC = () => {
               disabled={!currentQuiz}
               className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
                 leftPanelMode === "refine"
-                  ? "bg-white text-[#1b5c53] shadow-xs"
+                  ? "bg-white text-[#1b5c53] shadow-xs cursor-pointer"
                   : currentQuiz
-                  ? "text-[#6e6c70] hover:text-[#1b5c53]"
+                  ? "text-[#6e6c70] hover:text-[#1b5c53] cursor-pointer"
                   : "text-gray-400 opacity-50 cursor-not-allowed"
               }`}
             >
@@ -240,7 +319,7 @@ export const App: React.FC = () => {
               <div className="flex gap-2">
                 <button
                   onClick={() => setActiveMainTab("preview")}
-                  className={`px-4 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors ${
+                  className={`px-4 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
                     activeMainTab === "preview"
                       ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-sm"
                       : "text-[#6e6c70] hover:text-[#1b5c53]"
@@ -252,7 +331,7 @@ export const App: React.FC = () => {
 
                 <button
                   onClick={() => setActiveMainTab("code")}
-                  className={`px-4 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors ${
+                  className={`px-4 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
                     activeMainTab === "code"
                       ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-sm"
                       : "text-[#6e6c70] hover:text-[#1b5c53]"
@@ -268,12 +347,12 @@ export const App: React.FC = () => {
                 {quizHistory.length > 0 && (
                   <span className="text-[11px] text-[#247a6d] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] hidden sm:inline-flex items-center gap-1 font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Entwurf lokal gesichert
+                    Gesichert
                   </span>
                 )}
                 {quizHistory.length > 1 && (
                   <div className="text-[11px] text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] font-semibold">
-                    Stand: v{historyIndex + 1}
+                    v{historyIndex + 1}
                   </div>
                 )}
               </div>
@@ -288,6 +367,10 @@ export const App: React.FC = () => {
                     onReset={() => {
                       // reset handled in component
                     }}
+                    onEditStation={(idx) => {
+                      setStationEditorIndex(idx);
+                      setIsStationEditorOpen(true);
+                    }}
                   />
                 ) : (
                   <CodeExport quiz={currentQuiz} />
@@ -301,7 +384,7 @@ export const App: React.FC = () => {
                     Bereit für Ihr neues Quiz
                   </h3>
                   <p className="text-xs text-[#6e6c70] max-w-sm mb-4 leading-relaxed">
-                    Wählen Sie links ein Pflegethema, passen Sie die Zielgruppe und Spielmechaniken an und klicken Sie auf <strong>„Quiz mit Gemini generieren“</strong>.
+                    Wählen Sie links ein Pflegethema, nutzen Sie eine der <strong>ZQP-Themenvorlagen</strong> und klicken Sie auf <strong>„Quiz mit Gemini generieren“</strong>.
                   </p>
                   <div className="flex items-center gap-2 text-[11px] text-[#247a6d] font-semibold bg-[#f3f8f7] px-3 py-1.5 rounded-lg border border-[#bbd1cd]">
                     <span>✓ Keine automatischen Kosten beim Programmstart</span>
@@ -320,6 +403,33 @@ export const App: React.FC = () => {
         settings={settings}
         onSave={handleSaveSettings}
       />
+
+      {/* Project Library Modal */}
+      <ProjectLibraryModal
+        isOpen={isLibraryOpen}
+        onClose={() => setIsLibraryOpen(false)}
+        activeProjectId={activeProjectId}
+        onSelectProject={handleSelectProject}
+        onNewProject={handleStartFreshProject}
+      />
+
+      {/* Quality & Accessibility Audit Modal */}
+      <QualityAuditModal
+        isOpen={isAuditOpen}
+        onClose={() => setIsAuditOpen(false)}
+        quiz={currentQuiz}
+      />
+
+      {/* WYSIWYG Station Editor Modal */}
+      {currentQuiz && (
+        <StationEditorModal
+          isOpen={isStationEditorOpen}
+          onClose={() => setIsStationEditorOpen(false)}
+          quiz={currentQuiz}
+          initialStationIndex={stationEditorIndex}
+          onSaveQuiz={handleSaveStationEdit}
+        />
+      )}
     </div>
   );
 };
