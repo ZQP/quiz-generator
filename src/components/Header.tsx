@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="bg-white border-b border-[#bbd1cd] px-5 py-2.5 flex items-center justify-between shadow-2xs sticky top-0 z-30 select-none">
       {/* Brand & Title */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#247a6d] to-[#1b5c53] flex items-center justify-center text-white font-extrabold text-xs tracking-wider shadow-2xs shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-[#247a6d] bg-gradient-to-br from-[#247a6d] to-[#1b5c53] flex items-center justify-center text-white font-black text-xs tracking-wider shadow-2xs shrink-0">
           ZQP
         </div>
         <div className="flex flex-col">

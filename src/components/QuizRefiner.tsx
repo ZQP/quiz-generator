@@ -140,7 +140,7 @@ export const QuizRefiner: React.FC<QuizRefinerProps> = ({
         <button
           type="submit"
           disabled={!refinementPrompt.trim() || isLoading}
-          className="w-full mt-1 bg-linear-to-r from-[#247a6d] to-[#1b5c53] hover:from-[#1b5c53] hover:to-[#00473d] text-white font-semibold py-2 px-4 rounded-xl flex items-center justify-center gap-2 shadow-2xs transition-all focus:ring-2 focus:ring-[#247a6d] disabled:opacity-40 text-xs cursor-pointer"
+          className="w-full mt-1 bg-[#247a6d] bg-gradient-to-r from-[#247a6d] to-[#1b5c53] hover:from-[#1b5c53] hover:to-[#00473d] text-white font-semibold py-2 px-4 rounded-xl flex items-center justify-center gap-2 shadow-2xs transition-all focus:ring-2 focus:ring-[#247a6d] disabled:opacity-40 text-xs cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-emerald-200" />
           <span>{isLoading ? "Wende Änderung an..." : "Anpassung mit Gemini anwenden"}</span>

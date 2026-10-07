@@ -199,21 +199,25 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-              {ZQP_TEMPLATES.map((tpl) => (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {ZQP_TEMPLATES.map((tpl, idx) => (
                 <button
                   key={tpl.badge}
                   type="button"
                   onClick={() => applyTemplate(tpl)}
-                  className="text-left p-2 rounded-lg bg-[#f3f8f7] hover:bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] transition-all flex flex-col justify-between group cursor-pointer"
+                  className={`text-left p-2.5 rounded-lg bg-[#f3f8f7] hover:bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] transition-all flex flex-col justify-between gap-1 group cursor-pointer shadow-2xs ${
+                    idx === 4 ? "sm:col-span-2" : ""
+                  }`}
                 >
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-bold text-[#1b5c53] bg-white px-1.5 py-0.2 rounded border border-[#bbd1cd]">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[10px] font-bold text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] whitespace-nowrap">
                       {tpl.badge}
                     </span>
-                    <span className="text-[10px] text-[#6e6c70]">{tpl.count} Stationen</span>
+                    <span className="text-[10px] text-[#6e6c70] font-semibold whitespace-nowrap shrink-0">
+                      {tpl.count} Stationen
+                    </span>
                   </div>
-                  <span className="text-[11px] font-semibold text-[#3a352d] leading-tight line-clamp-1 group-hover:text-[#1b5c53]">
+                  <span className="text-xs font-semibold text-[#3a352d] leading-snug group-hover:text-[#1b5c53] line-clamp-1">
                     {tpl.title}
                   </span>
                 </button>
