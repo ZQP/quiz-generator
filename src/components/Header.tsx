@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ settings, onOpenSettings }) => {
-  const [updateStatus, setUpdateStatus] = useState<string>("App aktuell (v1.0.0)");
+  const [updateStatus, setUpdateStatus] = useState<string>("App aktuell (v0.1.0 Beta)");
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
   const [availableVersion, setAvailableVersion] = useState<string | null>(null);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
@@ -54,11 +54,11 @@ export const Header: React.FC<HeaderProps> = ({ settings, onOpenSettings }) => {
         setAvailableVersion(res.version);
         setUpdateStatus(`Update bereit (v${res.version})`);
       } else if (!res.isDesktop) {
-        setUpdateStatus("v1.0.0 (Web-Vorschau)");
+        setUpdateStatus("v0.1.0 Beta (Web-Vorschau)");
       } else if (res.error) {
         setUpdateStatus("Update-Server nicht erreichbar");
       } else {
-        setUpdateStatus("Aktuellste Version (v1.0.0)");
+        setUpdateStatus("Aktuellste Version (v0.1.0 Beta)");
       }
     } catch {
       setUpdateStatus("Prüfung fehlgeschlagen");
@@ -84,7 +84,7 @@ export const Header: React.FC<HeaderProps> = ({ settings, onOpenSettings }) => {
           </div>
         </div>
         <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e3eeec] text-[#1b5c53] border border-[#bbd1cd]">
-          v1.0.0
+          v0.1.0 (Beta)
         </span>
       </div>
 

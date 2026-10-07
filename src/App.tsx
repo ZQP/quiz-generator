@@ -49,28 +49,6 @@ export const App: React.FC = () => {
     initialDraft && initialDraft.history.length > 0 ? "refine" : "create"
   );
 
-  // Initial load: generate initial preview only if no saved draft was found
-  useEffect(() => {
-    if (!initialDraft || initialDraft.history.length === 0) {
-      handleGenerateNewQuiz(
-        {
-          topicPrompt: "Sturzprävention im Alltag: Mitmachen & Prüfen",
-          referenceText: "",
-          questionCount: 5,
-          targetAudience: "angehoerige",
-          mechanics: [
-            "matching",
-            "ordering",
-            "myth_fact",
-            "bucket_sort",
-            "comparison",
-          ],
-        },
-        false
-      );
-    }
-  }, []);
-
   // Save current quiz history to localStorage whenever it changes
   useEffect(() => {
     if (quizHistory.length > 0 && historyIndex >= 0) {
@@ -315,8 +293,19 @@ export const App: React.FC = () => {
                   <CodeExport quiz={currentQuiz} />
                 )
               ) : (
-                <div className="flex-1 flex items-center justify-center text-xs text-[#6e6c70]">
-                  Geben Sie links ein Thema ein und klicken Sie auf „Quiz mit Gemini generieren“.
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-[#bbd1cd] rounded-xl bg-white/60 my-auto">
+                  <div className="w-14 h-14 rounded-2xl bg-[#e3eeec] text-[#247a6d] flex items-center justify-center mb-3 shadow-xs">
+                    <Sparkles className="w-7 h-7" />
+                  </div>
+                  <h3 className="text-base font-bold text-[#1b5c53] mb-1">
+                    Bereit für Ihr neues Quiz
+                  </h3>
+                  <p className="text-xs text-[#6e6c70] max-w-sm mb-4 leading-relaxed">
+                    Wählen Sie links ein Pflegethema, passen Sie die Zielgruppe und Spielmechaniken an und klicken Sie auf <strong>„Quiz mit Gemini generieren“</strong>.
+                  </p>
+                  <div className="flex items-center gap-2 text-[11px] text-[#247a6d] font-semibold bg-[#f3f8f7] px-3 py-1.5 rounded-lg border border-[#bbd1cd]">
+                    <span>✓ Keine automatischen Kosten beim Programmstart</span>
+                  </div>
                 </div>
               )}
             </div>
