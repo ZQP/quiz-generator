@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, RefreshCw, DownloadCloud, CheckCircle2, FolderOpen, ShieldCheck } from "lucide-react";
+import { Settings, Sparkles, DownloadCloud, FolderOpen, ShieldCheck } from "lucide-react";
 import { AppSettings } from "../types";
 import { checkForAppUpdates, installAppUpdate, isTauriApp } from "../services/updaterService";
 
@@ -18,155 +18,123 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAudit,
   hasCurrentQuiz,
 }) => {
-  const [updateStatus, setUpdateStatus] = useState<string>("App aktuell (v0.1.0 Beta)");
-  const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
   const [availableVersion, setAvailableVersion] = useState<string | null>(null);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
   const [installProgress, setInstallProgress] = useState<string>("");
 
   useEffect(() => {
-    // If running in Tauri desktop and auto-update is enabled, run a silent background check
+    // Silent background check if running in Tauri desktop and auto-update is active
     if (settings.autoUpdate && isTauriApp()) {
       checkForAppUpdates(true).then((res) => {
         if (res.updateFound && res.version) {
           setAvailableVersion(res.version);
-          setUpdateStatus(`Update bereit (v${res.version})`);
         }
       });
     }
   }, [settings.autoUpdate]);
 
-  const handleUpdateClick = async () => {
-    if (availableVersion) {
-      setIsInstalling(true);
-      setInstallProgress("Start...");
-      const result = await installAppUpdate((downloaded, total) => {
-        if (total > 0) {
-          const pct = Math.round((downloaded / total) * 100);
-          setInstallProgress(`${pct}%`);
-        } else {
-          setInstallProgress(`${Math.round(downloaded / 1024)} KB`);
-        }
-      });
-      if (!result.success) {
-        setIsInstalling(false);
-        alert(`Update fehlgeschlagen: ${result.error}`);
-      }
-      return;
-    }
-
-    setIsCheckingUpdate(true);
-    setUpdateStatus("Prüfe auf GitHub...");
-    try {
-      const res = await checkForAppUpdates(false);
-      if (res.updateFound && res.version) {
-        setAvailableVersion(res.version);
-        setUpdateStatus(`Update bereit (v${res.version})`);
-      } else if (!res.isDesktop) {
-        setUpdateStatus("v0.1.0 Beta (Web-Vorschau)");
-      } else if (res.error) {
-        setUpdateStatus("Update-Server nicht erreichbar");
+  const handleInstallUpdate = async () => {
+    if (!availableVersion) return;
+    setIsInstalling(true);
+    setInstallProgress("Start...");
+    const result = await installAppUpdate((downloaded, total) => {
+      if (total > 0) {
+        const pct = Math.round((downloaded / total) * 100);
+        setInstallProgress(`${pct}%`);
       } else {
-        setUpdateStatus("Aktuellste Version (v0.1.0 Beta)");
+        setInstallProgress(`${Math.round(downloaded / 1024)} KB`);
       }
-    } catch {
-      setUpdateStatus("Prüfung fehlgeschlagen");
-    } finally {
-      setIsCheckingUpdate(false);
+    });
+    if (!result.success) {
+      setIsInstalling(false);
+      alert(`Update fehlgeschlagen: ${result.error}`);
     }
   };
 
   return (
-    <header className="bg-white border-b border-[#bbd1cd] px-6 py-3 flex items-center justify-between shadow-sm sticky top-0 z-30">
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-lg bg-[#247a6d] flex items-center justify-center text-white font-bold text-lg shadow-sm">
-            ZQP
-          </div>
-          <div>
-            <h1 className="text-base font-bold text-[#1b5c53] leading-tight">
-              ZQP Quiz- & Lernspiel-Generator
-            </h1>
-            <p className="text-xs text-[#6e6c70]">
-              Barrierefreie HTML5-Quizze für zqp.de (Puzzle, Zuordnung, Vergleiche)
-            </p>
-          </div>
+    <header className="bg-white border-b border-[#bbd1cd] px-5 py-2.5 flex items-center justify-between shadow-2xs sticky top-0 z-30 select-none">
+      {/* Brand & Title */}
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-linear-to-br from-[#247a6d] to-[#1b5c53] flex items-center justify-center text-white font-extrabold text-xs tracking-wider shadow-2xs shrink-0">
+          ZQP
         </div>
-        <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e3eeec] text-[#1b5c53] border border-[#bbd1cd]">
-          v0.1.0 (Beta)
-        </span>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-2">
+            <h1 className="text-sm font-bold text-[#1b5c53] tracking-tight leading-tight">
+              Quiz- & Lernspiel-Generator
+            </h1>
+            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#e3eeec] text-[#1b5c53] border border-[#bbd1cd]">
+              v0.1.0 Beta
+            </span>
+          </div>
+          <p className="text-[11px] text-[#6e6c70] leading-tight hidden sm:block">
+            Redaktionswerkzeug für interaktive Webmodule auf zqp.de
+          </p>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
-        {/* Auto-Update Check / Install Button */}
-        {availableVersion ? (
+      {/* Action Toolbar */}
+      <div className="flex items-center gap-2">
+        {/* Update Notification (only shown when an update is actually available!) */}
+        {availableVersion && (
           <button
-            onClick={handleUpdateClick}
+            onClick={handleInstallUpdate}
             disabled={isInstalling}
-            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#247a6d] text-white hover:bg-[#1b5c53] font-semibold transition-colors shadow-sm animate-pulse"
-            title="Klicken, um das neueste Update herunterzuladen und zu installieren"
+            className="h-8 text-xs flex items-center gap-1.5 px-3 rounded-lg bg-[#247a6d] text-white hover:bg-[#1b5c53] font-semibold transition-colors shadow-2xs animate-pulse cursor-pointer shrink-0"
+            title="Neueste Version herunterladen und installieren"
           >
             <DownloadCloud className="w-3.5 h-3.5" />
             <span>
-              {isInstalling
-                ? `Installiere Update... (${installProgress})`
-                : `Update installieren (v${availableVersion})`}
+              {isInstalling ? `Update (${installProgress})...` : `Update verfügbar (v${availableVersion})`}
             </span>
-          </button>
-        ) : (
-          <button
-            onClick={handleUpdateClick}
-            disabled={isCheckingUpdate}
-            className="text-xs flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#bbd1cd] hover:bg-[#f3f8f7] text-[#444444] transition-colors focus:ring-2 focus:ring-[#247a6d] focus:outline-none"
-            title="Nach neuer Version auf GitHub suchen"
-          >
-            {isCheckingUpdate ? (
-              <RefreshCw className="w-3.5 h-3.5 text-[#247a6d] animate-spin" />
-            ) : (
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-            )}
-            <span>{updateStatus}</span>
           </button>
         )}
 
-        {/* Model Indicator Badge */}
-        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f3f8f7] border border-[#bbd1cd] text-xs text-[#1b5c53]">
-          <span className="font-semibold">Modell:</span>
-          <span>{settings.selectedModel}</span>
+        {/* Model Indicator Chip */}
+        <div className="hidden md:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-[#f3f8f7] border border-[#bbd1cd] text-xs text-[#1b5c53]">
+          <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
+          <span className="text-[#6e6c70] font-normal">Modell:</span>
+          <span className="font-semibold">{settings.selectedModel}</span>
         </div>
 
-        {/* Library Button */}
-        <button
-          onClick={onOpenLibrary}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors focus:ring-2 focus:ring-[#247a6d] focus:outline-none"
-          title="Gespeicherte Quiz-Entwürfe öffnen und verwalten"
-        >
-          <FolderOpen className="w-3.5 h-3.5 text-[#247a6d]" />
-          <span>Meine Entwürfe</span>
-        </button>
+        <div className="hidden sm:block h-5 w-px bg-[#bbd1cd]/70 mx-0.5" />
 
         {/* Quality Audit Button */}
         {hasCurrentQuiz && (
           <button
             onClick={onOpenAudit}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#d5e7e4] text-xs font-semibold text-[#1b5c53] transition-colors focus:ring-2 focus:ring-[#247a6d] focus:outline-none"
-            title="Barrierefreiheits- & Qualitätsprüfung (WCAG 2.1 AA & Flesch-Index) anzeigen"
+            className="h-8 flex items-center gap-1.5 px-3 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors shadow-2xs cursor-pointer"
+            title="Qualitäts- & Barrierefreiheitsprüfung (WCAG 2.1 AA)"
           >
             <ShieldCheck className="w-3.5 h-3.5 text-[#247a6d]" />
-            <span className="hidden sm:inline">Qualitäts-Audit</span>
+            <span className="hidden lg:inline">Qualitäts-Audit</span>
+            <span className="lg:hidden">Audit</span>
           </button>
         )}
+
+        {/* Library Button */}
+        <button
+          onClick={onOpenLibrary}
+          className="h-8 flex items-center gap-1.5 px-3 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors shadow-2xs cursor-pointer"
+          title="Gespeicherte Quiz-Entwürfe öffnen"
+        >
+          <FolderOpen className="w-3.5 h-3.5 text-[#247a6d]" />
+          <span className="hidden lg:inline">Meine Entwürfe</span>
+          <span className="lg:hidden">Entwürfe</span>
+        </button>
 
         {/* Settings Button */}
         <button
           onClick={onOpenSettings}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-medium text-[#1b5c53] transition-colors focus:ring-2 focus:ring-[#247a6d] focus:outline-none"
+          className="h-8 flex items-center gap-1.5 px-3 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors shadow-2xs cursor-pointer"
+          title="Einstellungen & API-Schlüssel"
           aria-label="Einstellungen öffnen"
         >
-          <Settings className="w-4 h-4 text-[#247a6d]" />
-          <span>Einstellungen</span>
+          <Settings className="w-3.5 h-3.5 text-[#247a6d]" />
+          <span className="hidden sm:inline">Einstellungen</span>
         </button>
       </div>
     </header>
   );
 };
+

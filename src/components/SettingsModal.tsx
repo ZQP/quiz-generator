@@ -71,7 +71,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       } else if (res.error) {
         setUpdateMsg(`Fehler bei Prüfung: ${res.error}`);
       } else {
-        setUpdateMsg("✓ Sie verwenden bereits die neueste Version (v1.0.0).");
+        setUpdateMsg("✓ Sie verwenden bereits die neueste Version (v0.1.0 Beta).");
       }
     } catch (err: any) {
       setUpdateMsg(`Fehler: ${err?.message || "Update-Prüfung fehlgeschlagen"}`);

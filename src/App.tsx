@@ -247,7 +247,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#f7faf9] text-[#444444]">
+    <div className="h-screen flex flex-col bg-[#f5f8f7] text-[#444444] overflow-hidden">
       {/* Header */}
       <Header
         settings={settings}
@@ -257,119 +257,127 @@ export const App: React.FC = () => {
         hasCurrentQuiz={!!currentQuiz}
       />
 
-      {/* Main Two-Column Content */}
-      <main className="flex-1 max-w-[1700px] w-full mx-auto p-4 md:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+      {/* Main Two-Column Content (Viewport-Fitted, Aligned Grid) */}
+      <main className="flex-1 max-w-[1800px] w-full mx-auto p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-0 overflow-hidden">
         {/* Left Column: Input, Customization & Refinement (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col gap-3">
-          {/* Mode Switcher Bar */}
-          <div className="flex items-center gap-1 bg-[#e3eeec] p-1 rounded-xl border border-[#bbd1cd] text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => setLeftPanelMode("create")}
-              className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                leftPanelMode === "create"
-                  ? "bg-white text-[#1b5c53] shadow-xs"
-                  : "text-[#6e6c70] hover:text-[#1b5c53]"
-              }`}
-            >
-              <PlusCircle className="w-3.5 h-3.5 text-[#247a6d]" />
-              <span>1. Neues Thema starten</span>
-            </button>
+        <div className="lg:col-span-5 flex flex-col min-h-0 bg-white rounded-xl border border-[#bbd1cd] shadow-2xs overflow-hidden">
+          {/* Mode Switcher Tab Header (Aligned with Right Column) */}
+          <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setLeftPanelMode("create")}
+                className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  leftPanelMode === "create"
+                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs"
+                    : "text-[#6e6c70] hover:text-[#1b5c53]"
+                }`}
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span>1. Neues Thema</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={() => currentQuiz && setLeftPanelMode("refine")}
-              disabled={!currentQuiz}
-              className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all ${
-                leftPanelMode === "refine"
-                  ? "bg-white text-[#1b5c53] shadow-xs cursor-pointer"
-                  : currentQuiz
-                  ? "text-[#6e6c70] hover:text-[#1b5c53] cursor-pointer"
-                  : "text-gray-400 opacity-50 cursor-not-allowed"
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
-              <span>2. Quiz verfeinern</span>
-              {quizHistory.length > 1 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#247a6d] text-white">
-                  v{historyIndex + 1}
-                </span>
-              )}
-            </button>
+              <button
+                type="button"
+                onClick={() => currentQuiz && setLeftPanelMode("refine")}
+                disabled={!currentQuiz}
+                className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors ${
+                  leftPanelMode === "refine"
+                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs cursor-pointer"
+                    : currentQuiz
+                    ? "text-[#6e6c70] hover:text-[#1b5c53] cursor-pointer"
+                    : "text-gray-400 opacity-40 cursor-not-allowed"
+                }`}
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span>2. Quiz verfeinern</span>
+                {quizHistory.length > 1 && (
+                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#247a6d] text-white font-bold">
+                    v{historyIndex + 1}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            <span className="text-[11px] text-[#6e6c70] hidden sm:inline font-medium">
+              {leftPanelMode === "create" ? "Themenwahl & Vorlagen" : "KI-Anpassung"}
+            </span>
           </div>
 
-          {/* Render Refiner or Prompt Input */}
-          {leftPanelMode === "refine" && currentQuiz ? (
-            <QuizRefiner
-              currentQuiz={currentQuiz}
-              onRefine={handleRefineQuiz}
-              isLoading={isLoading}
-              loadingStepText={loadingStepText}
-              canUndo={historyIndex > 0}
-              canRedo={historyIndex < quizHistory.length - 1}
-              onUndo={handleUndo}
-              onRedo={handleRedo}
-              versionInfo={`Version ${historyIndex + 1} von ${quizHistory.length}`}
-              onSwitchToNewQuiz={() => setLeftPanelMode("create")}
-            />
-          ) : (
-            <PromptInput
-              onGenerate={handleGenerateNewQuiz}
-              isLoading={isLoading}
-              loadingStepText={loadingStepText}
-            />
-          )}
+          {/* Left Panel Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-3.5 bg-[#fcfaf8]">
+            {leftPanelMode === "refine" && currentQuiz ? (
+              <QuizRefiner
+                currentQuiz={currentQuiz}
+                onRefine={handleRefineQuiz}
+                isLoading={isLoading}
+                loadingStepText={loadingStepText}
+                canUndo={historyIndex > 0}
+                canRedo={historyIndex < quizHistory.length - 1}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
+                versionInfo={`Version ${historyIndex + 1} von ${quizHistory.length}`}
+                onSwitchToNewQuiz={() => setLeftPanelMode("create")}
+              />
+            ) : (
+              <PromptInput
+                onGenerate={handleGenerateNewQuiz}
+                isLoading={isLoading}
+                loadingStepText={loadingStepText}
+              />
+            )}
+          </div>
         </div>
 
         {/* Right Column: Preview & Code Export (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col">
-          <div className="bg-white rounded-xl border border-[#bbd1cd] shadow-sm flex flex-col h-full overflow-hidden">
-            {/* Tab Navigation Header */}
-            <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-4 pt-3 flex items-center justify-between">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setActiveMainTab("preview")}
-                  className={`px-4 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
-                    activeMainTab === "preview"
-                      ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-sm"
-                      : "text-[#6e6c70] hover:text-[#1b5c53]"
-                  }`}
-                >
-                  <Eye className="w-4 h-4 text-[#247a6d]" />
-                  <span>Interaktive Vorschau</span>
-                </button>
+        <div className="lg:col-span-7 flex flex-col min-h-0 bg-white rounded-xl border border-[#bbd1cd] shadow-2xs overflow-hidden">
+          {/* Tab Navigation Header (Matched with Left Column) */}
+          <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setActiveMainTab("preview")}
+                className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  activeMainTab === "preview"
+                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs"
+                    : "text-[#6e6c70] hover:text-[#1b5c53]"
+                }`}
+              >
+                <Eye className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span>Interaktive Vorschau</span>
+              </button>
 
-                <button
-                  onClick={() => setActiveMainTab("code")}
-                  className={`px-4 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
-                    activeMainTab === "code"
-                      ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-sm"
-                      : "text-[#6e6c70] hover:text-[#1b5c53]"
-                  }`}
-                >
-                  <Code2 className="w-4 h-4 text-[#247a6d]" />
-                  <span>Code-Export (HTML, CSS, JS, Tailwind)</span>
-                </button>
-              </div>
-
-              {/* Version & Persistence Indicator */}
-              <div className="flex items-center gap-2">
-                {quizHistory.length > 0 && (
-                  <span className="text-[11px] text-[#247a6d] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] hidden sm:inline-flex items-center gap-1 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Gesichert
-                  </span>
-                )}
-                {quizHistory.length > 1 && (
-                  <div className="text-[11px] text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] font-semibold">
-                    v{historyIndex + 1}
-                  </div>
-                )}
-              </div>
+              <button
+                onClick={() => setActiveMainTab("code")}
+                className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  activeMainTab === "code"
+                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs"
+                    : "text-[#6e6c70] hover:text-[#1b5c53]"
+                }`}
+              >
+                <Code2 className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span>Code-Export (HTML, CSS, JS)</span>
+              </button>
             </div>
 
-            {/* Tab Content Panels */}
-            <div className="p-4 md:p-6 bg-[#fcfaf8] flex-1 flex flex-col overflow-y-auto">
+            {/* Version & Persistence Indicator */}
+            <div className="flex items-center gap-2">
+              {quizHistory.length > 0 && (
+                <span className="text-[11px] text-[#247a6d] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] hidden sm:inline-flex items-center gap-1 font-medium shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  Gesichert
+                </span>
+              )}
+              {quizHistory.length > 1 && (
+                <div className="text-[11px] text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] font-semibold shadow-2xs">
+                  v{historyIndex + 1}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Tab Content Panels */}
+          <div className="p-3.5 bg-[#fcfaf8] flex-1 flex flex-col min-h-0 overflow-y-auto">
+
               {currentQuiz ? (
                 activeMainTab === "preview" ? (
                   <QuizPreview
@@ -406,8 +414,7 @@ export const App: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
-      </main>
+        </main>
 
       {/* Settings Modal */}
       <SettingsModal
