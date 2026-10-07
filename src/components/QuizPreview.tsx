@@ -15,6 +15,7 @@ import {
   GripVertical,
   Sparkles,
   Edit3,
+  Printer,
 } from "lucide-react";
 import {
   QuizGenerationResult,
@@ -1591,13 +1592,25 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset, onEditS
                         </div>
                       </div>
 
-                      <button
-                        onClick={handleReset}
-                        className="mt-2.5 px-4 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
-                      >
-                        <RotateCcw className="w-3.5 h-3.5" />
-                        <span>Praxistest wiederholen</span>
-                      </button>
+                      <div className="flex items-center gap-2 mt-2.5 flex-wrap justify-center">
+                        <button
+                          onClick={handleReset}
+                          className="px-4 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                        >
+                          <RotateCcw className="w-3.5 h-3.5" />
+                          <span>Praxistest wiederholen</span>
+                        </button>
+                        {quiz.enablePrintSummary && (
+                          <button
+                            onClick={() => window.print()}
+                            className="px-3.5 py-1.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] text-[#1b5c53] hover:bg-[#f3f8f7] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                            title="Ergebnis und Merkzettel drucken oder als PDF speichern"
+                          >
+                            <Printer className="w-3.5 h-3.5 text-[#247a6d]" />
+                            <span>Ergebnis als PDF drucken</span>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 })()}
@@ -1618,14 +1631,27 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset, onEditS
                   <Award className="w-4 h-4 text-[#247a6d]" />
                   <span>Praxistest vollständig abgeschlossen</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm flex items-center gap-1 transition-colors"
-                >
-                  <RotateCcw className="w-3.5 h-3.5" />
-                  <span>Test neu starten</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {quiz.enablePrintSummary && (
+                    <button
+                      type="button"
+                      onClick={() => window.print()}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white border border-[#bbd1cd] text-[#1b5c53] hover:bg-[#f3f8f7] shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                      title="Ergebnis drucken oder als PDF sichern"
+                    >
+                      <Printer className="w-3.5 h-3.5 text-[#247a6d]" />
+                      <span>Als PDF drucken</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm flex items-center gap-1 transition-colors"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Test neu starten</span>
+                  </button>
+                </div>
               </div>
             ) : (
               <>

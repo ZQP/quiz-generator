@@ -202,6 +202,16 @@ export const App: React.FC = () => {
     setHistoryIndex(newHistory.length - 1);
   };
 
+  // Optional Print/PDF toggle for web visitors
+  const handleTogglePrintSummary = (enabled: boolean) => {
+    if (!currentQuiz) return;
+    const updatedQuiz: QuizGenerationResult = {
+      ...currentQuiz,
+      enablePrintSummary: enabled,
+    };
+    handleSaveStationEdit(updatedQuiz);
+  };
+
   // Undo / Redo
   const handleUndo = () => {
     if (historyIndex > 0) {
@@ -373,7 +383,10 @@ export const App: React.FC = () => {
                     }}
                   />
                 ) : (
-                  <CodeExport quiz={currentQuiz} />
+                  <CodeExport
+                    quiz={currentQuiz}
+                    onTogglePrintSummary={handleTogglePrintSummary}
+                  />
                 )
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-8 border-2 border-dashed border-[#bbd1cd] rounded-xl bg-white/60 my-auto">

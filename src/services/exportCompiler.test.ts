@@ -216,4 +216,21 @@ describe("exportCompiler - compileQuizToBundle", () => {
     expect(bundle.fullStandaloneHtml).toContain('id="zqp-game-root"');
     expect(bundle.fullStandaloneHtml).toContain("</html>");
   });
+
+  it("handles enablePrintSummary correctly in CSS and JS", () => {
+    // When disabled / omitted
+    const bundleDefault = compileQuizToBundle(sampleQuiz);
+    expect(bundleDefault.css).toContain("@media print");
+    expect(bundleDefault.js).toContain("var enablePrintSummary = false;");
+
+    // When explicitly enabled
+    const quizWithPrint: QuizGenerationResult = {
+      ...sampleQuiz,
+      enablePrintSummary: true,
+    };
+    const bundleWithPrint = compileQuizToBundle(quizWithPrint);
+    expect(bundleWithPrint.js).toContain("var enablePrintSummary = true;");
+    expect(bundleWithPrint.js).toContain("Ergebnis als PDF drucken");
+    expect(bundleWithPrint.js).toContain("window.print()");
+  });
 });

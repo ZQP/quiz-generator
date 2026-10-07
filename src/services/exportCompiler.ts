@@ -446,6 +446,45 @@ tailwind.config = {
   text-overflow: ellipsis;
   user-select: none;
 }
+
+/* ==========================================================================
+   PRINT / PDF STYLESHEET (zqp.de Merkzettel)
+   ========================================================================== */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #zqp-game-root, #zqp-game-root * {
+    visibility: visible;
+  }
+  #zqp-game-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    box-shadow: none !important;
+    border: 1px solid #bbd1cd !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    overflow: visible !important;
+  }
+  .zqp-footer, .zqp-btn-primary, .zqp-btn-secondary, #zqp-drawer {
+    display: none !important;
+  }
+  .zqp-header {
+    background: #247a6d !important;
+    color: #ffffff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .zqp-papercut-card, .zqp-hint-banner {
+    box-shadow: none !important;
+    border: 1px solid #bbd1cd !important;
+  }
+}
 `;
 
   const html = `<!-- ZQP Interaktives Lern-Quiz (zqp.de) -->
@@ -513,6 +552,7 @@ tailwind.config = {
   var currentStation = 0;
   var stationResults = {}; // idx -> "solved" | "unsolved"
   var canAdvance = false;
+  var enablePrintSummary = ${quiz.enablePrintSummary ? "true" : "false"};
 
   // Station specific state
   var selectedThreat = null;
@@ -1013,9 +1053,16 @@ tailwind.config = {
     });
 
     html += '</div>' +
-      '<button type="button" class="zqp-btn-primary" onclick="window.zqpRestartQuiz()">' +
-        '🔄 Quiz erneut starten' +
-      '</button>' +
+      '<div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; flex-wrap:wrap;">' +
+        '<button type="button" class="zqp-btn-primary" onclick="window.zqpRestartQuiz()">' +
+          '🔄 Quiz erneut starten' +
+        '</button>' +
+        (enablePrintSummary ? (
+          '<button type="button" class="zqp-btn-secondary" onclick="window.print()" style="display:inline-flex; align-items:center; gap:0.4rem;">' +
+            '<span>🖨️</span><span>Ergebnis als PDF drucken</span>' +
+          '</button>'
+        ) : '') +
+      '</div>' +
     '</div>';
 
     content.innerHTML = html;

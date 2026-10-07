@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
-import { Copy, Check, Download, AlertCircle, Code, Palette, Terminal, Sliders, FileCode } from "lucide-react";
+import { Copy, Check, Download, AlertCircle, Code, Palette, Terminal, Sliders, FileCode, Printer } from "lucide-react";
 import { QuizGenerationResult } from "../types";
 import { compileQuizToBundle } from "../services/exportCompiler";
 
 interface CodeExportProps {
   quiz: QuizGenerationResult;
+  onTogglePrintSummary?: (enabled: boolean) => void;
 }
 
-export const CodeExport: React.FC<CodeExportProps> = ({ quiz }) => {
+export const CodeExport: React.FC<CodeExportProps> = ({ quiz, onTogglePrintSummary }) => {
   const [activeTab, setActiveTab] = useState<"html" | "css" | "js" | "tailwind">("html");
   const [includeTailwindInHtml, setIncludeTailwindInHtml] = useState<boolean>(true);
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
@@ -145,6 +146,35 @@ ${bundle.tailwindConfig}
             </span>
           )}
         </div>
+      </div>
+
+      {/* Optional Print / PDF option for Web visitors */}
+      <div className="bg-[#f3f8f7] border border-[#bbd1cd] rounded-xl px-4 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-white border border-[#bbd1cd] text-[#247a6d] flex items-center justify-center shrink-0">
+            <Printer className="w-3.5 h-3.5" />
+          </div>
+          <div>
+            <h5 className="text-xs font-bold text-[#1b5c53]">
+              Druck- & PDF-Button für Website-Besucher auf Abschlussseite
+            </h5>
+            <p className="text-[11px] text-[#6e6c70]">
+              Ermöglicht Teilnehmenden auf zqp.de, die gelösten Praxistipps als DIN-A4-Merkzettel zu drucken oder als PDF zu sichern.
+            </p>
+          </div>
+        </div>
+
+        <label className="flex items-center gap-2 cursor-pointer select-none self-end sm:self-center shrink-0">
+          <input
+            type="checkbox"
+            checked={quiz.enablePrintSummary ?? false}
+            onChange={(e) => onTogglePrintSummary?.(e.target.checked)}
+            className="rounded border-slate-400 text-[#247a6d] focus:ring-[#247a6d] w-4 h-4 cursor-pointer"
+          />
+          <span className="text-xs font-semibold text-[#1b5c53]">
+            {quiz.enablePrintSummary ? "Aktiviert (wird exportiert)" : "Deaktiviert"}
+          </span>
+        </label>
       </div>
 
       {/* Code Editor Container */}

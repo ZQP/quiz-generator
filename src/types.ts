@@ -105,6 +105,7 @@ export interface QuizGenerationResult {
   generatedCss: string;
   generatedJs: string;
   tailwindConfig?: string;
+  enablePrintSummary?: boolean;
 }
 
 export interface AppSettings {
