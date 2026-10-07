@@ -5,7 +5,6 @@ export type StationType =
   | "ordering"
   | "comparison"
   | "single_choice"
-  | "multiple_choice"
   | "myth_fact"
   | "bucket_sort"
   | "dilemma"

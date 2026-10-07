@@ -1,10 +1,3 @@
-import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.mjs?url";
-import mammoth from "mammoth";
-
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
-
 export interface ParsedDocumentResult {
   text: string;
   fileName: string;
@@ -15,6 +8,7 @@ export interface ParsedDocumentResult {
 
 /**
  * Extracts plain text from various file formats (.pdf, .docx, .txt, .md).
+ * Uses dynamic imports for pdfjs-dist and mammoth to keep the initial application bundle lightweight.
  * Runs completely locally in the browser/app without sending files to external servers.
  */
 export async function parseDocumentFile(file: File): Promise<ParsedDocumentResult> {
@@ -23,6 +17,13 @@ export async function parseDocumentFile(file: File): Promise<ParsedDocumentResul
   const ext = fileName.split(".").pop()?.toLowerCase() || "";
 
   if (ext === "pdf" || file.type === "application/pdf") {
+    const [pdfjsLib, { default: pdfjsWorker }] = await Promise.all([
+      import("pdfjs-dist"),
+      import("pdfjs-dist/build/pdf.worker.mjs?url"),
+    ]);
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+
     const arrayBuffer = await file.arrayBuffer();
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
@@ -47,6 +48,8 @@ export async function parseDocumentFile(file: File): Promise<ParsedDocumentResul
   }
 
   if (ext === "docx" || file.type.includes("wordprocessingml")) {
+    const mammothModule = await import("mammoth");
+    const mammoth = mammothModule.default || mammothModule;
     const arrayBuffer = await file.arrayBuffer();
     const result = await mammoth.extractRawText({ arrayBuffer });
     return {

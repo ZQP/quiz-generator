@@ -9,6 +9,27 @@ import { AppSettings, QuizGenerationResult, TargetAudience, StationType } from "
 import { loadSettings, saveSettings, generateQuizWithGemini, refineQuizWithGemini } from "./services/geminiService";
 import { Eye, Code2, Sparkles, PlusCircle } from "lucide-react";
 
+const DRAFT_STORAGE_KEY = "zqp_quiz_generator_draft_v1";
+
+interface SavedQuizDraft {
+  history: QuizGenerationResult[];
+  index: number;
+}
+
+function loadInitialDraft(): SavedQuizDraft | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed && Array.isArray(parsed.history) && parsed.history.length > 0 && typeof parsed.index === "number") {
+      return parsed;
+    }
+  } catch (err) {
+    console.warn("Fehler beim Laden des Quiz-Entwurfs:", err);
+  }
+  return null;
+}
+
 export const App: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
@@ -17,30 +38,52 @@ export const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [loadingStepText, setLoadingStepText] = useState<string>("");
 
-  // Quiz history & current version
-  const [quizHistory, setQuizHistory] = useState<QuizGenerationResult[]>([]);
-  const [historyIndex, setHistoryIndex] = useState<number>(-1);
+  // Quiz history & current version with localStorage persistence
+  const [initialDraft] = useState<SavedQuizDraft | null>(loadInitialDraft);
+  const [quizHistory, setQuizHistory] = useState<QuizGenerationResult[]>(() => initialDraft?.history || []);
+  const [historyIndex, setHistoryIndex] = useState<number>(() => (initialDraft ? initialDraft.index : -1));
   const currentQuiz: QuizGenerationResult | null = historyIndex >= 0 ? quizHistory[historyIndex] : null;
 
   // Mode in left column: create new from scratch vs. refine existing
-  const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">("create");
+  const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">(() =>
+    initialDraft && initialDraft.history.length > 0 ? "refine" : "create"
+  );
 
-  // Initial load: generate initial preview without forcing refine mode
+  // Initial load: generate initial preview only if no saved draft was found
   useEffect(() => {
-    handleGenerateNewQuiz({
-      topicPrompt: "Sturzprävention im Alltag: Mitmachen & Prüfen",
-      referenceText: "",
-      questionCount: 5,
-      targetAudience: "angehoerige",
-      mechanics: [
-        "matching",
-        "ordering",
-        "myth_fact",
-        "bucket_sort",
-        "comparison",
-      ],
-    }, false);
+    if (!initialDraft || initialDraft.history.length === 0) {
+      handleGenerateNewQuiz(
+        {
+          topicPrompt: "Sturzprävention im Alltag: Mitmachen & Prüfen",
+          referenceText: "",
+          questionCount: 5,
+          targetAudience: "angehoerige",
+          mechanics: [
+            "matching",
+            "ordering",
+            "myth_fact",
+            "bucket_sort",
+            "comparison",
+          ],
+        },
+        false
+      );
+    }
   }, []);
+
+  // Save current quiz history to localStorage whenever it changes
+  useEffect(() => {
+    if (quizHistory.length > 0 && historyIndex >= 0) {
+      try {
+        localStorage.setItem(
+          DRAFT_STORAGE_KEY,
+          JSON.stringify({ history: quizHistory, index: historyIndex })
+        );
+      } catch (err) {
+        console.warn("Konnte Entwurf nicht in localStorage speichern:", err);
+      }
+    }
+  }, [quizHistory, historyIndex]);
 
   const handleSaveSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
@@ -242,12 +285,20 @@ export const App: React.FC = () => {
                 </button>
               </div>
 
-              {/* Version pill */}
-              {quizHistory.length > 1 && (
-                <div className="text-[11px] text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd]">
-                  Stand: v{historyIndex + 1}
-                </div>
-              )}
+              {/* Version & Persistence Indicator */}
+              <div className="flex items-center gap-2">
+                {quizHistory.length > 0 && (
+                  <span className="text-[11px] text-[#247a6d] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] hidden sm:inline-flex items-center gap-1 font-medium">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Entwurf lokal gesichert
+                  </span>
+                )}
+                {quizHistory.length > 1 && (
+                  <div className="text-[11px] text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] font-semibold">
+                    Stand: v{historyIndex + 1}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Tab Content Panels */}

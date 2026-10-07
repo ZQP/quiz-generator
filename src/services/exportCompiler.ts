@@ -522,6 +522,7 @@ tailwind.config = {
   var filledBlanks = {};
   var checkedItemIds = [];
   var selectedChoiceIdx = null;
+  var selectedDilemmaId = null;
 
   // Drag state
   var pointerDrag = null;
@@ -593,6 +594,7 @@ tailwind.config = {
     selectedThreat = null;
     matchedIds = [];
     selectedChoiceIdx = null;
+    selectedDilemmaId = null;
     checkedItemIds = [];
     bucketAssignments = {};
     filledBlanks = {};
@@ -621,6 +623,8 @@ tailwind.config = {
       renderComparison(st);
     } else if (st.type === "single_choice" && st.options) {
       renderSingleChoice(st);
+    } else if (st.type === "dilemma" && st.dilemmaReactions) {
+      renderDilemma(st);
     } else if (st.type === "myth_fact") {
       renderMythFact(st);
     } else if (st.type === "bucket_sort" && st.bucketSortItems) {
@@ -801,6 +805,41 @@ tailwind.config = {
       markStationCompleted("solved", opt.explanation, st.zqpRationale);
     } else {
       openDrawer("incorrect", "Nicht ganz richtig", opt.explanation, st.zqpRationale);
+    }
+  };
+
+  // 4b. DILEMMA RENDERER
+  function renderDilemma(st) {
+    var html = '<h3 class="zqp-prompt-instruction">' + st.promptOrInstruction + '</h3>' +
+      '<div class="zqp-hint-banner"><span>Wählen Sie die pädagogisch und pflegerisch optimalste Reaktion:</span></div>' +
+      '<div style="display:flex; flex-direction:column; gap:0.45rem;">';
+
+    (st.dilemmaReactions || []).forEach(function(reaction) {
+      var isSel = selectedDilemmaId === reaction.id;
+      html += '<div class="zqp-papercut-card ' + (isSel ? 'zqp-papercut-selected' : '') + (canAdvance ? ' locked' : '') + '" onclick="window.zqpSelectDilemma(\'' + reaction.id + '\')">' +
+        '<div style="display:flex; align-items:flex-start; gap:0.5rem;">' +
+          '<span style="width:1.25rem; height:1.25rem; border-radius:9999px; border:2px solid #247a6d; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.625rem; color:#1b5c53; flex-shrink:0; margin-top:0.1rem;">' + (isSel ? '✓' : '') + '</span>' +
+          '<span style="font-size:0.75rem; font-weight:600; color:#3a352d; line-height:1.4; flex:1;">' + reaction.text + '</span>' +
+        '</div>' +
+      '</div>';
+    });
+
+    html += '</div>';
+    content.innerHTML = html;
+  }
+
+  window.zqpSelectDilemma = function(id) {
+    if (canAdvance) return;
+    selectedDilemmaId = id;
+    var st = stationsData[currentStation];
+    renderDilemma(st);
+    var reaction = (st.dilemmaReactions || []).find(function(r) { return r.id === id; });
+    if (!reaction) return;
+
+    if (reaction.isOptimal) {
+      markStationCompleted("solved", reaction.consequence + " • " + reaction.zqpAdvice, st.zqpRationale || st.solutionExplanation);
+    } else {
+      openDrawer("incorrect", "Problematische Reaktion für den Pflegealltag", reaction.consequence + " • " + reaction.zqpAdvice, st.solutionExplanation || "Versuchen Sie, die Selbstbestimmung der Person mit dezenten Hilfen zu wahren.");
     }
   };
 
@@ -1067,6 +1106,18 @@ tailwind.config = {
     btnReveal.onclick = function() {
       var st = stationsData[currentStation];
       if (!st) return;
+      if (st.type === "dilemma" && st.dilemmaReactions) {
+        var opt = st.dilemmaReactions.find(function(r) { return r.isOptimal; });
+        if (opt) selectedDilemmaId = opt.id;
+        renderDilemma(st);
+      } else if (st.type === "single_choice" && st.options) {
+        var cIdx = st.options.findIndex(function(o) { return o.isCorrect; });
+        if (cIdx !== -1) selectedChoiceIdx = cIdx;
+        renderSingleChoice(st);
+      } else if (st.type === "checklist" && st.checklistItems) {
+        checkedItemIds = st.checklistItems.filter(function(i) { return i.isCorrect; }).map(function(i) { return i.id; });
+        renderChecklist(st);
+      }
       markStationCompleted("unsolved", st.solutionExplanation || "Lösung für die Station", st.zqpRationale);
     };
   }
