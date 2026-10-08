@@ -30,6 +30,11 @@ import {
   EditorialStatus,
 } from "../types";
 import { EditorialStatusDropdown } from "./EditorialStatusDropdown";
+import {
+  saveFavoriteStation,
+  loadFavoriteStations,
+  deleteFavoriteStation,
+} from "../services/projectStorage";
 
 interface QuizPreviewProps {
   quiz: QuizGenerationResult;
@@ -57,6 +62,40 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
   const [completed, setCompleted] = useState<boolean>(false);
 
   const currentStation: QuizStation | undefined = quiz.stations[currentStationIdx];
+  const [favorites, setFavorites] = useState(() => loadFavoriteStations());
+  const [savedFavToast, setSavedFavToast] = useState<string>("");
+
+  useEffect(() => {
+    setFavorites(loadFavoriteStations());
+  }, [quiz]);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setFavorites(loadFavoriteStations());
+    };
+    window.addEventListener("zqp_favorites_changed", handleUpdate);
+    return () => window.removeEventListener("zqp_favorites_changed", handleUpdate);
+  }, []);
+
+  const isCurrentStationSaved = Boolean(
+    currentStation && favorites.some((f) => f.station.title === currentStation.title)
+  );
+
+  const handleToggleSaveFavorite = () => {
+    if (!currentStation) return;
+    const existing = favorites.find((f) => f.station.title === currentStation.title);
+    if (existing) {
+      deleteFavoriteStation(existing.id);
+      setFavorites(loadFavoriteStations());
+      setSavedFavToast("Aus Schatzkiste entfernt");
+      setTimeout(() => setSavedFavToast(""), 2500);
+    } else {
+      saveFavoriteStation(currentStation, quiz.targetAudience || "Allgemein");
+      setFavorites(loadFavoriteStations());
+      setSavedFavToast("In Schatzkiste gespeichert! ⭐");
+      setTimeout(() => setSavedFavToast(""), 2500);
+    }
+  };
 
   // UNIVERSAL POINTER DRAG STATE (Robust mouse & touch drag engine)
   interface ActivePointerDrag {
@@ -773,8 +812,36 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
             </div>
           </div>
 
-          {/* Right: Station bearbeiten & Viewport / Reset */}
+          {/* Right: Station in Schatzkiste & Station bearbeiten & Viewport / Reset */}
           <div className="flex items-center gap-1.5">
+            {!completed && currentStation && (
+              <button
+                type="button"
+                onClick={handleToggleSaveFavorite}
+                className={`flex items-center gap-1.5 h-7 px-2.5 text-xs font-semibold rounded-lg border shadow-2xs transition-all cursor-pointer ${
+                  isCurrentStationSaved
+                    ? "bg-amber-50 text-amber-900 border-amber-300 hover:bg-amber-100"
+                    : "bg-white text-[#1b5c53] border-[#bbd1cd] hover:border-amber-400 hover:bg-amber-50/50"
+                }`}
+                title={
+                  isCurrentStationSaved
+                    ? "In der Schatzkiste gespeichert (Klicken zum Entfernen)"
+                    : "Diese Station als Vorlage in der Schatzkiste speichern"
+                }
+              >
+                <Star
+                  className={`w-3.5 h-3.5 transition-colors ${
+                    isCurrentStationSaved
+                      ? "text-amber-500 fill-amber-400"
+                      : "text-amber-500 hover:fill-amber-300"
+                  }`}
+                />
+                <span className="hidden sm:inline">
+                  {savedFavToast || (isCurrentStationSaved ? "In Schatzkiste" : "In Schatzkiste")}
+                </span>
+              </button>
+            )}
+
             {onEditStation && !completed && (
               <button
                 type="button"
@@ -851,6 +918,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
             {quiz.stations.map((st, idx) => {
               const isActive = !completed && currentStationIdx === idx;
               const isSolved = stationResults[idx] === "solved";
+              const isFav = favorites.some((f) => f.station.title === st.title);
               return (
                 <button
                   key={st.id || idx}
@@ -864,10 +932,19 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                       ? "bg-[#247a6d] text-white border-[#1b5c53] shadow-2xs"
                       : "bg-white hover:bg-[#e3eeec] text-[#1b5c53] border-[#bbd1cd]"
                   }`}
-                  title={`Zu Station ${idx + 1} springen: „${st.title}“`}
+                  title={`Zu Station ${idx + 1} springen: „${st.title}“${
+                    isFav ? " (⭐ In Schatzkiste)" : ""
+                  }`}
                 >
                   <span>{idx + 1}</span>
-                  {isSolved && !isActive && (
+                  {isFav && (
+                    <Star
+                      className={`w-2.5 h-2.5 -mr-0.5 ${
+                        isActive ? "text-amber-300 fill-amber-300" : "text-amber-500 fill-amber-400"
+                      }`}
+                    />
+                  )}
+                  {isSolved && !isActive && !isFav && (
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                   )}
                 </button>

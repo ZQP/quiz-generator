@@ -221,6 +221,12 @@ export function loadFavoriteStations(): FavoriteStation[] {
   return [];
 }
 
+function notifyFavoritesChanged(): void {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("zqp_favorites_changed"));
+  }
+}
+
 export function saveFavoriteStation(
   station: QuizStation,
   category: string = "Allgemein"
@@ -233,6 +239,7 @@ export function saveFavoriteStation(
     existing.station = JSON.parse(JSON.stringify(station));
     try {
       localStorage.setItem(FAVORITE_STATIONS_STORAGE_KEY, JSON.stringify(favorites));
+      notifyFavoritesChanged();
     } catch {}
     return existing;
   }
@@ -247,6 +254,7 @@ export function saveFavoriteStation(
   favorites.unshift(newFavorite);
   try {
     localStorage.setItem(FAVORITE_STATIONS_STORAGE_KEY, JSON.stringify(favorites));
+    notifyFavoritesChanged();
   } catch (err) {
     console.warn("Fehler beim Speichern des Favoriten:", err);
   }
@@ -257,5 +265,7 @@ export function deleteFavoriteStation(favoriteId: string): void {
   const favorites = loadFavoriteStations().filter((f) => f.id !== favoriteId);
   try {
     localStorage.setItem(FAVORITE_STATIONS_STORAGE_KEY, JSON.stringify(favorites));
+    notifyFavoritesChanged();
   } catch {}
 }
+
