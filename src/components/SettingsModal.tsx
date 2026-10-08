@@ -42,11 +42,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // API State
   const [apiKey, setApiKey] = useState<string>(settings.geminiApiKey);
   const [selectedModel, setSelectedModel] = useState<string>(() =>
-    isInvalidGeminiModel(settings.selectedModel) ? "gemini-1.5-flash" : settings.selectedModel
+    isInvalidGeminiModel(settings.selectedModel) ? "gemini-3.8-flash" : settings.selectedModel
   );
   const [availableModels, setAvailableModels] = useState<string[]>(() => {
     const valid = (settings.availableModels || []).filter((m) => !isInvalidGeminiModel(m));
-    return valid.length > 0 ? valid : ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
+    return valid.length > 0 ? valid : ["gemini-3.8-flash"];
   });
   const [autoUpdate, setAutoUpdate] = useState<boolean>(settings.autoUpdate);
   const [showKey, setShowKey] = useState<boolean>(false);
@@ -58,12 +58,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (!isOpen) return;
 
     if (isInvalidGeminiModel(selectedModel)) {
-      setSelectedModel("gemini-1.5-flash");
+      setSelectedModel("gemini-3.8-flash");
     }
 
     setAvailableModels((prev) => {
       const valid = prev.filter((m) => !isInvalidGeminiModel(m));
-      return valid.length > 0 ? valid : ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
+      return valid.length > 0 ? valid : ["gemini-3.8-flash"];
     });
 
     if (apiKey.trim()) {
@@ -197,7 +197,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const handleSave = () => {
     let finalModel = selectedModel.trim();
     if (isInvalidGeminiModel(finalModel)) {
-      finalModel = "gemini-1.5-flash";
+      finalModel = "gemini-3.8-flash";
     }
     const cleanAvailable = availableModels.filter((m) => !isInvalidGeminiModel(m));
     if (!cleanAvailable.includes(finalModel)) {
@@ -207,7 +207,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     onSave({
       geminiApiKey: apiKey.trim(),
       selectedModel: finalModel,
-      availableModels: cleanAvailable.length > 0 ? cleanAvailable : ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"],
+      availableModels: cleanAvailable.length > 0 ? cleanAvailable : ["gemini-3.8-flash"],
       autoUpdate,
       editorialRules,
       glossary,
@@ -342,13 +342,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   >
                     {availableModels.map((m) => (
                       <option key={m} value={m}>
-                        {m === "gemini-1.5-flash"
-                          ? "gemini-1.5-flash (Empfohlen: Schnell, präzise & stabil)"
-                          : m === "gemini-1.5-pro"
-                          ? "gemini-1.5-pro (Höhere Denkleistung / Komplexe Kontexte)"
-                          : m === "gemini-2.0-flash"
-                          ? "gemini-2.0-flash (Neueste Modell-Generation)"
-                          : m}
+                        {m === "gemini-3.8-flash" ? `${m} (Standard)` : m}
                       </option>
                     ))}
                     {!availableModels.includes(selectedModel) && (

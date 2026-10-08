@@ -14,6 +14,13 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.5 (Modell-Standard `gemini-3.8-flash` & Dynamischer Modellabruf)
+
+- **Gemini-Standardmodell `gemini-3.8-flash`**: Das Modell `gemini-3.8-flash` ist nun fest als primäres Standardmodell voreingestellt.
+- **Dynamischer Modell-Abruf**: In den Einstellungen wird die Liste verfügbarer Modelle per Klick oder beim Öffnen direkt von der Google Gemini API geladen. Es werden nur tatsächlich unterstützte Modelle angezeigt.
+- **Automatische Einstellungs-Migration**: Veraltete oder fehlerhafte Modellnamen (z. B. `gemini-3.0-flash`) in lokalen Nutzer-Einstellungen werden beim Start vollautomatisch auf `gemini-3.8-flash` migriert.
+- **Self-Healing Fallback**: Der API-Client fängt etwaige 404-Fehler ab und leitet Anfragen sicher an `gemini-3.8-flash` weiter.
+
 ## Neu in v0.2.4 (Gemini-Modell-Korrektur & Self-Healing Fallback)
 
 - **Standardmodell korrigiert auf `gemini-1.5-flash`**: Das offizielle, von Google für die v1beta-API unterstützte Standardmodell `gemini-1.5-flash` ist nun fest als primäres Modell voreingestellt.

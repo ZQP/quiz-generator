@@ -18,18 +18,14 @@ export const defaultGlossary: GlossaryEntry[] = [
 ];
 
 export const RECOMMENDED_GEMINI_MODELS = [
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-  "gemini-2.0-flash",
+  "gemini-3.8-flash",
 ];
 
 export const defaultSettings: AppSettings = {
   geminiApiKey: "",
-  selectedModel: "gemini-1.5-flash",
+  selectedModel: "gemini-3.8-flash",
   availableModels: [
-    "gemini-1.5-flash",
-    "gemini-1.5-pro",
-    "gemini-2.0-flash",
+    "gemini-3.8-flash",
   ],
   autoUpdate: true,
   editorialRules: defaultEditorialRules,
@@ -41,8 +37,8 @@ export function isInvalidGeminiModel(name?: string): boolean {
   const n = name.trim().toLowerCase();
   return (
     n.includes("3.0") ||
-    n.includes("2.5") ||
     n === "gemini-pro" ||
+    n === "gemini-3.8-pro" ||
     !n.startsWith("gemini-")
   );
 }
@@ -73,18 +69,18 @@ export function loadSettings(): AppSettings {
       let selectedModel = parsed.selectedModel || defaultSettings.selectedModel;
       let modelChanged = false;
 
-      // Auto-migrate away from fictional or deprecated model names (e.g. gemini-3.0-flash, gemini-2.5)
+      // Auto-migrate away from defunct model names (e.g. gemini-3.0-flash)
       if (isInvalidGeminiModel(selectedModel)) {
-        selectedModel = "gemini-1.5-flash";
+        selectedModel = "gemini-3.8-flash";
         modelChanged = true;
       }
 
       let availableModels: string[] = Array.isArray(parsed.availableModels) && parsed.availableModels.length > 0
         ? parsed.availableModels.filter((m: string) => !isInvalidGeminiModel(m))
-        : [...defaultSettings.availableModels];
+        : ["gemini-3.8-flash"];
 
-      if (availableModels.length === 0 || !availableModels.includes("gemini-1.5-flash")) {
-        availableModels = [...defaultSettings.availableModels];
+      if (availableModels.length === 0 || !availableModels.includes("gemini-3.8-flash")) {
+        availableModels = ["gemini-3.8-flash", ...availableModels];
         modelChanged = true;
       }
 
@@ -137,12 +133,14 @@ export async function fetchAvailableModels(apiKey: string): Promise<string[]> {
     .map((m: { name: string }) => m.name.replace(/^models\//, ""))
     .filter((name: string) => name.toLowerCase().includes("gemini") && !isInvalidGeminiModel(name));
 
-  // Prioritize gemini-1.5-flash at the top if present
+  // Ensure gemini-3.8-flash is present and prioritized at the top
+  if (!models.includes("gemini-3.8-flash")) {
+    models.unshift("gemini-3.8-flash");
+  }
+
   models.sort((a: string, b: string) => {
-    if (a === "gemini-1.5-flash") return -1;
-    if (b === "gemini-1.5-flash") return 1;
-    if (a === "gemini-1.5-pro") return -1;
-    if (b === "gemini-1.5-pro") return 1;
+    if (a === "gemini-3.8-flash") return -1;
+    if (b === "gemini-3.8-flash") return 1;
     return a.localeCompare(b);
   });
 
@@ -161,7 +159,7 @@ export async function callGeminiApiWithFallback(options: CallGeminiApiOptions): 
   let modelToUse = options.model;
 
   if (isInvalidGeminiModel(modelToUse)) {
-    modelToUse = "gemini-1.5-flash";
+    modelToUse = "gemini-3.8-flash";
   }
 
   const doFetch = async (m: string) => {
@@ -175,16 +173,16 @@ export async function callGeminiApiWithFallback(options: CallGeminiApiOptions): 
 
   let response = await doFetch(modelToUse);
 
-  // If 404 (model not found) or 400 (unsupported), automatically fall back to gemini-1.5-flash
-  if (!response.ok && (response.status === 404 || response.status === 400) && modelToUse !== "gemini-1.5-flash") {
-    console.warn(`[${contextDesc}] Modell '${modelToUse}' scheiterte mit Status ${response.status}. Fallback auf gemini-1.5-flash...`);
-    modelToUse = "gemini-1.5-flash";
+  // If 404 (model not found) or 400 (unsupported), automatically fall back to gemini-3.8-flash
+  if (!response.ok && (response.status === 404 || response.status === 400) && modelToUse !== "gemini-3.8-flash") {
+    console.warn(`[${contextDesc}] Modell '${modelToUse}' scheiterte mit Status ${response.status}. Fallback auf gemini-3.8-flash...`);
+    modelToUse = "gemini-3.8-flash";
     response = await doFetch(modelToUse);
 
     // Persist working model to localStorage
     try {
       const current = loadSettings();
-      saveSettings({ ...current, selectedModel: "gemini-1.5-flash" });
+      saveSettings({ ...current, selectedModel: "gemini-3.8-flash" });
     } catch (_) {}
   }
 

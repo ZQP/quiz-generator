@@ -63,7 +63,7 @@ describe("geminiService editorial helpers", () => {
   it("generates 3 diverse offline station variants without api key", async () => {
     const variants = await generateStationVariantsWithGemini({
       apiKey: "",
-      model: "gemini-1.5-flash",
+      model: "gemini-3.8-flash",
       station: mockStation,
       contextTopic: "Sturzprävention",
     });
@@ -81,22 +81,21 @@ describe("geminiService model validation and migration", () => {
 
     expect(isInvalidGeminiModel("gemini-3.0-flash")).toBe(true);
     expect(isInvalidGeminiModel("gemini-3.0-pro")).toBe(true);
-    expect(isInvalidGeminiModel("gemini-2.5-flash")).toBe(true);
     expect(isInvalidGeminiModel("gemini-pro")).toBe(true);
     expect(isInvalidGeminiModel("gpt-4o")).toBe(true);
     expect(isInvalidGeminiModel("")).toBe(true);
 
-    expect(isInvalidGeminiModel("gemini-1.5-flash")).toBe(false);
-    expect(isInvalidGeminiModel("gemini-1.5-pro")).toBe(false);
+    expect(isInvalidGeminiModel("gemini-3.8-flash")).toBe(false);
+    expect(isInvalidGeminiModel("gemini-3.8-pro")).toBe(true);
     expect(isInvalidGeminiModel("gemini-2.0-flash")).toBe(false);
   });
 
-  it("auto-migrates stored settings from gemini-3.0-flash to gemini-1.5-flash", async () => {
+  it("auto-migrates stored settings from gemini-3.0-flash to gemini-3.8-flash", async () => {
     const store: Record<string, string> = {
       zqp_quiz_generator_settings: JSON.stringify({
         geminiApiKey: "fake-key",
         selectedModel: "gemini-3.0-flash",
-        availableModels: ["gemini-3.0-flash", "gemini-2.5-flash"],
+        availableModels: ["gemini-3.0-flash"],
       }),
     };
 
@@ -115,8 +114,8 @@ describe("geminiService model validation and migration", () => {
 
     const { loadSettings } = await import("./geminiService");
     const loaded = loadSettings();
-    expect(loaded.selectedModel).toBe("gemini-1.5-flash");
-    expect(loaded.availableModels).toContain("gemini-1.5-flash");
+    expect(loaded.selectedModel).toBe("gemini-3.8-flash");
+    expect(loaded.availableModels).toContain("gemini-3.8-flash");
     expect(loaded.availableModels).not.toContain("gemini-3.0-flash");
   });
 });
