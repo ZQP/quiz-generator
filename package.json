@@ -1,7 +1,7 @@
 {
   "name": "zqp-quiz-generator",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "module",
   "scripts": {
     "start": "vite",
@@ -11,7 +11,7 @@
     "test": "vitest run",
     "tauri": "tauri",
     "app": "tauri dev",
-    "build:app": "pwsh -NoProfile -Command \"$key = (Get-Content src-tauri/zqp-updater.key -Raw).Trim(); $env:TAURI_SIGNING_PRIVATE_KEY = $key; $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ''; npx tauri build; New-Item -ItemType Directory -Force -Path release; Copy-Item 'src-tauri/target/release/bundle/nsis/*_0.2.0_*.exe' -Destination 'release/ZQP-Quiz-Generator-Setup.exe' -Force; Copy-Item 'src-tauri/target/release/bundle/nsis/*_0.2.0_*.sig' -Destination 'release/ZQP-Quiz-Generator-Setup.exe.sig' -Force; Copy-Item 'src-tauri/target/release/app.exe' -Destination 'release/ZQP-Quiz-Generator.exe' -Force\""
+    "build:app": "pwsh -NoProfile -Command \"$key = (Get-Content src-tauri/zqp-updater.key -Raw).Trim(); $env:TAURI_SIGNING_PRIVATE_KEY = $key; $env:TAURI_SIGNING_PRIVATE_KEY_PASSWORD = ''; npx tauri build; New-Item -ItemType Directory -Force -Path release; Copy-Item 'src-tauri/target/release/bundle/nsis/*_0.2.1_*.exe' -Destination 'release/ZQP-Quiz-Generator-Setup.exe' -Force; Copy-Item 'src-tauri/target/release/bundle/nsis/*_0.2.1_*.sig' -Destination 'release/ZQP-Quiz-Generator-Setup.exe.sig' -Force; Copy-Item 'src-tauri/target/release/app.exe' -Destination 'release/ZQP-Quiz-Generator.exe' -Force\""
   },
   "dependencies": {
     "@tauri-apps/api": "^2.2.0",

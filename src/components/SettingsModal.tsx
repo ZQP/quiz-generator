@@ -17,6 +17,7 @@ import {
 import { AppSettings, GlossaryEntry } from "../types";
 import { fetchAvailableModels, defaultEditorialRules, defaultGlossary } from "../services/geminiService";
 import { checkForAppUpdates, installAppUpdate } from "../services/updaterService";
+import { APP_VERSION } from "../version";
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -103,7 +104,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       } else if (res.error) {
         setUpdateMsg(`Fehler bei Prüfung: ${res.error}`);
       } else {
-        setUpdateMsg("✓ Sie verwenden die neueste Version (v0.2.0).");
+        setUpdateMsg(`✓ Sie verwenden die neueste Version (v${APP_VERSION}).`);
       }
     } catch (err: any) {
       setUpdateMsg(`Fehler: ${err?.message || "Update-Prüfung fehlgeschlagen"}`);
@@ -327,7 +328,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       Automatische Updates
                     </span>
                     <span className="text-[11px] text-[#6e6c70]">
-                      GitHub Releases (ZQP/quiz-generator) • v0.2.0
+                      GitHub Releases (ZQP/quiz-generator) • v{APP_VERSION}
                     </span>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer">

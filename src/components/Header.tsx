@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Settings, Sparkles, DownloadCloud, FolderOpen } from "lucide-react";
 import { AppSettings } from "../types";
 import { checkForAppUpdates, installAppUpdate, isTauriApp } from "../services/updaterService";
+import { APP_VERSION } from "../version";
 
 interface HeaderProps {
   settings: AppSettings;
@@ -62,7 +63,7 @@ export const Header: React.FC<HeaderProps> = ({
               Quiz- & Lernspiel-Generator
             </h1>
             <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[#e3eeec] text-[#1b5c53] border border-[#bbd1cd]">
-              v0.2.0
+              v{APP_VERSION}
             </span>
           </div>
           <p className="text-[11px] text-[#6e6c70] leading-tight hidden sm:block">

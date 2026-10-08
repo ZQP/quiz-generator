@@ -1,4 +1,5 @@
 import { QuizGenerationResult, TargetAudience, EditorialStatus, QuizStation, FavoriteStation } from "../types";
+import { APP_VERSION } from "../version";
 
 export interface QuizProject {
   id: string;
@@ -167,7 +168,7 @@ export function duplicateProject(projectId: string): QuizProject | null {
 export function exportProjectToJson(project: QuizProject): string {
   const exportPayload = {
     format: "zqp-quiz-project",
-    version: "0.2.0",
+    version: APP_VERSION,
     exportedAt: new Date().toISOString(),
     project,
   };

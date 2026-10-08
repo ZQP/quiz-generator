@@ -14,6 +14,14 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.1 (Redaktions-Navigation & Feinschliff)
+
+- **Freie Stations-Navigation für Redakteure**: In der Vorschau kann über eine Navigationsleiste (`[ ‹ ] [ 1 ] [ 2 ] ... [ › ] [ 🏆 Ergebnis ]`) jederzeit direkt zwischen allen Stationen und der Auswertungsseite gesprungen werden, ohne Fragen lösen zu müssen.
+- **100 % getreue Web-Vorschau (1:1)**: Die Quiz-Vorschau entspricht nun exakt der finalen Webeinbettung (keine störenden Hilfsbuttons in der Quizkarte).
+- **Kompakte Themenvorlagen**: Aufklappbare ZQP-Themenvorlagen, damit das Prompt-Eingabefeld aufgeräumt und fokussiert bleibt.
+- **Eleganter Status-Pill**: Custom ZQP-Redaktionsstatus im Header statt Standard-HTML-Dropdown.
+- **Revisionsanzeige & Export-Optimierung**: Saubere Beschriftung als „Revision X“; standardmäßig deaktivierte Tailwind-CDN-Option im Code-Export für nahtloses CMS-Copy & Paste.
+
 ## Neu in v0.2.0 (Redaktions-Workflow & Autorenschaft)
 
 - **Quelltext-Abgleich & Zitat-Finder (Anti-Halluzination)**: Split-Screen-Inspektor zum Verifizieren von Quizfragen gegen hochgeladene ZQP-Broschüren und Leitlinien mit Textstellen-Highlighting.
