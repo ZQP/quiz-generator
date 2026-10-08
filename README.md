@@ -14,6 +14,12 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.2 (Stations-Schatzkiste 1-Klick-Workflow & Live-Synchronisation)
+
+- **1-Klick-Favoriten direkt in der Vorschau**: Neuer Button `⭐ In Schatzkiste` in der Vorschau-Aktionsleiste zum sekundenschnellen Sichern gelungener Stationen als Vorlagen ohne Umweg über den Bearbeiten-Modus.
+- **Stern-Markierung in der Stations-Navigation**: Alle Stationen, die bereits als Vorlage in der Schatzkiste hinterlegt sind, werden in der Leiste `[ 1 ] [ 2 ⭐ ] ...` mit einem goldenen Sternchen hervorgehoben.
+- **Live-Synchronisation im Schatzkisten-Dialog**: Sofortige Aktualisierung beim Öffnen des Vorlagen-Fensters sowie bei Hinzufügen/Löschen von Stationen via globaler Speicher-Events.
+
 ## Neu in v0.2.1 (Redaktions-Navigation & Feinschliff)
 
 - **Freie Stations-Navigation für Redakteure**: In der Vorschau kann über eine Navigationsleiste (`[ ‹ ] [ 1 ] [ 2 ] ... [ › ] [ 🏆 Ergebnis ]`) jederzeit direkt zwischen allen Stationen und der Auswertungsseite gesprungen werden, ohne Fragen lösen zu müssen.
