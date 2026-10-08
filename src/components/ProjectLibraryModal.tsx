@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { X, FolderOpen, Plus, Copy, Trash2, Download, Upload, Check, Calendar, Users, Layers } from "lucide-react";
 import { QuizProject, loadProjects, deleteProject, duplicateProject, exportProjectToJson, importProjectFromJson } from "../services/projectStorage";
 
@@ -19,6 +19,12 @@ export const ProjectLibraryModal: React.FC<ProjectLibraryModalProps> = ({
 }) => {
   const [projects, setProjects] = useState<QuizProject[]>(loadProjects);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setProjects(loadProjects());
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 

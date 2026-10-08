@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Star, Trash2, Plus, Search } from "lucide-react";
 import { FavoriteStation, QuizStation } from "../types";
 import { loadFavoriteStations, deleteFavoriteStation } from "../services/projectStorage";
@@ -16,6 +16,20 @@ export const FavoritesLibraryModal: React.FC<FavoritesLibraryModalProps> = ({
 }) => {
   const [favorites, setFavorites] = useState<FavoriteStation[]>(loadFavoriteStations);
   const [search, setSearch] = useState<string>("");
+
+  useEffect(() => {
+    if (isOpen) {
+      setFavorites(loadFavoriteStations());
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setFavorites(loadFavoriteStations());
+    };
+    window.addEventListener("zqp_favorites_changed", handleUpdate);
+    return () => window.removeEventListener("zqp_favorites_changed", handleUpdate);
+  }, []);
 
   if (!isOpen) return null;
 

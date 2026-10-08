@@ -39,6 +39,27 @@ describe("projectStorage", () => {
         return Object.keys(store).length;
       },
     } as Storage;
+
+    const listeners: Record<string, Function[]> = {};
+    (globalThis as any).window = {
+      addEventListener: (type: string, fn: Function) => {
+        listeners[type] = listeners[type] || [];
+        listeners[type].push(fn);
+      },
+      removeEventListener: (type: string, fn: Function) => {
+        listeners[type] = (listeners[type] || []).filter((l) => l !== fn);
+      },
+      dispatchEvent: (evt: any) => {
+        (listeners[evt.type] || []).forEach((fn) => fn(evt));
+        return true;
+      },
+    };
+    (globalThis as any).CustomEvent = class CustomEvent {
+      type: string;
+      constructor(type: string) {
+        this.type = type;
+      }
+    };
   });
 
   const mockQuiz: QuizGenerationResult = {
@@ -116,15 +137,25 @@ describe("projectStorage", () => {
       zqpRationale: "Fundierte Begründung",
     };
 
+    let eventDispatched = false;
+    const listener = () => {
+      eventDispatched = true;
+    };
+    window.addEventListener("zqp_favorites_changed", listener);
+
     const saved = saveFavoriteStation(favStation, "Demenz");
     expect(saved.id).toBeDefined();
+    expect(eventDispatched).toBe(true);
 
     const favs = loadFavoriteStations();
     expect(favs.length).toBe(1);
     expect(favs[0].station.title).toBe("Demenz-Mythos");
 
+    eventDispatched = false;
     deleteFavoriteStation(saved.id);
     expect(loadFavoriteStations().length).toBe(0);
+    expect(eventDispatched).toBe(true);
+    window.removeEventListener("zqp_favorites_changed", listener);
   });
 });
 
