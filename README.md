@@ -14,6 +14,17 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.3 (Web-URL Wissensbasis, API-Key Transparenz & UI-Klarheit)
+
+- **Webseiten-Import als Wissensbasis (URL)**: Web-Artikel (z. B. von zqp.de) können nun direkt per URL als Wissensbasis importiert werden. Die native Desktop-Engine lädt die Seite ohne Browser-CORS-Blockaden und extrahiert automatisch den relevanten Fließtext (ohne Navigation, Menüs und Footer).
+- **Transparenter KI-Verbindungsstatus & API-Key Hinweise**:
+  - Im Header signalisiert ein Live-Badge sofort, ob die Gemini-KI aktiv verbunden ist (`🟢 KI: gemini-...`) oder ob die App im `🟡 Demo-Modus (API-Key fehlt)` läuft. Mit einem Klick gelangt man direkt in die Einstellungen.
+  - Beim Versuch, ein Quiz zu generieren oder zu verfeinern, ohne dass ein API-Schlüssel hinterlegt ist, weist ein deutlicher Dialog darauf hin, anstatt stillschweigend ein statisches Sturzpräventions-Musterquiz zu laden oder Verfeinerungen zu simulieren.
+  - Das Offline-Musterquiz wird unmissverständlich mit `[Offline-Demo]` gekennzeichnet.
+- **Klarheit bei Spielformaten vs. Quizlänge**:
+  - Der Abschnitt für Spielmechaniken ist nun präzise als *„Erlaubte Spielformate (Pool)“* gekennzeichnet.
+  - Ein Hilfetext am Stationsregler stellt klar: Der Schieberegler bestimmt die tatsächliche Anzahl der Lernstationen im Quiz; die KI wählt dafür die didaktisch am besten passenden Formate aus dem aktivierten Pool.
+
 ## Neu in v0.2.2 (Stations-Schatzkiste 1-Klick-Workflow & Live-Synchronisation)
 
 - **1-Klick-Favoriten direkt in der Vorschau**: Neuer Button `⭐ In Schatzkiste` in der Vorschau-Aktionsleiste zum sekundenschnellen Sichern gelungener Stationen als Vorlagen ohne Umweg über den Bearbeiten-Modus.

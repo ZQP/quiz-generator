@@ -118,6 +118,8 @@ export async function generateQuizWithGemini(
   // Fallback demo generation if no API key is set yet
   if (!apiKey || apiKey.trim() === "") {
     const demo = generateLocalDemoQuiz(topicPrompt, questionCount, targetAudience);
+    demo.title = `[Offline-Demo] ${demo.title}`;
+    demo.summary = `Hinweis: Dies ist ein vordefiniertes Offline-Demo-Quiz (Sturzprävention), da kein Gemini API-Schlüssel eingetragen war. Tragen Sie in den Einstellungen Ihren API-Schlüssel ein, um echte KI-Inhalte zu generieren.`;
     demo.referenceSourceText = referenceText || "";
     demo.editorialStatus = "draft";
     return demo;

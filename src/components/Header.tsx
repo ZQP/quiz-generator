@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Sparkles, DownloadCloud, FolderOpen } from "lucide-react";
+import { Settings, DownloadCloud, FolderOpen } from "lucide-react";
 import { AppSettings } from "../types";
 import { checkForAppUpdates, installAppUpdate, isTauriApp } from "../services/updaterService";
 import { APP_VERSION } from "../version";
@@ -89,15 +89,28 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Compact Model Indicator */}
-        <div
-          className="hidden md:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-[#f3f8f7] border border-[#bbd1cd] text-xs text-[#1b5c53]"
-          title={`Aktives KI-Modell für Generierung & Verfeinerung: ${settings.selectedModel}`}
-        >
-          <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
-          <span className="text-[#6e6c70] font-normal">Modell:</span>
-          <span className="font-semibold">{settings.selectedModel}</span>
-        </div>
+        {/* Compact Model / API Key Indicator */}
+        {settings.geminiApiKey && settings.geminiApiKey.trim() ? (
+          <div
+            className="hidden md:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-[#f3f8f7] border border-[#bbd1cd] text-xs text-[#1b5c53]"
+            title={`Gemini API verbunden • Modell: ${settings.selectedModel}`}
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[#6e6c70] font-normal">KI:</span>
+            <span className="font-semibold">{settings.selectedModel}</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={onOpenSettings}
+            className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-amber-50 border border-amber-300 text-xs text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer shadow-2xs"
+            title="Kein Gemini API-Schlüssel hinterlegt. Klicken, um Einstellungen zu öffnen."
+          >
+            <span className="w-2 h-2 rounded-full bg-amber-500" />
+            <span className="font-bold text-amber-800">Demo-Modus</span>
+            <span className="text-[11px] text-amber-700 underline font-normal">(API-Key fehlt)</span>
+          </button>
+        )}
 
         <div className="hidden sm:block h-5 w-px bg-[#bbd1cd]/70 mx-0.5" />
 

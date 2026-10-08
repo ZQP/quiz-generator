@@ -123,6 +123,21 @@ export const App: React.FC = () => {
     },
     autoSwitchToRefine: boolean = true
   ) => {
+    // Check if API key is missing
+    if (!settings.geminiApiKey || settings.geminiApiKey.trim() === "") {
+      const openSettings = confirm(
+        "Hinweis: Sie haben in den Einstellungen noch keinen Google Gemini API-Schlüssel hinterlegt.\n\n" +
+        "Ohne API-Schlüssel kann keine echte KI aufgerufen werden; es wird stattdessen das vorprogrammierte Offline-Demo-Quiz geladen.\n\n" +
+        "Möchten Sie jetzt die Einstellungen öffnen, um Ihren API-Schlüssel einzutragen?\n\n" +
+        "[OK] = Einstellungen öffnen\n" +
+        "[Abbrechen] = Weiter im Offline-Demo-Modus"
+      );
+      if (openSettings) {
+        setIsSettingsOpen(true);
+        return;
+      }
+    }
+
     setIsLoading(true);
     setLoadingStepText("Gemini API wird kontaktiert...");
 
@@ -173,6 +188,15 @@ export const App: React.FC = () => {
   // Targeted prompt-based refinement
   const handleRefineQuiz = async (refinementPrompt: string) => {
     if (!currentQuiz) return;
+
+    if (!settings.geminiApiKey || settings.geminiApiKey.trim() === "") {
+      alert(
+        "Für KI-Verfeinerungen ist ein Google Gemini API-Schlüssel erforderlich.\n\n" +
+        "Bitte tragen Sie Ihren API-Schlüssel unter 'Einstellungen' ein, um Quizze und Erklärungen gezielt mit der KI anzupassen."
+      );
+      setIsSettingsOpen(true);
+      return;
+    }
 
     setIsLoading(true);
     setLoadingStepText("Wende gezielte Anpassung mit Gemini an...");

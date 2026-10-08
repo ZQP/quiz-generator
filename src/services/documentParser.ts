@@ -3,7 +3,7 @@ export interface ParsedDocumentResult {
   fileName: string;
   fileSize: number;
   pageCount?: number;
-  fileType: "pdf" | "docx" | "txt" | "unknown";
+  fileType: "pdf" | "docx" | "txt" | "web" | "unknown";
 }
 
 /**

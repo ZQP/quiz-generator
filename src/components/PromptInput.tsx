@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { Sparkles, FileText, Upload, ChevronDown, ChevronRight, CheckSquare, Layers } from "lucide-react";
+import { Sparkles, FileText, Upload, ChevronDown, ChevronRight, CheckSquare, Layers, Globe, Download } from "lucide-react";
 import { TargetAudience, StationType } from "../types";
 import { parseDocumentFile, ParsedDocumentResult } from "../services/documentParser";
+import { fetchWebContentFromUrl } from "../services/webScraperService";
 
 interface PromptInputProps {
   onGenerate: (data: {
@@ -153,6 +154,33 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     if (file) handleProcessFile(file);
   };
 
+  const [webUrl, setWebUrl] = useState<string>("");
+  const [isLoadingUrl, setIsLoadingUrl] = useState<boolean>(false);
+  const [urlErrorMsg, setUrlErrorMsg] = useState<string | null>(null);
+
+  const handleFetchUrl = async () => {
+    if (!webUrl.trim()) return;
+    setIsLoadingUrl(true);
+    setUrlErrorMsg(null);
+    try {
+      const scraped = await fetchWebContentFromUrl(webUrl);
+      setParsedDocInfo({
+        fileName: scraped.title,
+        text: scraped.text,
+        fileSize: new Blob([scraped.text]).size,
+        fileType: "web",
+      });
+      setReferenceText(scraped.text);
+      setIsRefOpen(true);
+      setWebUrl("");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUrlErrorMsg(msg);
+    } finally {
+      setIsLoadingUrl(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!topicPrompt.trim()) return;
@@ -249,11 +277,11 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           >
             <span className="flex items-center gap-2">
               <Layers className="w-4 h-4 text-[#247a6d]" />
-              <span>Interaktive Spielformate & Quizoptionen</span>
+              <span>Erlaubte Spielformate & Quizoptionen</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-[#bbd1cd] text-[#247a6d] font-bold">
                 {mechanics.length === ALL_MECHANICS.length
-                  ? "Bunter Mix (alle 9 aktiv)"
-                  : `${mechanics.length} von ${ALL_MECHANICS.length} aktiv`}
+                  ? "Pool: Alle 9 Formate erlaubt"
+                  : `Pool: ${mechanics.length} von ${ALL_MECHANICS.length} erlaubt`}
               </span>
             </span>
             {isMechanicsOpen ? (
@@ -267,7 +295,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             <div className="p-3 bg-white flex flex-col gap-2.5">
               <div className="flex items-center justify-between pb-1 border-b border-[#bbd1cd]/40">
                 <span className="text-[11px] text-[#6e6c70]">
-                  Wählen Sie, welche Stationstypen die KI generieren darf:
+                  Formate für den KI-Pool (die KI wählt daraus passend zu den Stationen):
                 </span>
                 <div className="flex items-center gap-2">
                   <button
@@ -461,6 +489,50 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                 </label>
               </div>
 
+              {/* URL Web-Link Import */}
+              <div className="flex flex-col gap-1.5 p-2.5 rounded-lg bg-[#f8faf9] border border-[#bbd1cd]">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-[#1b5c53]">
+                  <Globe className="w-3.5 h-3.5 text-[#247a6d]" />
+                  <span>Oder Inhalte direkt per Web-Adresse (URL) importieren</span>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={webUrl}
+                    onChange={(e) => setWebUrl(e.target.value)}
+                    placeholder="https://www.zqp.de/beratung-sturz-praevention/ ..."
+                    disabled={isLoadingUrl}
+                    className="flex-1 rounded border border-[#bbd1cd] px-2.5 py-1.5 text-xs focus:ring-1 focus:ring-[#247a6d] outline-none bg-white placeholder:text-gray-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleFetchUrl}
+                    disabled={isLoadingUrl || !webUrl.trim()}
+                    className="px-3 py-1.5 bg-[#247a6d] hover:bg-[#1b5c53] disabled:opacity-50 text-white rounded text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+                  >
+                    {isLoadingUrl ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        <span>Lade...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download className="w-3.5 h-3.5" />
+                        <span>Webseite abrufen</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+                {urlErrorMsg && (
+                  <p className="text-[11px] text-rose-600 font-medium">
+                    {urlErrorMsg}
+                  </p>
+                )}
+                <span className="text-[10px] text-[#6e6c70]">
+                  Lädt den Webtext ohne Navigation, Menüs und Kopfzeilen direkt in das Textfeld.
+                </span>
+              </div>
+
               {isParsingDoc && (
                 <div className="p-2 rounded bg-amber-50 border border-amber-200 text-xs text-amber-900 flex items-center gap-2 animate-pulse">
                   <Sparkles className="w-4 h-4 text-amber-600 animate-spin" />
@@ -583,6 +655,10 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               <span>9</span>
               <span>10</span>
             </div>
+
+            <p className="text-[11px] text-[#6e6c70] mt-2 pt-2 border-t border-[#bbd1cd]/50">
+              💡 <strong>Quiz-Länge:</strong> Es entstehen genau <strong>{questionCount} {questionCount === 1 ? "Station" : "Stationen"}</strong>. Die KI wählt dafür die didaktisch am besten passenden Formate aus Ihrem Pool ({mechanics.length} erlaubt).
+            </p>
           </div>
         </div>
 
