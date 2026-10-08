@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Key,
@@ -15,7 +15,12 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { AppSettings, GlossaryEntry } from "../types";
-import { fetchAvailableModels, defaultEditorialRules, defaultGlossary } from "../services/geminiService";
+import {
+  fetchAvailableModels,
+  defaultEditorialRules,
+  defaultGlossary,
+  isInvalidGeminiModel,
+} from "../services/geminiService";
 import { checkForAppUpdates, installAppUpdate } from "../services/updaterService";
 import { APP_VERSION } from "../version";
 
@@ -36,12 +41,44 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // API State
   const [apiKey, setApiKey] = useState<string>(settings.geminiApiKey);
-  const [selectedModel, setSelectedModel] = useState<string>(settings.selectedModel);
-  const [availableModels, setAvailableModels] = useState<string[]>(settings.availableModels);
+  const [selectedModel, setSelectedModel] = useState<string>(() =>
+    isInvalidGeminiModel(settings.selectedModel) ? "gemini-1.5-flash" : settings.selectedModel
+  );
+  const [availableModels, setAvailableModels] = useState<string[]>(() => {
+    const valid = (settings.availableModels || []).filter((m) => !isInvalidGeminiModel(m));
+    return valid.length > 0 ? valid : ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
+  });
   const [autoUpdate, setAutoUpdate] = useState<boolean>(settings.autoUpdate);
   const [showKey, setShowKey] = useState<boolean>(false);
   const [isFetchingModels, setIsFetchingModels] = useState<boolean>(false);
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
+
+  // Auto-migrate and synchronize models when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (isInvalidGeminiModel(selectedModel)) {
+      setSelectedModel("gemini-1.5-flash");
+    }
+
+    setAvailableModels((prev) => {
+      const valid = prev.filter((m) => !isInvalidGeminiModel(m));
+      return valid.length > 0 ? valid : ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"];
+    });
+
+    if (apiKey.trim()) {
+      fetchAvailableModels(apiKey.trim())
+        .then((models) => {
+          setAvailableModels(models);
+          if (models.length > 0 && (isInvalidGeminiModel(selectedModel) || !models.includes(selectedModel))) {
+            setSelectedModel(models[0]);
+          }
+        })
+        .catch(() => {
+          // Silent fallback on modal open
+        });
+    }
+  }, [isOpen]);
 
   // Editorial Guidelines & Glossary State
   const [editorialRules, setEditorialRules] = useState<string>(
@@ -68,7 +105,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   if (!isOpen) return null;
 
   const handleRefreshModels = async () => {
-    if (!apiKey.trim()) {
+    const keyToUse = apiKey.trim();
+    if (!keyToUse) {
       setFetchMsg("Bitte geben Sie zuerst Ihren API-Schlüssel ein.");
       return;
     }
@@ -76,7 +114,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setIsFetchingModels(true);
     setFetchMsg(null);
     try {
-      const models = await fetchAvailableModels(apiKey);
+      const models = await fetchAvailableModels(keyToUse);
       setAvailableModels(models);
       setFetchMsg(`✓ ${models.length} Modelle von Gemini synchronisiert.`);
       if (!models.includes(selectedModel) && models.length > 0) {
@@ -157,10 +195,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleSave = () => {
+    let finalModel = selectedModel.trim();
+    if (isInvalidGeminiModel(finalModel)) {
+      finalModel = "gemini-1.5-flash";
+    }
+    const cleanAvailable = availableModels.filter((m) => !isInvalidGeminiModel(m));
+    if (!cleanAvailable.includes(finalModel)) {
+      cleanAvailable.unshift(finalModel);
+    }
+
     onSave({
       geminiApiKey: apiKey.trim(),
-      selectedModel,
-      availableModels,
+      selectedModel: finalModel,
+      availableModels: cleanAvailable.length > 0 ? cleanAvailable : ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-2.0-flash"],
       autoUpdate,
       editorialRules,
       glossary,
@@ -283,30 +330,31 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 <div className="flex gap-2">
-                  <input
-                    type="text"
+                  <select
                     id="model-select"
-                    value={selectedModel}
-                    onChange={(e) => setSelectedModel(e.target.value)}
-                    placeholder="z. B. gemini-3.0-flash, gemini-3.0-pro..."
-                    className="flex-1 rounded-lg border border-[#bbd1cd] p-2.5 text-xs font-mono bg-white focus:ring-2 focus:ring-[#247a6d] outline-none"
-                  />
-                  {availableModels.length > 0 && (
-                    <select
-                      value=""
-                      onChange={(e) => {
-                        if (e.target.value) setSelectedModel(e.target.value);
-                      }}
-                      className="w-36 rounded-lg border border-[#bbd1cd] p-2 text-xs bg-[#f3f8f7] text-[#1b5c53] font-semibold focus:ring-2 focus:ring-[#247a6d] outline-none cursor-pointer"
-                    >
-                      <option value="">Modell wählen...</option>
-                      {availableModels.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                    value={availableModels.includes(selectedModel) ? selectedModel : "custom"}
+                    onChange={(e) => {
+                      if (e.target.value !== "custom") {
+                        setSelectedModel(e.target.value);
+                      }
+                    }}
+                    className="flex-1 rounded-lg border border-[#bbd1cd] p-2.5 text-xs bg-white text-[#1b5c53] font-semibold focus:ring-2 focus:ring-[#247a6d] outline-none cursor-pointer shadow-2xs"
+                  >
+                    {availableModels.map((m) => (
+                      <option key={m} value={m}>
+                        {m === "gemini-1.5-flash"
+                          ? "gemini-1.5-flash (Empfohlen: Schnell, präzise & stabil)"
+                          : m === "gemini-1.5-pro"
+                          ? "gemini-1.5-pro (Höhere Denkleistung / Komplexe Kontexte)"
+                          : m === "gemini-2.0-flash"
+                          ? "gemini-2.0-flash (Neueste Modell-Generation)"
+                          : m}
+                      </option>
+                    ))}
+                    {!availableModels.includes(selectedModel) && (
+                      <option value="custom">Benutzerdefiniert: {selectedModel}</option>
+                    )}
+                  </select>
                 </div>
 
                 {fetchMsg && (

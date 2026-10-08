@@ -14,6 +14,13 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.4 (Gemini-Modell-Korrektur & Self-Healing Fallback)
+
+- **Standardmodell korrigiert auf `gemini-1.5-flash`**: Das offizielle, von Google für die v1beta-API unterstützte Standardmodell `gemini-1.5-flash` ist nun fest als primäres Modell voreingestellt.
+- **Automatische Einstellungs-Migration**: Bisher gespeicherte ungültige Modellnamen (z. B. `gemini-3.0-flash` oder `gemini-2.5-flash`) werden beim Start der App und beim Öffnen der Einstellungen vollautomatisch und geräuschlos auf das stabile `gemini-1.5-flash` migriert.
+- **Self-Healing Fallback im API-Client**: Sollte ein Modell von der Google API mit `404 Not Found` beantwortet werden, bricht die Generierung nicht mehr mit einer Fehlermeldung ab. Die App wechselt stattdessen automatisch zu `gemini-1.5-flash`, wiederholt die Anfrage und speichert das funktionierende Modell dauerhaft ab.
+- **Optimiertes Modell-Auswahlmenü**: In den Einstellungen steht nun ein klares Auswahlmenü mit verständlichen Empfehlungen bereit (`gemini-1.5-flash` als Standard, `gemini-1.5-pro` für komplexe Kontexte, `gemini-2.0-flash`).
+
 ## Neu in v0.2.3 (Web-URL Wissensbasis, API-Key Transparenz & UI-Klarheit)
 
 - **Webseiten-Import als Wissensbasis (URL)**: Web-Artikel (z. B. von zqp.de) können nun direkt per URL als Wissensbasis importiert werden. Die native Desktop-Engine lädt die Seite ohne Browser-CORS-Blockaden und extrahiert automatisch den relevanten Fließtext (ohne Navigation, Menüs und Footer).

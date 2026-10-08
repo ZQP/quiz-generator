@@ -17,20 +17,35 @@ export const defaultGlossary: GlossaryEntry[] = [
   { id: "g6", term: "Bettlägerige", preferred: "im Bett versorgte Personen", explanation: "Aktivierender Sprachgebrauch" },
 ];
 
+export const RECOMMENDED_GEMINI_MODELS = [
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
+  "gemini-2.0-flash",
+];
+
 export const defaultSettings: AppSettings = {
   geminiApiKey: "",
-  selectedModel: "gemini-3.0-flash",
+  selectedModel: "gemini-1.5-flash",
   availableModels: [
-    "gemini-3.0-flash",
-    "gemini-3.0-pro",
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
+    "gemini-1.5-flash",
+    "gemini-1.5-pro",
     "gemini-2.0-flash",
   ],
   autoUpdate: true,
   editorialRules: defaultEditorialRules,
   glossary: defaultGlossary,
 };
+
+export function isInvalidGeminiModel(name?: string): boolean {
+  if (!name) return true;
+  const n = name.trim().toLowerCase();
+  return (
+    n.includes("3.0") ||
+    n.includes("2.5") ||
+    n === "gemini-pro" ||
+    !n.startsWith("gemini-")
+  );
+}
 
 export function buildEditorialPromptBlock(rules?: string, glossary?: GlossaryEntry[]): string {
   const activeRules = rules || defaultEditorialRules;
@@ -54,12 +69,39 @@ export function loadSettings(): AppSettings {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return {
+
+      let selectedModel = parsed.selectedModel || defaultSettings.selectedModel;
+      let modelChanged = false;
+
+      // Auto-migrate away from fictional or deprecated model names (e.g. gemini-3.0-flash, gemini-2.5)
+      if (isInvalidGeminiModel(selectedModel)) {
+        selectedModel = "gemini-1.5-flash";
+        modelChanged = true;
+      }
+
+      let availableModels: string[] = Array.isArray(parsed.availableModels) && parsed.availableModels.length > 0
+        ? parsed.availableModels.filter((m: string) => !isInvalidGeminiModel(m))
+        : [...defaultSettings.availableModels];
+
+      if (availableModels.length === 0 || !availableModels.includes("gemini-1.5-flash")) {
+        availableModels = [...defaultSettings.availableModels];
+        modelChanged = true;
+      }
+
+      const merged: AppSettings = {
         ...defaultSettings,
         ...parsed,
+        selectedModel,
+        availableModels,
         editorialRules: parsed.editorialRules || defaultEditorialRules,
         glossary: Array.isArray(parsed.glossary) && parsed.glossary.length > 0 ? parsed.glossary : defaultGlossary,
       };
+
+      if (modelChanged) {
+        saveSettings(merged);
+      }
+
+      return merged;
     }
   } catch (e) {
     console.error("Failed to load settings:", e);
@@ -93,9 +135,72 @@ export async function fetchAvailableModels(apiKey: string): Promise<string[]> {
       m.supportedGenerationMethods?.includes("generateContent")
     )
     .map((m: { name: string }) => m.name.replace(/^models\//, ""))
-    .filter((name: string) => name.toLowerCase().includes("gemini"));
+    .filter((name: string) => name.toLowerCase().includes("gemini") && !isInvalidGeminiModel(name));
+
+  // Prioritize gemini-1.5-flash at the top if present
+  models.sort((a: string, b: string) => {
+    if (a === "gemini-1.5-flash") return -1;
+    if (b === "gemini-1.5-flash") return 1;
+    if (a === "gemini-1.5-pro") return -1;
+    if (b === "gemini-1.5-pro") return 1;
+    return a.localeCompare(b);
+  });
 
   return models.length > 0 ? models : defaultSettings.availableModels;
+}
+
+export interface CallGeminiApiOptions {
+  apiKey: string;
+  model: string;
+  payload: any;
+  contextDesc?: string;
+}
+
+export async function callGeminiApiWithFallback(options: CallGeminiApiOptions): Promise<string> {
+  const { apiKey, payload, contextDesc = "Gemini API" } = options;
+  let modelToUse = options.model;
+
+  if (isInvalidGeminiModel(modelToUse)) {
+    modelToUse = "gemini-1.5-flash";
+  }
+
+  const doFetch = async (m: string) => {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${apiKey}`;
+    return fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  };
+
+  let response = await doFetch(modelToUse);
+
+  // If 404 (model not found) or 400 (unsupported), automatically fall back to gemini-1.5-flash
+  if (!response.ok && (response.status === 404 || response.status === 400) && modelToUse !== "gemini-1.5-flash") {
+    console.warn(`[${contextDesc}] Modell '${modelToUse}' scheiterte mit Status ${response.status}. Fallback auf gemini-1.5-flash...`);
+    modelToUse = "gemini-1.5-flash";
+    response = await doFetch(modelToUse);
+
+    // Persist working model to localStorage
+    try {
+      const current = loadSettings();
+      saveSettings({ ...current, selectedModel: "gemini-1.5-flash" });
+    } catch (_) {}
+  }
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    const rawMsg = errorBody?.error?.message || `Gemini API Fehler (${response.status})`;
+    throw new Error(`${rawMsg} (Modell: ${modelToUse})`);
+  }
+
+  const resultData = await response.json();
+  const textOutput = resultData?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!textOutput) {
+    throw new Error(`Keine Antwort von Gemini (${modelToUse}) erhalten.`);
+  }
+
+  return textOutput;
 }
 
 export interface GenerateQuizParams {
@@ -214,8 +319,6 @@ Anzahl Stationen: ${questionCount}
 Gewünschte Mechaniken: ${mechanics.join(", ")}
 ${referenceText ? `ZQP-Referenzinhalte / Wissensbasis:\n${referenceText}` : ""}`;
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
   const payload = {
     contents: [
       {
@@ -229,22 +332,12 @@ ${referenceText ? `ZQP-Referenzinhalte / Wissensbasis:\n${referenceText}` : ""}`
     },
   };
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+  const textOutput = await callGeminiApiWithFallback({
+    apiKey,
+    model,
+    payload,
+    contextDesc: "Quiz-Generierung",
   });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody?.error?.message || `Gemini API Fehler (${response.status})`);
-  }
-
-  const resultData = await response.json();
-  const textOutput = resultData?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textOutput) {
-    throw new Error("Keine Antwort von Gemini erhalten.");
-  }
 
   try {
     const parsed: QuizGenerationResult = JSON.parse(textOutput);
@@ -322,8 +415,6 @@ ${JSON.stringify(existingQuiz, null, 2)}
 Gewünschte Anpassung des Nutzers:
 ${refinementPrompt}`;
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
   const payload = {
     contents: [
       {
@@ -337,22 +428,12 @@ ${refinementPrompt}`;
     },
   };
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+  const textOutput = await callGeminiApiWithFallback({
+    apiKey,
+    model,
+    payload,
+    contextDesc: "Quiz-Verfeinerung",
   });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody?.error?.message || `Gemini API Fehler (${response.status})`);
-  }
-
-  const resultData = await response.json();
-  const textOutput = resultData?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textOutput) {
-    throw new Error("Keine Antwort von Gemini erhalten.");
-  }
 
   try {
     const parsed: QuizGenerationResult = JSON.parse(textOutput);
@@ -1395,8 +1476,6 @@ ANFORDERUNGEN AN DIE 3 VARIANTEN:
   const userContent = `Aktuelle Station (JSON):
 ${JSON.stringify(station, null, 2)}`;
 
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
   const payload = {
     contents: [
       {
@@ -1410,22 +1489,12 @@ ${JSON.stringify(station, null, 2)}`;
     },
   };
 
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+  const textOutput = await callGeminiApiWithFallback({
+    apiKey,
+    model,
+    payload,
+    contextDesc: "Stations-Varianten",
   });
-
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    throw new Error(errorBody?.error?.message || `Gemini API Fehler (${response.status})`);
-  }
-
-  const resultData = await response.json();
-  const textOutput = resultData?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!textOutput) {
-    throw new Error("Keine Antwort von Gemini für Station-Varianten erhalten.");
-  }
 
   const parsed = JSON.parse(textOutput);
   const list = Array.isArray(parsed) ? parsed : parsed.stations || [parsed];

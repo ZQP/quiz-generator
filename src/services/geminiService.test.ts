@@ -63,7 +63,7 @@ describe("geminiService editorial helpers", () => {
   it("generates 3 diverse offline station variants without api key", async () => {
     const variants = await generateStationVariantsWithGemini({
       apiKey: "",
-      model: "gemini-3.0-flash",
+      model: "gemini-1.5-flash",
       station: mockStation,
       contextTopic: "Sturzprävention",
     });
@@ -72,5 +72,51 @@ describe("geminiService editorial helpers", () => {
     expect(variants[0].title).toContain("Fokussiert");
     expect(variants[1].title).toContain("Praxisfall");
     expect(variants[2].type).toBe("dilemma");
+  });
+});
+
+describe("geminiService model validation and migration", () => {
+  it("detects invalid / hallucinated Gemini models correctly", async () => {
+    const { isInvalidGeminiModel } = await import("./geminiService");
+
+    expect(isInvalidGeminiModel("gemini-3.0-flash")).toBe(true);
+    expect(isInvalidGeminiModel("gemini-3.0-pro")).toBe(true);
+    expect(isInvalidGeminiModel("gemini-2.5-flash")).toBe(true);
+    expect(isInvalidGeminiModel("gemini-pro")).toBe(true);
+    expect(isInvalidGeminiModel("gpt-4o")).toBe(true);
+    expect(isInvalidGeminiModel("")).toBe(true);
+
+    expect(isInvalidGeminiModel("gemini-1.5-flash")).toBe(false);
+    expect(isInvalidGeminiModel("gemini-1.5-pro")).toBe(false);
+    expect(isInvalidGeminiModel("gemini-2.0-flash")).toBe(false);
+  });
+
+  it("auto-migrates stored settings from gemini-3.0-flash to gemini-1.5-flash", async () => {
+    const store: Record<string, string> = {
+      zqp_quiz_generator_settings: JSON.stringify({
+        geminiApiKey: "fake-key",
+        selectedModel: "gemini-3.0-flash",
+        availableModels: ["gemini-3.0-flash", "gemini-2.5-flash"],
+      }),
+    };
+
+    globalThis.localStorage = {
+      getItem: (key: string) => store[key] ?? null,
+      setItem: (key: string, value: string) => {
+        store[key] = String(value);
+      },
+      removeItem: (key: string) => {
+        delete store[key];
+      },
+      clear: () => {},
+      key: () => null,
+      length: 1,
+    } as any;
+
+    const { loadSettings } = await import("./geminiService");
+    const loaded = loadSettings();
+    expect(loaded.selectedModel).toBe("gemini-1.5-flash");
+    expect(loaded.availableModels).toContain("gemini-1.5-flash");
+    expect(loaded.availableModels).not.toContain("gemini-3.0-flash");
   });
 });
