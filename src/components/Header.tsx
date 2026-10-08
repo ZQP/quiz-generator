@@ -1,30 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { Settings, Sparkles, DownloadCloud, FolderOpen, ShieldCheck, FileSearch, Star } from "lucide-react";
-import { AppSettings, EditorialStatus } from "../types";
+import { Settings, Sparkles, DownloadCloud, FolderOpen } from "lucide-react";
+import { AppSettings } from "../types";
 import { checkForAppUpdates, installAppUpdate, isTauriApp } from "../services/updaterService";
 
 interface HeaderProps {
   settings: AppSettings;
   onOpenSettings: () => void;
   onOpenLibrary: () => void;
-  onOpenAudit: () => void;
-  onOpenSourceInspector?: () => void;
-  onOpenFavorites?: () => void;
-  hasCurrentQuiz: boolean;
-  editorialStatus?: EditorialStatus;
-  onChangeStatus?: (status: EditorialStatus) => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   settings,
   onOpenSettings,
   onOpenLibrary,
-  onOpenAudit,
-  onOpenSourceInspector,
-  onOpenFavorites,
-  hasCurrentQuiz,
-  editorialStatus,
-  onChangeStatus,
 }) => {
   const [availableVersion, setAvailableVersion] = useState<string | null>(null);
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
@@ -83,33 +71,8 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </div>
 
-      {/* Action Toolbar */}
+      {/* Action Toolbar (Schlank & Fokussiert) */}
       <div className="flex items-center gap-2">
-        {/* Editorial Status Dropdown */}
-        {hasCurrentQuiz && (
-          <div className="flex items-center gap-1.5 h-8 px-2 rounded-lg bg-white border border-[#bbd1cd] text-xs">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                editorialStatus === "approved"
-                  ? "bg-emerald-500"
-                  : editorialStatus === "in_review"
-                  ? "bg-sky-500"
-                  : "bg-amber-500"
-              }`}
-            />
-            <select
-              value={editorialStatus || "draft"}
-              onChange={(e) => onChangeStatus?.(e.target.value as EditorialStatus)}
-              className="font-bold text-[11px] text-[#1b5c53] bg-transparent outline-none cursor-pointer pr-1"
-              title="Redaktions-Status des aktuellen Quiz ändern"
-            >
-              <option value="draft">Entwurf</option>
-              <option value="in_review">In Prüfung</option>
-              <option value="approved">Freigegeben</option>
-            </select>
-          </div>
-        )}
-
         {/* Update Notification (only shown when an update is actually available!) */}
         {availableVersion && (
           <button
@@ -125,8 +88,11 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Model Indicator Chip */}
-        <div className="hidden md:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-[#f3f8f7] border border-[#bbd1cd] text-xs text-[#1b5c53]">
+        {/* Compact Model Indicator */}
+        <div
+          className="hidden md:flex items-center gap-1.5 h-8 px-2.5 rounded-lg bg-[#f3f8f7] border border-[#bbd1cd] text-xs text-[#1b5c53]"
+          title={`Aktives KI-Modell für Generierung & Verfeinerung: ${settings.selectedModel}`}
+        >
           <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
           <span className="text-[#6e6c70] font-normal">Modell:</span>
           <span className="font-semibold">{settings.selectedModel}</span>
@@ -134,59 +100,21 @@ export const Header: React.FC<HeaderProps> = ({
 
         <div className="hidden sm:block h-5 w-px bg-[#bbd1cd]/70 mx-0.5" />
 
-        {/* Source Inspector Button */}
-        {hasCurrentQuiz && onOpenSourceInspector && (
-          <button
-            onClick={onOpenSourceInspector}
-            className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors shadow-2xs cursor-pointer"
-            title="Quelltext-Abgleich & Zitat-Finder (Anti-Halluzination)"
-          >
-            <FileSearch className="w-3.5 h-3.5 text-[#247a6d]" />
-            <span className="hidden xl:inline">Quelltext-Abgleich</span>
-            <span className="xl:hidden">Quellen</span>
-          </button>
-        )}
-
-        {/* Favorites Library Button */}
-        {onOpenFavorites && (
-          <button
-            onClick={onOpenFavorites}
-            className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors shadow-2xs cursor-pointer"
-            title="Stations-Schatzkiste (Vorlagen-Bibliothek)"
-          >
-            <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-            <span className="hidden xl:inline">Schatzkiste</span>
-          </button>
-        )}
-
-        {/* Quality Audit Button */}
-        {hasCurrentQuiz && (
-          <button
-            onClick={onOpenAudit}
-            className="h-8 flex items-center gap-1.5 px-2.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors shadow-2xs cursor-pointer"
-            title="Qualitäts- & Barrierefreiheitsprüfung (WCAG 2.1 AA)"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-[#247a6d]" />
-            <span className="hidden lg:inline">Audit</span>
-          </button>
-        )}
-
         {/* Library Button */}
         <button
           onClick={onOpenLibrary}
           className="h-8 flex items-center gap-1.5 px-3 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors shadow-2xs cursor-pointer"
-          title="Gespeicherte Quiz-Entwürfe öffnen"
+          title="Gespeicherte Quiz-Entwürfe & Projektdateien öffnen"
         >
           <FolderOpen className="w-3.5 h-3.5 text-[#247a6d]" />
-          <span className="hidden lg:inline">Meine Entwürfe</span>
-          <span className="lg:hidden">Entwürfe</span>
+          <span>Meine Entwürfe</span>
         </button>
 
         {/* Settings Button */}
         <button
           onClick={onOpenSettings}
           className="h-8 flex items-center gap-1.5 px-3 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] text-xs font-semibold text-[#1b5c53] transition-colors shadow-2xs cursor-pointer"
-          title="Einstellungen, Glossar & API-Schlüssel"
+          title="Einstellungen, Redaktionsleitfaden & API-Schlüssel"
           aria-label="Einstellungen öffnen"
         >
           <Settings className="w-3.5 h-3.5 text-[#247a6d]" />

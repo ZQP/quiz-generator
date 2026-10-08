@@ -16,20 +16,42 @@ import {
   Sparkles,
   Edit3,
   Printer,
+  FileSearch,
+  Star,
+  ShieldCheck,
+  ChevronLeft,
+  ChevronRight,
+  Trophy,
 } from "lucide-react";
 import {
   QuizGenerationResult,
   QuizStation,
   MatchingPair,
+  EditorialStatus,
 } from "../types";
+import { EditorialStatusDropdown } from "./EditorialStatusDropdown";
 
 interface QuizPreviewProps {
   quiz: QuizGenerationResult;
   onReset: () => void;
   onEditStation?: (stationIdx: number) => void;
+  editorialStatus?: EditorialStatus;
+  onChangeStatus?: (status: EditorialStatus) => void;
+  onOpenSourceInspector?: () => void;
+  onOpenFavorites?: () => void;
+  onOpenAudit?: () => void;
 }
 
-export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset, onEditStation }) => {
+export const QuizPreview: React.FC<QuizPreviewProps> = ({
+  quiz,
+  onReset,
+  onEditStation,
+  editorialStatus = "draft",
+  onChangeStatus,
+  onOpenSourceInspector,
+  onOpenFavorites,
+  onOpenAudit,
+}) => {
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
   const [currentStationIdx, setCurrentStationIdx] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
@@ -698,103 +720,229 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset, onEditS
 
   return (
     <div className="flex flex-col h-full">
-      {/* Top Viewport & Reset Bar */}
-      <div className="flex items-center justify-between pb-3 mb-3 border-b border-[#bbd1cd] shrink-0">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-[#1b5c53]">
-            {completed
-              ? "Auswertung & Praxistest-Ergebnis"
-              : `Station ${currentStationIdx + 1} von ${quiz.stations.length}`}
-          </span>
-          <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#e3eeec] text-[#1b5c53] font-semibold border border-[#bbd1cd] flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#247a6d]"></span>
-            {currentStation?.type === "matching"
-              ? "🧩 Zuordnungs-Puzzle (Drag & Drop)"
-              : currentStation?.type === "ordering"
-              ? "🔢 Ablauf-Reihenfolge (Drag-Reorder)"
-              : currentStation?.type === "myth_fact"
-              ? "❌/💡 Mythos vs. Fakt"
-              : currentStation?.type === "bucket_sort"
-              ? "📥 Dos & Don'ts (Sortierung)"
-              : currentStation?.type === "comparison"
-              ? "⚖️ Situationsvergleich"
-              : currentStation?.type === "dilemma"
-              ? "🎭 Praxis-Dilemma"
-              : currentStation?.type === "checklist"
-              ? "📋 Checkliste"
-              : currentStation?.type === "fill_in_the_blank"
-              ? "✍️ Wort-Lückentext"
-              : "💡 Wissenscheck"}
-          </span>
+      {/* 1. EDITORIAL & PREVIEW TOOLBAR (Top Bar) */}
+      <div className="flex flex-col gap-2 pb-2.5 mb-2.5 border-b border-[#bbd1cd] shrink-0">
+        {/* Row 1: Status & Redaktions-Tools (Links) + Aktionen (Rechts) */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2">
+            {/* Custom Editorial Status Dropdown */}
+            {onChangeStatus && (
+              <EditorialStatusDropdown
+                status={editorialStatus || "draft"}
+                onChange={onChangeStatus}
+              />
+            )}
 
-          {currentStation?.editorialStatus && (
-            <span
-              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                currentStation.editorialStatus === "approved"
-                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
-                  : currentStation.editorialStatus === "in_review"
-                  ? "bg-sky-50 text-sky-800 border-sky-300"
-                  : "bg-amber-50 text-amber-800 border-amber-300"
-              }`}
-            >
-              {currentStation.editorialStatus === "approved"
-                ? "🟢 Freigegeben"
-                : currentStation.editorialStatus === "in_review"
-                ? "🔵 In Prüfung"
-                : "🟡 Entwurf"}
-            </span>
-          )}
+            {/* Segmented Editorial Tools Group */}
+            <div className="inline-flex items-center rounded-lg border border-[#bbd1cd] bg-white divide-x divide-[#bbd1cd] shadow-2xs overflow-hidden h-7 text-xs font-semibold text-[#1b5c53]">
+              {onOpenSourceInspector && (
+                <button
+                  type="button"
+                  onClick={onOpenSourceInspector}
+                  className="px-2.5 h-full hover:bg-[#f3f8f7] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Quelltext-Abgleich & Zitat-Finder (Anti-Halluzination)"
+                >
+                  <FileSearch className="w-3.5 h-3.5 text-[#247a6d]" />
+                  <span>Quellen</span>
+                </button>
+              )}
 
-          {currentStation?.sourceQuote && (
-            <span
-              className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
-              title={`Quelltext-Zitat: "${currentStation.sourceQuote}"`}
+              {onOpenFavorites && (
+                <button
+                  type="button"
+                  onClick={onOpenFavorites}
+                  className="px-2.5 h-full hover:bg-[#f3f8f7] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Stations-Schatzkiste (Favoriten & Vorlagen)"
+                >
+                  <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <span>Schatzkiste</span>
+                </button>
+              )}
+
+              {onOpenAudit && (
+                <button
+                  type="button"
+                  onClick={onOpenAudit}
+                  className="px-2.5 h-full hover:bg-[#f3f8f7] flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Qualitäts- & Barrierefreiheitsprüfung (WCAG 2.1 AA)"
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 text-[#247a6d]" />
+                  <span>Audit</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Station bearbeiten & Viewport / Reset */}
+          <div className="flex items-center gap-1.5">
+            {onEditStation && !completed && (
+              <button
+                type="button"
+                onClick={() => onEditStation(currentStationIdx)}
+                className="flex items-center gap-1 h-7 px-2.5 text-xs font-semibold text-[#1b5c53] bg-white hover:bg-[#e3eeec] rounded-lg border border-[#bbd1cd] hover:border-[#247a6d] shadow-2xs transition-colors cursor-pointer"
+                title="Diese Station direkt im WYSIWYG-Editor anpassen"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span className="hidden sm:inline">Station bearbeiten</span>
+              </button>
+            )}
+
+            <div className="flex bg-[#e3eeec] p-0.5 rounded-lg border border-[#bbd1cd] h-7 items-center">
+              <button
+                type="button"
+                onClick={() => setViewport("desktop")}
+                className={`p-1 rounded text-xs transition-colors ${
+                  viewport === "desktop" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
+                }`}
+                title="Desktop-Ansicht"
+              >
+                <Monitor className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewport("mobile")}
+                className={`p-1 rounded text-xs transition-colors ${
+                  viewport === "mobile" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
+                }`}
+                title="Smartphone-Ansicht"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleReset}
+              className="p-1 h-7 w-7 flex items-center justify-center rounded-lg bg-white hover:bg-[#e3eeec] border border-[#bbd1cd] text-[#6e6c70] hover:text-[#1b5c53] shadow-2xs transition-colors cursor-pointer"
+              title="Vorschau komplett auf Anfang zurücksetzen"
             >
-              📖 Belegt
-            </span>
-          )}
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {onEditStation && !completed && (
-            <button
-              onClick={() => onEditStation(currentStationIdx)}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold text-[#1b5c53] bg-white hover:bg-[#e3eeec] rounded-lg border border-[#bbd1cd] hover:border-[#247a6d] shadow-2xs transition-colors cursor-pointer"
-              title="Diese Station direkt im WYSIWYG-Editor ohne KI anpassen"
-            >
-              <Edit3 className="w-3.5 h-3.5 text-[#247a6d]" />
-              <span className="hidden sm:inline">Station bearbeiten</span>
-            </button>
-          )}
+        {/* Row 2: Freie Redaktions-Navigation zwischen Stationen */}
+        <div className="flex items-center justify-between gap-2 pt-1 border-t border-[#bbd1cd]/50 flex-wrap">
+          {/* Klickbare Stationen-Leiste */}
+          <div className="flex items-center gap-1 flex-wrap">
+            <span className="text-[11px] font-bold text-[#6e6c70] mr-1 hidden sm:inline">
+              Station wählen:
+            </span>
 
-          <div className="flex bg-[#e3eeec] p-0.5 rounded-lg border border-[#bbd1cd]">
+            {/* Prev Button */}
             <button
-              onClick={() => setViewport("desktop")}
-              className={`p-1 rounded text-xs transition-colors ${
-                viewport === "desktop" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
-              }`}
-              title="Desktop-Ansicht"
+              type="button"
+              onClick={() => {
+                if (completed) {
+                  setCompleted(false);
+                  setCurrentStationIdx(quiz.stations.length - 1);
+                } else if (currentStationIdx > 0) {
+                  setCurrentStationIdx((prev) => prev - 1);
+                }
+              }}
+              disabled={!completed && currentStationIdx === 0}
+              className="h-6 w-6 rounded flex items-center justify-center border border-[#bbd1cd] bg-white text-[#1b5c53] hover:bg-[#e3eeec] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+              title="Vorherige Station"
             >
-              <Monitor className="w-3.5 h-3.5" />
+              <ChevronLeft className="w-3.5 h-3.5" />
             </button>
+
+            {/* Clickable Station Pills */}
+            {quiz.stations.map((st, idx) => {
+              const isActive = !completed && currentStationIdx === idx;
+              const isSolved = stationResults[idx] === "solved";
+              return (
+                <button
+                  key={st.id || idx}
+                  type="button"
+                  onClick={() => {
+                    setCompleted(false);
+                    setCurrentStationIdx(idx);
+                  }}
+                  className={`h-6 min-w-[24px] px-1.5 rounded text-xs font-bold transition-all cursor-pointer border flex items-center justify-center gap-0.5 ${
+                    isActive
+                      ? "bg-[#247a6d] text-white border-[#1b5c53] shadow-2xs"
+                      : "bg-white hover:bg-[#e3eeec] text-[#1b5c53] border-[#bbd1cd]"
+                  }`}
+                  title={`Zu Station ${idx + 1} springen: „${st.title}“`}
+                >
+                  <span>{idx + 1}</span>
+                  {isSolved && !isActive && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  )}
+                </button>
+              );
+            })}
+
+            {/* Next Button */}
             <button
-              onClick={() => setViewport("mobile")}
-              className={`p-1 rounded text-xs transition-colors ${
-                viewport === "mobile" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
-              }`}
-              title="Smartphone-Ansicht"
+              type="button"
+              onClick={() => {
+                if (currentStationIdx < quiz.stations.length - 1) {
+                  setCurrentStationIdx((prev) => prev + 1);
+                } else {
+                  setCompleted(true);
+                }
+              }}
+              disabled={completed}
+              className="h-6 w-6 rounded flex items-center justify-center border border-[#bbd1cd] bg-white text-[#1b5c53] hover:bg-[#e3eeec] disabled:opacity-30 disabled:pointer-events-none transition-colors cursor-pointer"
+              title="Nächste Station"
             >
-              <Smartphone className="w-3.5 h-3.5" />
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+
+            {/* Auswertung Jump Button */}
+            <button
+              type="button"
+              onClick={() => setCompleted(true)}
+              className={`h-6 px-2 rounded text-[11px] font-bold transition-all cursor-pointer border flex items-center gap-1 ${
+                completed
+                  ? "bg-[#247a6d] text-white border-[#1b5c53] shadow-2xs"
+                  : "bg-white hover:bg-[#e3eeec] text-[#1b5c53] border-[#bbd1cd]"
+              }`}
+              title="Direkt zur Abschluss-Auswertung springen"
+            >
+              <Trophy className="w-3 h-3" />
+              <span>Ergebnis</span>
             </button>
           </div>
 
-          <button
-            onClick={handleReset}
-            className="p-1.5 text-xs text-[#6e6c70] hover:text-[#1b5c53] hover:bg-[#f3f8f7] rounded-lg border border-[#bbd1cd] transition-colors"
-            title="Quiz von vorne starten"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-          </button>
+          {/* Current Station Type & Quote indicator */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#e3eeec] text-[#1b5c53] font-semibold border border-[#bbd1cd] flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#247a6d]"></span>
+              <span>
+                {completed
+                  ? "Praxistest-Auswertung"
+                  : currentStation?.type === "matching"
+                  ? "🧩 Zuordnungs-Puzzle"
+                  : currentStation?.type === "ordering"
+                  ? "🔢 Ablauf-Reihenfolge"
+                  : currentStation?.type === "myth_fact"
+                  ? "❌/💡 Mythos vs. Fakt"
+                  : currentStation?.type === "bucket_sort"
+                  ? "📥 Dos & Don'ts"
+                  : currentStation?.type === "comparison"
+                  ? "⚖️ Situationsvergleich"
+                  : currentStation?.type === "dilemma"
+                  ? "🎭 Praxis-Dilemma"
+                  : currentStation?.type === "checklist"
+                  ? "📋 Checkliste"
+                  : currentStation?.type === "fill_in_the_blank"
+                  ? "✍️ Wort-Lückentext"
+                  : "💡 Wissenscheck"}
+              </span>
+            </span>
+
+            {currentStation?.sourceQuote && !completed && (
+              <span
+                className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
+                title={`Quelltext-Zitat: "${currentStation.sourceQuote}"`}
+              >
+                📖 Belegt
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1759,6 +1907,18 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset, onEditS
                       className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
                     >
                       Antwort prüfen
+                    </button>
+                  )}
+
+                  {/* Skip to next station without solving (Editorial shortcut) */}
+                  {!canAdvance && (
+                    <button
+                      type="button"
+                      onClick={handleNextStation}
+                      className="text-xs font-semibold text-[#6e6c70] hover:text-[#1b5c53] hover:underline px-2 py-1.5 transition-colors cursor-pointer"
+                      title="Als Redakteur direkt zur nächsten Station springen ohne die Aufgabe zu lösen"
+                    >
+                      Station überspringen →
                     </button>
                   )}
 

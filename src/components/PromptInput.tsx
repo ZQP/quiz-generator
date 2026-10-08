@@ -78,6 +78,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   const [referenceText, setReferenceText] = useState<string>("");
   const [isRefOpen, setIsRefOpen] = useState<boolean>(false);
   const [isMechanicsOpen, setIsMechanicsOpen] = useState<boolean>(false);
+  const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
   const [questionCount, setQuestionCount] = useState<number>(3);
   const [targetAudience, setTargetAudience] = useState<TargetAudience>("angehoerige");
   const [templateLoadedMsg, setTemplateLoadedMsg] = useState<string | null>(null);
@@ -186,43 +187,56 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             placeholder="Beschreiben Sie das Thema, z. B.: 'Quiz zu Sturzprävention für Angehörige mit Zuordnung und Reihenfolge...'"
           />
 
-          {/* ZQP Quick-Start Templates */}
-          <div className="mt-3 pt-2.5 border-t border-[#e3eeec]">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-xs font-bold text-[#1b5c53] flex items-center gap-1">
+          {/* ZQP Quick-Start Templates (Einklappbar, standardmäßig zugeklappt) */}
+          <div className="mt-2.5 pt-2 border-t border-[#e3eeec]">
+            <div className="flex items-center justify-between">
+              <button
+                type="button"
+                onClick={() => setIsTemplatesOpen(!isTemplatesOpen)}
+                className="text-xs font-semibold text-[#1b5c53] hover:text-[#247a6d] flex items-center gap-1.5 transition-colors cursor-pointer py-1 group"
+                title="Themen-Inspirationen ein- oder ausblenden"
+              >
                 <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
-                <span>ZQP-Themenvorlagen (1-Klick-Setup):</span>
-              </span>
+                <span>Themen-Inspirationen & ZQP-Vorlagen ({ZQP_TEMPLATES.length})</span>
+                {isTemplatesOpen ? (
+                  <ChevronDown className="w-3.5 h-3.5 text-[#6e6c70] group-hover:text-[#247a6d]" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 text-[#6e6c70] group-hover:text-[#247a6d]" />
+                )}
+              </button>
               {templateLoadedMsg && (
                 <span className="text-[11px] font-semibold text-emerald-700 animate-in fade-in">
                   ✓ Vorlage „{templateLoadedMsg}“ geladen!
                 </span>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {ZQP_TEMPLATES.map((tpl, idx) => (
-                <button
-                  key={tpl.badge}
-                  type="button"
-                  onClick={() => applyTemplate(tpl)}
-                  className={`text-left p-2.5 rounded-lg bg-[#f3f8f7] hover:bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] transition-all flex flex-col justify-between gap-1 group cursor-pointer shadow-2xs ${
-                    idx === 4 ? "sm:col-span-2" : ""
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-[10px] font-bold text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] whitespace-nowrap">
-                      {tpl.badge}
+
+            {isTemplatesOpen && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-1 animate-in fade-in duration-150">
+                {ZQP_TEMPLATES.map((tpl, idx) => (
+                  <button
+                    key={tpl.badge}
+                    type="button"
+                    onClick={() => applyTemplate(tpl)}
+                    className={`text-left p-2.5 rounded-lg bg-[#f3f8f7] hover:bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] transition-all flex flex-col justify-between gap-1 group cursor-pointer shadow-2xs ${
+                      idx === 4 ? "sm:col-span-2" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] whitespace-nowrap">
+                        {tpl.badge}
+                      </span>
+                      <span className="text-[10px] text-[#6e6c70] font-semibold whitespace-nowrap shrink-0">
+                        {tpl.count} Stationen
+                      </span>
+                    </div>
+                    <span className="text-xs font-semibold text-[#3a352d] leading-snug group-hover:text-[#1b5c53] line-clamp-1">
+                      {tpl.title}
                     </span>
-                    <span className="text-[10px] text-[#6e6c70] font-semibold whitespace-nowrap shrink-0">
-                      {tpl.count} Stationen
-                    </span>
-                  </div>
-                  <span className="text-xs font-semibold text-[#3a352d] leading-snug group-hover:text-[#1b5c53] line-clamp-1">
-                    {tpl.title}
-                  </span>
-                </button>
-              ))}
-            </div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 

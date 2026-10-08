@@ -343,17 +343,11 @@ export const App: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-[#f5f8f7] text-[#444444] overflow-hidden">
-      {/* Header */}
+      {/* Header (Schlank & Fokussiert) */}
       <Header
         settings={settings}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenLibrary={() => setIsLibraryOpen(true)}
-        onOpenAudit={() => setIsAuditOpen(true)}
-        onOpenSourceInspector={() => setIsSourceInspectorOpen(true)}
-        onOpenFavorites={() => setIsFavoritesLibraryOpen(true)}
-        hasCurrentQuiz={!!currentQuiz}
-        editorialStatus={currentQuiz?.editorialStatus || "draft"}
-        onChangeStatus={handleChangeEditorialStatus}
       />
 
       {/* Main Two-Column Content (Viewport-Fitted, Aligned Grid) */}
@@ -488,6 +482,11 @@ export const App: React.FC = () => {
                       setStationEditorIndex(idx);
                       setIsStationEditorOpen(true);
                     }}
+                    editorialStatus={currentQuiz.editorialStatus || "draft"}
+                    onChangeStatus={handleChangeEditorialStatus}
+                    onOpenSourceInspector={() => setIsSourceInspectorOpen(true)}
+                    onOpenFavorites={() => setIsFavoritesLibraryOpen(true)}
+                    onOpenAudit={() => setIsAuditOpen(true)}
                   />
                 ) : (
                   <CodeExport
