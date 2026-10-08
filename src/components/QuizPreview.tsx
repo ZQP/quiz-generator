@@ -1910,18 +1910,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                     </button>
                   )}
 
-                  {/* Skip to next station without solving (Editorial shortcut) */}
-                  {!canAdvance && (
-                    <button
-                      type="button"
-                      onClick={handleNextStation}
-                      className="text-xs font-semibold text-[#6e6c70] hover:text-[#1b5c53] hover:underline px-2 py-1.5 transition-colors cursor-pointer"
-                      title="Als Redakteur direkt zur nächsten Station springen ohne die Aufgabe zu lösen"
-                    >
-                      Station überspringen →
-                    </button>
-                  )}
-
                   {/* Next station button */}
                   <button
                     type="button"

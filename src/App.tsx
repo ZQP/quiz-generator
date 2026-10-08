@@ -384,11 +384,6 @@ export const App: React.FC = () => {
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
                 <span>2. Quiz verfeinern</span>
-                {quizHistory.length > 1 && (
-                  <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#247a6d] text-white font-bold">
-                    v{historyIndex + 1}
-                  </span>
-                )}
               </button>
             </div>
 
@@ -452,18 +447,13 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Version & Persistence Indicator */}
+            {/* Persistence Indicator */}
             <div className="flex items-center gap-2">
               {quizHistory.length > 0 && (
                 <span className="text-[11px] text-[#247a6d] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] hidden sm:inline-flex items-center gap-1 font-medium shadow-2xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                   Gesichert
                 </span>
-              )}
-              {quizHistory.length > 1 && (
-                <div className="text-[11px] text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] font-semibold shadow-2xs">
-                  v{historyIndex + 1}
-                </div>
               )}
             </div>
           </div>
