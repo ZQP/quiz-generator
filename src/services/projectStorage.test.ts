@@ -6,6 +6,10 @@ import {
   duplicateProject,
   exportProjectToJson,
   importProjectFromJson,
+  updateProjectMetadata,
+  saveFavoriteStation,
+  loadFavoriteStations,
+  deleteFavoriteStation,
 } from "./projectStorage";
 import { QuizGenerationResult } from "../types";
 
@@ -91,4 +95,36 @@ describe("projectStorage", () => {
     const projects = loadProjects();
     expect(projects.length).toBe(2);
   });
+
+  it("updates project editorial metadata and manages favorite stations", () => {
+    const proj = createNewProject(mockQuiz);
+    updateProjectMetadata(proj.id, {
+      editorialStatus: "approved",
+      editorialNotes: "Freigegeben durch Chefredaktion",
+    });
+
+    const projects = loadProjects();
+    expect(projects[0].editorialStatus).toBe("approved");
+    expect(projects[0].editorialNotes).toContain("Chefredaktion");
+
+    // Favorites
+    const favStation = {
+      id: "stat_1",
+      type: "myth_fact" as const,
+      title: "Demenz-Mythos",
+      promptOrInstruction: "Ist Demenz vererbbar?",
+      zqpRationale: "Fundierte Begründung",
+    };
+
+    const saved = saveFavoriteStation(favStation, "Demenz");
+    expect(saved.id).toBeDefined();
+
+    const favs = loadFavoriteStations();
+    expect(favs.length).toBe(1);
+    expect(favs[0].station.title).toBe("Demenz-Mythos");
+
+    deleteFavoriteStation(saved.id);
+    expect(loadFavoriteStations().length).toBe(0);
+  });
 });
+

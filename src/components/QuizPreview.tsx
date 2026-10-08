@@ -726,6 +726,33 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({ quiz, onReset, onEditS
               ? "✍️ Wort-Lückentext"
               : "💡 Wissenscheck"}
           </span>
+
+          {currentStation?.editorialStatus && (
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                currentStation.editorialStatus === "approved"
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-300"
+                  : currentStation.editorialStatus === "in_review"
+                  ? "bg-sky-50 text-sky-800 border-sky-300"
+                  : "bg-amber-50 text-amber-800 border-amber-300"
+              }`}
+            >
+              {currentStation.editorialStatus === "approved"
+                ? "🟢 Freigegeben"
+                : currentStation.editorialStatus === "in_review"
+                ? "🔵 In Prüfung"
+                : "🟡 Entwurf"}
+            </span>
+          )}
+
+          {currentStation?.sourceQuote && (
+            <span
+              className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
+              title={`Quelltext-Zitat: "${currentStation.sourceQuote}"`}
+            >
+              📖 Belegt
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">

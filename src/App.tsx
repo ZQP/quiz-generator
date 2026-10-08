@@ -8,15 +8,19 @@ import { SettingsModal } from "./components/SettingsModal";
 import { ProjectLibraryModal } from "./components/ProjectLibraryModal";
 import { QualityAuditModal } from "./components/QualityAuditModal";
 import { StationEditorModal } from "./components/StationEditorModal";
-import { AppSettings, QuizGenerationResult, TargetAudience, StationType } from "./types";
+import { SourceInspectorModal } from "./components/SourceInspectorModal";
+import { FavoritesLibraryModal } from "./components/FavoritesLibraryModal";
+import { AppSettings, QuizGenerationResult, TargetAudience, StationType, EditorialStatus, QuizStation } from "./types";
 import { loadSettings, saveSettings, generateQuizWithGemini, refineQuizWithGemini } from "./services/geminiService";
 import {
   QuizProject,
   loadProjects,
   createNewProject,
   updateProjectHistory,
+  updateProjectMetadata,
   getActiveProjectId,
   setActiveProjectId,
+  importProjectFromJson,
 } from "./services/projectStorage";
 import { Eye, Code2, Sparkles, PlusCircle } from "lucide-react";
 
@@ -48,6 +52,8 @@ export const App: React.FC = () => {
   const [isAuditOpen, setIsAuditOpen] = useState<boolean>(false);
   const [isStationEditorOpen, setIsStationEditorOpen] = useState<boolean>(false);
   const [stationEditorIndex, setStationEditorIndex] = useState<number>(0);
+  const [isSourceInspectorOpen, setIsSourceInspectorOpen] = useState<boolean>(false);
+  const [isFavoritesLibraryOpen, setIsFavoritesLibraryOpen] = useState<boolean>(false);
 
   const [activeMainTab, setActiveMainTab] = useState<"preview" | "code">("preview");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -80,10 +86,8 @@ export const App: React.FC = () => {
 
   const currentQuiz: QuizGenerationResult | null = historyIndex >= 0 ? quizHistory[historyIndex] : null;
 
-  // Mode in left column: create new from scratch vs. refine existing
-  const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">(() =>
-    quizHistory.length > 0 ? "refine" : "create"
-  );
+  // Mode in left column: create new from scratch vs. refine existing (always start on 'create' / Neues Thema)
+  const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">("create");
 
   // Save current quiz history to localStorage & active project whenever it changes
   useEffect(() => {
@@ -134,6 +138,8 @@ export const App: React.FC = () => {
       const quiz = await generateQuizWithGemini({
         apiKey: settings.geminiApiKey,
         model: settings.selectedModel,
+        editorialRules: settings.editorialRules,
+        glossary: settings.glossary,
         ...params,
       });
 
@@ -141,7 +147,10 @@ export const App: React.FC = () => {
       clearTimeout(stepTimer2);
 
       // Create new project in library
-      const proj = createNewProject(quiz);
+      const proj = createNewProject(quiz, {
+        referenceSourceText: params.referenceText,
+        editorialStatus: "draft",
+      });
       setActiveProjId(proj.id);
       setActiveProjectId(proj.id);
 
@@ -178,6 +187,8 @@ export const App: React.FC = () => {
         model: settings.selectedModel,
         existingQuiz: currentQuiz,
         refinementPrompt,
+        editorialRules: settings.editorialRules,
+        glossary: settings.glossary,
       });
 
       clearTimeout(stepTimer);
@@ -201,6 +212,90 @@ export const App: React.FC = () => {
     setQuizHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
   };
+
+  // Editorial status change
+  const handleChangeEditorialStatus = (status: EditorialStatus) => {
+    if (!currentQuiz) return;
+    const updatedQuiz: QuizGenerationResult = {
+      ...currentQuiz,
+      editorialStatus: status,
+    };
+    handleSaveStationEdit(updatedQuiz);
+    if (activeProjectId) {
+      updateProjectMetadata(activeProjectId, { editorialStatus: status });
+    }
+  };
+
+  // Attach verified quote to a specific station
+  const handleUpdateStationQuote = (stationIndex: number, quote: string) => {
+    if (!currentQuiz || !currentQuiz.stations[stationIndex]) return;
+    const newStations = [...currentQuiz.stations];
+    newStations[stationIndex] = {
+      ...newStations[stationIndex],
+      sourceQuote: quote,
+    };
+    const updatedQuiz: QuizGenerationResult = {
+      ...currentQuiz,
+      stations: newStations,
+    };
+    handleSaveStationEdit(updatedQuiz);
+  };
+
+  // Update reference text for current quiz
+  const handleUpdateReferenceText = (newRefText: string) => {
+    if (!currentQuiz) return;
+    const updatedQuiz: QuizGenerationResult = {
+      ...currentQuiz,
+      referenceSourceText: newRefText,
+    };
+    handleSaveStationEdit(updatedQuiz);
+    if (activeProjectId) {
+      updateProjectMetadata(activeProjectId, { referenceSourceText: newRefText });
+    }
+  };
+
+  // Insert favorite station from treasure chest into current quiz
+  const handleInsertFavoriteStation = (favStation: QuizStation) => {
+    if (!currentQuiz) return;
+    const newStation: QuizStation = {
+      ...favStation,
+      id: "station-" + Date.now(),
+    };
+    const updatedQuiz: QuizGenerationResult = {
+      ...currentQuiz,
+      stations: [...currentQuiz.stations, newStation],
+    };
+    handleSaveStationEdit(updatedQuiz);
+  };
+
+  // Global Drag & Drop listener for .zqpquiz and .json files
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => e.preventDefault();
+    const handleDrop = (e: DragEvent) => {
+      e.preventDefault();
+      const file = e.dataTransfer?.files?.[0];
+      if (file && (file.name.endsWith(".zqpquiz") || file.name.endsWith(".json"))) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const content = event.target?.result as string;
+            const imported = importProjectFromJson(content);
+            handleSelectProject(imported);
+          } catch (err: any) {
+            alert("Fehler beim Öffnen der Projektdatei: " + (err?.message || "Ungültiges Format"));
+          }
+        };
+        reader.readAsText(file);
+      }
+    };
+
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("drop", handleDrop);
+    return () => {
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, []);
 
   // Optional Print/PDF toggle for web visitors
   const handleTogglePrintSummary = (enabled: boolean) => {
@@ -254,7 +349,11 @@ export const App: React.FC = () => {
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenLibrary={() => setIsLibraryOpen(true)}
         onOpenAudit={() => setIsAuditOpen(true)}
+        onOpenSourceInspector={() => setIsSourceInspectorOpen(true)}
+        onOpenFavorites={() => setIsFavoritesLibraryOpen(true)}
         hasCurrentQuiz={!!currentQuiz}
+        editorialStatus={currentQuiz?.editorialStatus || "draft"}
+        onChangeStatus={handleChangeEditorialStatus}
       />
 
       {/* Main Two-Column Content (Viewport-Fitted, Aligned Grid) */}
@@ -448,8 +547,27 @@ export const App: React.FC = () => {
           quiz={currentQuiz}
           initialStationIndex={stationEditorIndex}
           onSaveQuiz={handleSaveStationEdit}
+          settings={settings}
         />
       )}
+
+      {/* Source Inspector Modal (Anti-Halluzination & Quelltext-Abgleich) */}
+      {currentQuiz && (
+        <SourceInspectorModal
+          isOpen={isSourceInspectorOpen}
+          onClose={() => setIsSourceInspectorOpen(false)}
+          quiz={currentQuiz}
+          onUpdateStationQuote={handleUpdateStationQuote}
+          onUpdateReferenceText={handleUpdateReferenceText}
+        />
+      )}
+
+      {/* Favorites Library Modal (Stations-Schatzkiste) */}
+      <FavoritesLibraryModal
+        isOpen={isFavoritesLibraryOpen}
+        onClose={() => setIsFavoritesLibraryOpen(false)}
+        onInsertStation={handleInsertFavoriteStation}
+      />
     </div>
   );
 };

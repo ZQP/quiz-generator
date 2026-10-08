@@ -47,7 +47,7 @@ export const ProjectLibraryModal: React.FC<ProjectLibraryModalProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `zqp-quiz-${project.title.toLowerCase().replace(/[^a-z0-9]/g, "-")}.json`;
+    a.download = `zqp-quiz-${project.title.toLowerCase().replace(/[^a-z0-9]/g, "-")}.zqpquiz`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -122,16 +122,16 @@ export const ProjectLibraryModal: React.FC<ProjectLibraryModalProps> = ({
               type="file"
               ref={fileInputRef}
               onChange={handleImportFile}
-              accept=".json"
+              accept=".zqpquiz,.json"
               className="hidden"
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#bbd1cd] hover:border-[#247a6d] text-xs font-semibold text-[#1b5c53] rounded-lg shadow-2xs transition-colors"
-              title="Quiz aus einer .json-Datei importieren"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[#bbd1cd] hover:border-[#247a6d] text-xs font-semibold text-[#1b5c53] rounded-lg shadow-2xs transition-colors cursor-pointer"
+              title="Quiz aus einer .zqpquiz- oder .json-Datei importieren"
             >
               <Upload className="w-3.5 h-3.5 text-[#247a6d]" />
-              <span>JSON importieren</span>
+              <span>.zqpquiz importieren</span>
             </button>
 
             <button
@@ -139,7 +139,7 @@ export const ProjectLibraryModal: React.FC<ProjectLibraryModalProps> = ({
                 onNewProject();
                 onClose();
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold rounded-lg shadow-2xs transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold rounded-lg shadow-2xs transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Neues Quiz starten</span>
@@ -199,6 +199,21 @@ export const ProjectLibraryModal: React.FC<ProjectLibraryModalProps> = ({
                           <span>Aktiv</span>
                         </span>
                       )}
+                      <span
+                        className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          proj.editorialStatus === "approved"
+                            ? "bg-emerald-100 text-emerald-800"
+                            : proj.editorialStatus === "in_review"
+                            ? "bg-sky-100 text-sky-800"
+                            : "bg-amber-100 text-amber-800"
+                        }`}
+                      >
+                        {proj.editorialStatus === "approved"
+                          ? "🟢 Freigegeben"
+                          : proj.editorialStatus === "in_review"
+                          ? "🔵 In Prüfung"
+                          : "🟡 Entwurf"}
+                      </span>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs text-[#6e6c70] flex-wrap">
@@ -215,26 +230,32 @@ export const ProjectLibraryModal: React.FC<ProjectLibraryModalProps> = ({
                         <span>{dateStr}</span>
                       </span>
                     </div>
+
+                    {proj.editorialNotes && (
+                      <p className="text-[11px] text-[#555555] italic mt-1 line-clamp-1">
+                        Vermerk: {proj.editorialNotes}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={(e) => handleDuplicate(proj.id, e)}
-                      className="p-1.5 text-gray-500 hover:text-[#1b5c53] hover:bg-white rounded-lg border border-transparent hover:border-[#bbd1cd] transition-colors"
+                      className="p-1.5 text-gray-500 hover:text-[#1b5c53] hover:bg-white rounded-lg border border-transparent hover:border-[#bbd1cd] transition-colors cursor-pointer"
                       title="Entwurf duplizieren"
                     >
                       <Copy className="w-4 h-4" />
                     </button>
                     <button
                       onClick={(e) => handleExportJson(proj, e)}
-                      className="p-1.5 text-gray-500 hover:text-[#1b5c53] hover:bg-white rounded-lg border border-transparent hover:border-[#bbd1cd] transition-colors"
-                      title="Als Projekt-JSON herunterladen"
+                      className="p-1.5 text-gray-500 hover:text-[#1b5c53] hover:bg-white rounded-lg border border-transparent hover:border-[#bbd1cd] transition-colors cursor-pointer"
+                      title="Als .zqpquiz Projektdatei herunterladen"
                     >
                       <Download className="w-4 h-4" />
                     </button>
                     <button
                       onClick={(e) => handleDelete(proj.id, e)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-200 transition-colors"
+                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg border border-transparent hover:border-red-200 transition-colors cursor-pointer"
                       title="Entwurf löschen"
                     >
                       <Trash2 className="w-4 h-4" />

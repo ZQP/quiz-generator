@@ -1,7 +1,21 @@
-import { AppSettings, QuizGenerationResult, TargetAudience, StationType, QuizStation } from "../types";
+import { AppSettings, QuizGenerationResult, TargetAudience, StationType, QuizStation, GlossaryEntry } from "../types";
 import { compileQuizToBundle } from "./exportCompiler";
 
 const SETTINGS_STORAGE_KEY = "zqp_quiz_generator_settings";
+
+export const defaultEditorialRules: string = `1. Personenzentrierte Sprache: Verwende stets empathische, wertschätzende und entlastende Formulierungen für Betroffene und pflegende Angehörige.
+2. Keine isolierten Diagnosen: Niemals Heilsversprechen oder Diagnosen abgeben; bei Unsicherheiten stets an Hausarzt, Pflegestützpunkte oder das ZQP-Krisentelefon verweisen.
+3. Ressourcen- statt Defizitorientierung: Hebe Fähigkeiten, Selbstbestimmung und Sicherheit hervor, anstatt Hilflosigkeit zu betonen.
+4. Fundiertheit: Halte dich streng an die ZQP-Expertenstandards und Leitlinien (z.B. Sturzprävention, Gewaltprävention, Demenz).`;
+
+export const defaultGlossary: GlossaryEntry[] = [
+  { id: "g1", term: "Demenzkranke", preferred: "Menschen mit Demenz", explanation: "Person-zentrierte Sprache nach Tom Kitwood" },
+  { id: "g2", term: "Pflegefälle", preferred: "Pflegebedürftige / Menschen mit Pflegebedarf", explanation: "Entstigmatisierende Nomenklatur" },
+  { id: "g3", term: "Altenheim", preferred: "Pflegeeinrichtung / Seniorenresidenz", explanation: "Zeitgemäße Bezeichnung" },
+  { id: "g4", term: "Windeln", preferred: "Inkontinenzmaterialien / Vorlagen", explanation: "Würdevolle Fachsprache" },
+  { id: "g5", term: "Verwirrte", preferred: "Menschen mit kognitiven Einschränkungen", explanation: "Entlastende Formulierung" },
+  { id: "g6", term: "Bettlägerige", preferred: "im Bett versorgte Personen", explanation: "Aktivierender Sprachgebrauch" },
+];
 
 export const defaultSettings: AppSettings = {
   geminiApiKey: "",
@@ -14,13 +28,38 @@ export const defaultSettings: AppSettings = {
     "gemini-2.0-flash",
   ],
   autoUpdate: true,
+  editorialRules: defaultEditorialRules,
+  glossary: defaultGlossary,
 };
+
+export function buildEditorialPromptBlock(rules?: string, glossary?: GlossaryEntry[]): string {
+  const activeRules = rules || defaultEditorialRules;
+  const activeGlossary = glossary || defaultGlossary;
+
+  const glossaryLines = activeGlossary
+    .map((g) => `- Verwende '${g.preferred}' statt '${g.term}'${g.explanation ? ` (${g.explanation})` : ""}`)
+    .join("\n");
+
+  return `
+REDAKTIONELLER LEITFADEN & ZQP-FACHGLOSSAR (STRENG EINHALTEN):
+${activeRules}
+
+GESCHÜTZTE ZQP-NOMENKLATUR:
+${glossaryLines}
+`;
+}
 
 export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (raw) {
-      return { ...defaultSettings, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      return {
+        ...defaultSettings,
+        ...parsed,
+        editorialRules: parsed.editorialRules || defaultEditorialRules,
+        glossary: Array.isArray(parsed.glossary) && parsed.glossary.length > 0 ? parsed.glossary : defaultGlossary,
+      };
     }
   } catch (e) {
     console.error("Failed to load settings:", e);
@@ -67,20 +106,29 @@ export interface GenerateQuizParams {
   questionCount: number;
   targetAudience: TargetAudience;
   mechanics: StationType[];
+  editorialRules?: string;
+  glossary?: GlossaryEntry[];
 }
 
 export async function generateQuizWithGemini(
   params: GenerateQuizParams
 ): Promise<QuizGenerationResult> {
-  const { apiKey, model, topicPrompt, referenceText, questionCount, targetAudience, mechanics } = params;
+  const { apiKey, model, topicPrompt, referenceText, questionCount, targetAudience, mechanics, editorialRules, glossary } = params;
 
   // Fallback demo generation if no API key is set yet
   if (!apiKey || apiKey.trim() === "") {
-    return generateLocalDemoQuiz(topicPrompt, questionCount, targetAudience);
+    const demo = generateLocalDemoQuiz(topicPrompt, questionCount, targetAudience);
+    demo.referenceSourceText = referenceText || "";
+    demo.editorialStatus = "draft";
+    return demo;
   }
+
+  const editorialBlock = buildEditorialPromptBlock(editorialRules, glossary);
 
   const promptSystem = `Du bist ein preisgekrönter UI/UX-Designer und Fachredakteur für die Stiftung ZQP (Zentrum für Qualität in der Pflege - zqp.de).
 Deine Aufgabe ist es, ein visuell ansprechendes ("schickes", modernes), interaktives und barrierearmes HTML5-Lernspiel für zqp.de zu erstellen.
+
+${editorialBlock}
 
 WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
 1. ZQP Corporate Design (modern, elegant):
@@ -203,6 +251,8 @@ ${referenceText ? `ZQP-Referenzinhalte / Wissensbasis:\n${referenceText}` : ""}`
     parsed.generatedCss = compiled.css;
     parsed.generatedJs = compiled.js;
     parsed.tailwindConfig = compiled.tailwindConfig;
+    parsed.referenceSourceText = referenceText || "";
+    parsed.editorialStatus = "draft";
     return parsed;
   } catch (err) {
     console.error("Failed to parse Gemini JSON:", err, textOutput);
@@ -215,12 +265,14 @@ export interface RefineQuizParams {
   model: string;
   existingQuiz: QuizGenerationResult;
   refinementPrompt: string;
+  editorialRules?: string;
+  glossary?: GlossaryEntry[];
 }
 
 export async function refineQuizWithGemini(
   params: RefineQuizParams
 ): Promise<QuizGenerationResult> {
-  const { apiKey, model, existingQuiz, refinementPrompt } = params;
+  const { apiKey, model, existingQuiz, refinementPrompt, editorialRules, glossary } = params;
 
   // Offline demo adjustment simulation
   if (!apiKey || apiKey.trim() === "") {
@@ -248,8 +300,12 @@ export async function refineQuizWithGemini(
     return updated;
   }
 
+  const editorialBlock = buildEditorialPromptBlock(editorialRules, glossary);
+
   const promptSystem = `Du bist ein erfahrener Bildungsredakteur der Stiftung ZQP (zqp.de).
 Der Nutzer hat bereits ein HTML5-Quiz erstellt und möchte nun gezielte ANPASSUNGEN daran vornehmen, OHNE dass das gesamte Quiz neu erstellt wird.
+
+${editorialBlock}
 
 WICHTIGE ANWEISUNGEN:
 1. Nimm das bestehende Quiz als Basis und führe die gewünschte Änderung des Nutzers präzise und feinfühlig durch.
@@ -303,6 +359,9 @@ ${refinementPrompt}`;
     parsed.generatedCss = compiled.css;
     parsed.generatedJs = compiled.js;
     parsed.tailwindConfig = compiled.tailwindConfig;
+    parsed.referenceSourceText = existingQuiz.referenceSourceText || "";
+    parsed.editorialStatus = existingQuiz.editorialStatus || "draft";
+    parsed.editorialNotes = existingQuiz.editorialNotes || "";
     return parsed;
   } catch (err) {
     console.error("Failed to parse Gemini JSON:", err, textOutput);
@@ -1136,4 +1195,243 @@ function generateLocalDemoQuiz(
 })();`,
   };
 }
+
+// ----------------------------------------------------
+// 1. Quelltext-Abgleich & Zitat-Finder (Anti-Halluzination)
+// ----------------------------------------------------
+
+export interface SourceCitationMatch {
+  isVerified: boolean;
+  score: number; // 0-100%
+  bestQuote: string;
+  matchedKeywords: string[];
+  explanation: string;
+}
+
+export function findSourceCitationsForStation(
+  station: QuizStation,
+  sourceText?: string
+): SourceCitationMatch {
+  if (!sourceText || sourceText.trim().length === 0) {
+    return {
+      isVerified: false,
+      score: 0,
+      bestQuote: "",
+      matchedKeywords: [],
+      explanation: "Kein Quelltext hinterlegt (Basiert auf allgemeinem Fachwissen).",
+    };
+  }
+
+  // Extract key search terms from title, prompt, rationale, and options
+  const rawTerms = [
+    station.title,
+    station.promptOrInstruction,
+    station.zqpRationale,
+    ...(station.options?.map((o) => o.text) || []),
+    ...(station.matchingPairs?.map((m) => `${m.threatOrTerm} ${m.solutionOrDef}`) || []),
+    ...(station.orderingSteps?.map((o) => o.text) || []),
+    ...(station.mythFactItems?.map((m) => m.statement) || []),
+    ...(station.bucketSortItems?.map((b) => b.text) || []),
+    ...(station.dilemmaReactions?.map((d) => `${d.text} ${d.zqpAdvice}`) || []),
+  ].join(" ");
+
+  const stopWords = new Set([
+    "der", "die", "das", "und", "oder", "ein", "eine", "einer", "eines", "einem", "einen",
+    "in", "im", "an", "am", "auf", "aus", "bei", "mit", "nach", "von", "zu", "zum", "zur",
+    "ist", "sind", "war", "wird", "werden", "hat", "haben", "kann", "können", "soll", "sollte",
+    "nicht", "auch", "wie", "für", "über", "unter", "durch", "vor", "nach", "beim", "dass",
+    "wenn", "aber", "sehr", "mehr", "immer", "noch", "hier", "dort", "man", "sich", "ihre", "ihr",
+    "station", "frage", "richtig", "falsch", "warum", "welche", "welcher", "welches", "diese", "dieser"
+  ]);
+
+  const words = rawTerms
+    .toLowerCase()
+    .replace(/[^a-zäöüß0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 3 && !stopWords.has(w));
+
+  const uniqueKeywords = Array.from(new Set(words));
+  if (uniqueKeywords.length === 0) {
+    return {
+      isVerified: false,
+      score: 0,
+      bestQuote: "",
+      matchedKeywords: [],
+      explanation: "Keine spezifischen Fachbegriffe für den Abgleich extrahiert.",
+    };
+  }
+
+  // Split source text into sentences and paragraphs
+  const paragraphs = sourceText
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 20);
+
+  let bestParagraph = "";
+  let highestMatches: string[] = [];
+  let maxScore = 0;
+
+  for (const para of paragraphs) {
+    const paraLower = para.toLowerCase();
+    const matched = uniqueKeywords.filter((k) => paraLower.includes(k));
+    const score = Math.round((matched.length / Math.min(uniqueKeywords.length, 5)) * 100);
+    if (score > maxScore) {
+      maxScore = score;
+      highestMatches = matched;
+      bestParagraph = para;
+    }
+  }
+
+  if (bestParagraph.length > 350) {
+    const sentences = bestParagraph.split(/(?<=[.!?])\s+/);
+    let bestSentence = "";
+    let maxSentScore = 0;
+    for (const sent of sentences) {
+      const sentLower = sent.toLowerCase();
+      const matched = uniqueKeywords.filter((k) => sentLower.includes(k));
+      if (matched.length > maxSentScore) {
+        maxSentScore = matched.length;
+        bestSentence = sent;
+      }
+    }
+    if (bestSentence.length > 30) {
+      bestParagraph = bestSentence.trim();
+    }
+  }
+
+  const isVerified = maxScore >= 40;
+  return {
+    isVerified,
+    score: Math.min(maxScore, 100),
+    bestQuote: bestParagraph,
+    matchedKeywords: highestMatches.slice(0, 5),
+    explanation: isVerified
+      ? `Belegt im Dokument (${maxScore}% Übereinstimmung anhand: ${highestMatches.slice(0, 3).join(", ")})`
+      : `Geringe direkte Übereinstimmung (${maxScore}%). Beruht vermutlich auf allgemeinem Fachwissen oder abweichender Wortwahl.`,
+  };
+}
+
+// ----------------------------------------------------
+// 2. Einzelstations-Varianten-Generator ("3 Varianten / Neu würfeln")
+// ----------------------------------------------------
+
+export interface GenerateStationVariantsParams {
+  apiKey: string;
+  model: string;
+  station: QuizStation;
+  contextTopic: string;
+  targetAudience?: TargetAudience;
+  editorialRules?: string;
+  glossary?: GlossaryEntry[];
+}
+
+export async function generateStationVariantsWithGemini(
+  params: GenerateStationVariantsParams
+): Promise<QuizStation[]> {
+  const { apiKey, model, station, contextTopic, targetAudience = "angehoerige", editorialRules, glossary } = params;
+
+  // Offline simulation fallback
+  if (!apiKey || apiKey.trim() === "") {
+    return [
+      {
+        ...station,
+        id: `var-1-${Date.now()}`,
+        title: `${station.title} (Fokussiert)`,
+        promptOrInstruction: `Auf den Punkt gebracht: ${station.promptOrInstruction.replace(/^.+?:\s*/, "")}`,
+        zqpRationale: `Didaktisch pointierte Variante: ${station.zqpRationale}`,
+      },
+      {
+        ...station,
+        id: `var-2-${Date.now()}`,
+        title: `${station.title} (Praxisfall)`,
+        promptOrInstruction: `Alltagssituation aus der häuslichen Pflege: Eine pflegende Angehörige steht vor folgender Situation. ${station.promptOrInstruction}`,
+        zqpRationale: `Praxisorientierte Fallvariante mit direktem Alltagsbezug: ${station.zqpRationale}`,
+      },
+      {
+        id: `var-3-${Date.now()}`,
+        type: "dilemma",
+        title: `${station.title} (Ethisches Dilemma)`,
+        promptOrInstruction: `Wie entscheiden Sie sich in diesem Pflegekonflikt?`,
+        zqpRationale: `Reflexionsaufgabe für wertschätzendes Handeln im ZQP-Sinne: ${station.zqpRationale}`,
+        dilemmaReactions: [
+          {
+            id: "d1",
+            text: "Sofort rigoros eingreifen und alle Freiheiten einschränken",
+            isOptimal: false,
+            consequence: "Erzeugt Abwehr, Angst und Misstrauen beim Pflegebedürftigen.",
+            zqpAdvice: "Besser: Im Dialog bleiben und sanfte Kompromisse erarbeiten.",
+          },
+          {
+            id: "d2",
+            text: "Verstehend zuhören, Ressourcen stärken und gemeinsam eine sichere Lösung vereinbaren",
+            isOptimal: true,
+            consequence: "Fördert das Vertrauen und bewahrt Würde und Autonomie.",
+            zqpAdvice: "Optimal: Personenzentriertes Handeln entspricht den ZQP-Qualitätskriterien.",
+          },
+        ],
+      },
+    ];
+  }
+
+  const editorialBlock = buildEditorialPromptBlock(editorialRules, glossary);
+
+  const promptSystem = `Du bist Bildungsredakteur der Stiftung ZQP (zqp.de).
+Deine Aufgabe ist es, für eine EINZELNE Quiz-Station 3 didaktisch hochwertige ALTERNATIVEN (Varianten) zu generieren.
+
+${editorialBlock}
+
+THEMA DES GESAMT-QUIZ: ${contextTopic}
+ZIELGRUPPE: ${targetAudience}
+
+ANFORDERUNGEN AN DIE 3 VARIANTEN:
+- Variante 1: Prägnanter, kürzer und didaktisch direkter formuliert.
+- Variante 2: Ein konkretes Fallbeispiel aus dem Pflegealltag (z.B. mit fiktiver Person / Alltagsszene).
+- Variante 3: Alternative Aufgabenmechanik (z.B. als Dilemma, Mythos/Fakt oder Bucket-Sort).
+- Jede Option muss ausführliche 'Warum richtig / Warum falsch' Erklärungen enthalten!
+- Die Ausgabe MUSS ein JSON-Array mit genau 3 Stationen sein ([Station1, Station2, Station3]), konform zum QuizStation-Schema.`;
+
+  const userContent = `Aktuelle Station (JSON):
+${JSON.stringify(station, null, 2)}`;
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+
+  const payload = {
+    contents: [
+      {
+        role: "user",
+        parts: [{ text: `${promptSystem}\n\n${userContent}` }],
+      },
+    ],
+    generationConfig: {
+      temperature: 0.4,
+      responseMimeType: "application/json",
+    },
+  };
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody?.error?.message || `Gemini API Fehler (${response.status})`);
+  }
+
+  const resultData = await response.json();
+  const textOutput = resultData?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!textOutput) {
+    throw new Error("Keine Antwort von Gemini für Station-Varianten erhalten.");
+  }
+
+  const parsed = JSON.parse(textOutput);
+  const list = Array.isArray(parsed) ? parsed : parsed.stations || [parsed];
+  return list.slice(0, 3).map((st: QuizStation, idx: number) => ({
+    ...st,
+    id: `variant-${idx + 1}-${Date.now()}`,
+    editorialStatus: "draft",
+  }));
+}
+
 

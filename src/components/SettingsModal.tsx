@@ -1,7 +1,21 @@
 import React, { useState } from "react";
-import { X, Key, Cpu, RefreshCw, Eye, EyeOff, ShieldCheck, DownloadCloud, CheckCircle2 } from "lucide-react";
-import { AppSettings } from "../types";
-import { fetchAvailableModels } from "../services/geminiService";
+import {
+  X,
+  Key,
+  Cpu,
+  RefreshCw,
+  Eye,
+  EyeOff,
+  ShieldCheck,
+  DownloadCloud,
+  CheckCircle2,
+  BookOpen,
+  Plus,
+  Trash2,
+  RotateCcw,
+} from "lucide-react";
+import { AppSettings, GlossaryEntry } from "../types";
+import { fetchAvailableModels, defaultEditorialRules, defaultGlossary } from "../services/geminiService";
 import { checkForAppUpdates, installAppUpdate } from "../services/updaterService";
 
 interface SettingsModalProps {
@@ -17,6 +31,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   onSave,
 }) => {
+  const [activeTab, setActiveTab] = useState<"api" | "editorial">("api");
+
+  // API State
   const [apiKey, setApiKey] = useState<string>(settings.geminiApiKey);
   const [selectedModel, setSelectedModel] = useState<string>(settings.selectedModel);
   const [availableModels, setAvailableModels] = useState<string[]>(settings.availableModels);
@@ -24,6 +41,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showKey, setShowKey] = useState<boolean>(false);
   const [isFetchingModels, setIsFetchingModels] = useState<boolean>(false);
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
+
+  // Editorial Guidelines & Glossary State
+  const [editorialRules, setEditorialRules] = useState<string>(
+    settings.editorialRules || defaultEditorialRules
+  );
+  const [glossary, setGlossary] = useState<GlossaryEntry[]>(() =>
+    settings.glossary && settings.glossary.length > 0
+      ? JSON.parse(JSON.stringify(settings.glossary))
+      : JSON.parse(JSON.stringify(defaultGlossary))
+  );
+
+  // New Glossary entry inputs
+  const [newTerm, setNewTerm] = useState<string>("");
+  const [newPreferred, setNewPreferred] = useState<string>("");
+  const [newExplanation, setNewExplanation] = useState<string>("");
 
   // Updater State
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
@@ -71,7 +103,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       } else if (res.error) {
         setUpdateMsg(`Fehler bei Prüfung: ${res.error}`);
       } else {
-        setUpdateMsg("✓ Sie verwenden bereits die neueste Version (v0.1.0 Beta).");
+        setUpdateMsg("✓ Sie verwenden die neueste Version (v0.2.0).");
       }
     } catch (err: any) {
       setUpdateMsg(`Fehler: ${err?.message || "Update-Prüfung fehlgeschlagen"}`);
@@ -98,190 +130,383 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const handleAddGlossaryEntry = () => {
+    if (!newTerm.trim() || !newPreferred.trim()) return;
+    const entry: GlossaryEntry = {
+      id: "g_" + Date.now(),
+      term: newTerm.trim(),
+      preferred: newPreferred.trim(),
+      explanation: newExplanation.trim() || undefined,
+    };
+    setGlossary((prev) => [...prev, entry]);
+    setNewTerm("");
+    setNewPreferred("");
+    setNewExplanation("");
+  };
+
+  const handleDeleteGlossaryEntry = (id: string) => {
+    setGlossary((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  const handleResetEditorial = () => {
+    if (confirm("Möchten Sie die Redaktionsregeln und das Glossar auf die ZQP-Standardwerte zurücksetzen?")) {
+      setEditorialRules(defaultEditorialRules);
+      setGlossary(JSON.parse(JSON.stringify(defaultGlossary)));
+    }
+  };
+
   const handleSave = () => {
     onSave({
       geminiApiKey: apiKey.trim(),
       selectedModel,
       availableModels,
       autoUpdate,
+      editorialRules,
+      glossary,
     });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl border border-[#bbd1cd] max-w-lg w-full p-6 shadow-xl flex flex-col gap-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl border border-[#bbd1cd] max-w-2xl w-full max-h-[90vh] p-5 shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#bbd1cd]">
-          <h3 className="text-base font-bold text-[#1b5c53] flex items-center gap-2">
-            <Key className="w-5 h-5 text-[#247a6d]" />
-            <span>Einstellungen & API-Konfiguration</span>
-          </h3>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs shadow-2xs">
+              ZQP
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#1b5c53]">
+                Einstellungen & Redaktions-Leitfaden
+              </h3>
+              <p className="text-[11px] text-[#6e6c70]">
+                API-Schlüssel, Modelle und zentrale Tonalitäts-Vorgaben für die KI
+              </p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* API Key Input */}
-        <div>
-          <label
-            htmlFor="gemini-key"
-            className="block text-xs font-semibold text-[#1b5c53] mb-1"
+        {/* Tab Switcher */}
+        <div className="flex items-center gap-1 border-b border-[#bbd1cd] pt-2 pb-0">
+          <button
+            type="button"
+            onClick={() => setActiveTab("api")}
+            className={`px-3.5 py-1.5 text-xs font-semibold rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "api"
+                ? "bg-[#f3f8f7] text-[#1b5c53] border-t border-x border-[#bbd1cd] shadow-2xs"
+                : "text-[#6e6c70] hover:text-[#1b5c53]"
+            }`}
           >
-            Google Gemini API Key
-          </label>
-          <div className="relative">
-            <input
-              id="gemini-key"
-              type={showKey ? "text" : "password"}
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="AIzaSy..."
-              className="w-full rounded-lg border border-[#bbd1cd] p-2.5 pr-20 text-xs font-mono focus:ring-2 focus:ring-[#247a6d] outline-none"
-            />
-            <button
-              type="button"
-              onClick={() => setShowKey(!showKey)}
-              className="absolute right-2 top-2 text-[11px] text-[#247a6d] font-semibold px-2 py-0.5 rounded hover:bg-[#f3f8f7] flex items-center gap-1"
-            >
-              {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              <span>{showKey ? "Verbergen" : "Zeigen"}</span>
-            </button>
-          </div>
-          <p className="text-[11px] text-[#6e6c70] mt-1 flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            Wird ausschließlich lokal auf Ihrem Rechner gespeichert.
-          </p>
+            <Key className="w-3.5 h-3.5 text-[#247a6d]" />
+            <span>API & Modelle</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("editorial")}
+            className={`px-3.5 py-1.5 text-xs font-semibold rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "editorial"
+                ? "bg-[#f3f8f7] text-[#1b5c53] border-t border-x border-[#bbd1cd] shadow-2xs"
+                : "text-[#6e6c70] hover:text-[#1b5c53]"
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 text-[#247a6d]" />
+            <span>Redaktions-Leitfaden & Glossar</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-[#247a6d] text-white text-[10px] font-bold">
+              {glossary.length}
+            </span>
+          </button>
         </div>
 
-        {/* Model Selection */}
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label
-              htmlFor="model-select"
-              className="text-xs font-semibold text-[#1b5c53] flex items-center gap-1.5"
-            >
-              <Cpu className="w-3.5 h-3.5 text-[#247a6d]" />
-              <span>Gemini KI-Modell</span>
-            </label>
-            <button
-              type="button"
-              onClick={handleRefreshModels}
-              disabled={isFetchingModels}
-              className="text-[11px] text-[#247a6d] hover:underline flex items-center gap-1 disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3 h-3 ${isFetchingModels ? "animate-spin" : ""}`} />
-              <span>Modelle von API aktualisieren</span>
-            </button>
-          </div>
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto py-3 space-y-4">
+          {activeTab === "api" ? (
+            <>
+              {/* API Key Input */}
+              <div>
+                <label
+                  htmlFor="gemini-key"
+                  className="block text-xs font-semibold text-[#1b5c53] mb-1"
+                >
+                  Google Gemini API Key
+                </label>
+                <div className="relative">
+                  <input
+                    id="gemini-key"
+                    type={showKey ? "text" : "password"}
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="AIzaSy..."
+                    className="w-full rounded-lg border border-[#bbd1cd] p-2.5 pr-20 text-xs font-mono focus:ring-2 focus:ring-[#247a6d] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKey(!showKey)}
+                    className="absolute right-2 top-2 text-[11px] text-[#247a6d] font-semibold px-2 py-0.5 rounded hover:bg-[#f3f8f7] flex items-center gap-1"
+                  >
+                    {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                    <span>{showKey ? "Verbergen" : "Zeigen"}</span>
+                  </button>
+                </div>
+                <p className="text-[11px] text-[#6e6c70] mt-1 flex items-center gap-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                  Wird ausschließlich lokal auf Ihrem Rechner gespeichert.
+                </p>
+              </div>
 
-          <div className="flex gap-2">
-            <input
-              type="text"
-              id="model-select"
-              value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
-              placeholder="z. B. gemini-3.0-flash, gemini-3.0-pro..."
-              className="flex-1 rounded-lg border border-[#bbd1cd] p-2.5 text-xs font-mono bg-white focus:ring-2 focus:ring-[#247a6d] outline-none"
-            />
-            {availableModels.length > 0 && (
-              <select
-                value=""
-                onChange={(e) => {
-                  if (e.target.value) setSelectedModel(e.target.value);
-                }}
-                className="w-36 rounded-lg border border-[#bbd1cd] p-2 text-xs bg-[#f3f8f7] text-[#1b5c53] font-semibold focus:ring-2 focus:ring-[#247a6d] outline-none cursor-pointer"
-              >
-                <option value="">Modell wählen...</option>
-                {availableModels.map((m) => (
-                  <option key={m} value={m}>
-                    {m}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <p className="text-[11px] text-[#6e6c70] mt-1">
-            Geben Sie das gewünschte Gemini-Modell frei ein oder synchronisieren Sie die neuesten Modelle direkt von der Google API.
-          </p>
+              {/* Model Selection */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label
+                    htmlFor="model-select"
+                    className="text-xs font-semibold text-[#1b5c53] flex items-center gap-1.5"
+                  >
+                    <Cpu className="w-3.5 h-3.5 text-[#247a6d]" />
+                    <span>Gemini KI-Modell</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleRefreshModels}
+                    disabled={isFetchingModels}
+                    className="text-[11px] text-[#247a6d] hover:underline flex items-center gap-1 disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isFetchingModels ? "animate-spin" : ""}`} />
+                    <span>Modelle von API aktualisieren</span>
+                  </button>
+                </div>
 
-          {fetchMsg && (
-            <p
-              className={`text-[11px] mt-1 ${
-                fetchMsg.startsWith("✓") ? "text-emerald-700 font-medium" : "text-amber-700"
-              }`}
-            >
-              {fetchMsg}
-            </p>
-          )}
-        </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    id="model-select"
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    placeholder="z. B. gemini-3.0-flash, gemini-3.0-pro..."
+                    className="flex-1 rounded-lg border border-[#bbd1cd] p-2.5 text-xs font-mono bg-white focus:ring-2 focus:ring-[#247a6d] outline-none"
+                  />
+                  {availableModels.length > 0 && (
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        if (e.target.value) setSelectedModel(e.target.value);
+                      }}
+                      className="w-36 rounded-lg border border-[#bbd1cd] p-2 text-xs bg-[#f3f8f7] text-[#1b5c53] font-semibold focus:ring-2 focus:ring-[#247a6d] outline-none cursor-pointer"
+                    >
+                      <option value="">Modell wählen...</option>
+                      {availableModels.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
 
-        {/* Auto Update Section */}
-        <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3.5 rounded-xl flex flex-col gap-2.5">
-          <div className="flex items-center justify-between">
-            <div>
-              <span className="text-xs font-bold text-[#1b5c53] block">
-                Automatische Updates
-              </span>
-              <span className="text-[11px] text-[#6e6c70]">
-                GitHub Releases (ZQP/quiz-generator) • v0.1.0 (Beta)
-              </span>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <span className="text-xs text-[#6e6c70]">Aktiviert</span>
-              <input
-                type="checkbox"
-                checked={autoUpdate}
-                onChange={(e) => setAutoUpdate(e.target.checked)}
-                className="w-4 h-4 text-[#247a6d] rounded focus:ring-[#247a6d]"
-              />
-            </label>
-          </div>
+                {fetchMsg && (
+                  <p
+                    className={`text-[11px] mt-1 ${
+                      fetchMsg.startsWith("✓") ? "text-emerald-700 font-medium" : "text-amber-700"
+                    }`}
+                  >
+                    {fetchMsg}
+                  </p>
+                )}
+              </div>
 
-          <div className="pt-2 border-t border-[#bbd1cd]/50 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={handleCheckUpdate}
-              disabled={isCheckingUpdate || isInstallingUpdate}
-              className="px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-white text-xs font-semibold text-[#1b5c53] hover:bg-gray-50 flex items-center gap-1.5 transition-colors disabled:opacity-50"
-            >
-              <RefreshCw className={`w-3.5 h-3.5 text-[#247a6d] ${isCheckingUpdate ? "animate-spin" : ""}`} />
-              <span>{isCheckingUpdate ? "Prüfe..." : "Jetzt nach Updates suchen"}</span>
-            </button>
+              {/* Auto Update Section */}
+              <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3 rounded-xl flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#1b5c53] block">
+                      Automatische Updates
+                    </span>
+                    <span className="text-[11px] text-[#6e6c70]">
+                      GitHub Releases (ZQP/quiz-generator) • v0.2.0
+                    </span>
+                  </div>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-xs text-[#6e6c70]">Aktiviert</span>
+                    <input
+                      type="checkbox"
+                      checked={autoUpdate}
+                      onChange={(e) => setAutoUpdate(e.target.checked)}
+                      className="w-4 h-4 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                    />
+                  </label>
+                </div>
 
-            {availableVersion && (
-              <button
-                type="button"
-                onClick={handleInstallUpdate}
-                disabled={isInstallingUpdate}
-                className="px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm animate-pulse"
-              >
-                <DownloadCloud className="w-3.5 h-3.5" />
-                <span>
-                  {isInstallingUpdate
-                    ? `Installiere... (${installProgress})`
-                    : `Update installieren (v${availableVersion})`}
+                <div className="pt-2 border-t border-[#bbd1cd]/50 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCheckUpdate}
+                    disabled={isCheckingUpdate || isInstallingUpdate}
+                    className="px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-white text-xs font-semibold text-[#1b5c53] hover:bg-gray-50 flex items-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <RefreshCw className={`w-3.5 h-3.5 text-[#247a6d] ${isCheckingUpdate ? "animate-spin" : ""}`} />
+                    <span>{isCheckingUpdate ? "Prüfe..." : "Jetzt nach Updates suchen"}</span>
+                  </button>
+
+                  {availableVersion && (
+                    <button
+                      type="button"
+                      onClick={handleInstallUpdate}
+                      disabled={isInstallingUpdate}
+                      className="px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs animate-pulse cursor-pointer"
+                    >
+                      <DownloadCloud className="w-3.5 h-3.5" />
+                      <span>
+                        {isInstallingUpdate
+                          ? `Installiere... (${installProgress})`
+                          : `Update installieren (v${availableVersion})`}
+                      </span>
+                    </button>
+                  )}
+                </div>
+
+                {updateMsg && (
+                  <p
+                    className={`text-[11px] ${
+                      updateMsg.startsWith("✓")
+                        ? "text-emerald-700 font-medium flex items-center gap-1"
+                        : updateMsg.includes("Fehler")
+                        ? "text-red-700"
+                        : "text-[#1b5c53] font-medium"
+                    }`}
+                  >
+                    {updateMsg.startsWith("✓") && <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />}
+                    {updateMsg}
+                  </p>
+                )}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Editorial Guidelines & Glossary Section */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-[#1b5c53]">
+                  Feste Redaktionsregeln für Gemini
                 </span>
-              </button>
-            )}
-          </div>
+                <button
+                  type="button"
+                  onClick={handleResetEditorial}
+                  className="text-[11px] text-[#247a6d] hover:underline flex items-center gap-1 cursor-pointer font-medium"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Auf ZQP-Standard zurücksetzen</span>
+                </button>
+              </div>
 
-          {updateMsg && (
-            <p
-              className={`text-[11px] ${
-                updateMsg.startsWith("✓")
-                  ? "text-emerald-700 font-medium flex items-center gap-1"
-                  : updateMsg.includes("Fehler")
-                  ? "text-red-700"
-                  : "text-[#1b5c53] font-medium"
-              }`}
-            >
-              {updateMsg.startsWith("✓") && <CheckCircle2 className="w-3 h-3 text-emerald-600 inline" />}
-              {updateMsg}
-            </p>
+              <div>
+                <textarea
+                  rows={4}
+                  value={editorialRules}
+                  onChange={(e) => setEditorialRules(e.target.value)}
+                  placeholder="Geben Sie hier Ihre festen Redaktions- und Tonalitätsrichtlinien ein..."
+                  className="w-full rounded-lg border border-[#bbd1cd] p-2.5 text-xs text-[#444444] leading-relaxed focus:ring-2 focus:ring-[#247a6d] outline-none resize-none font-sans"
+                />
+                <p className="text-[10px] text-[#6e6c70] mt-0.5">
+                  Diese Regeln werden automatisch jedem KI-Generierungs- und Verfeinerungs-Prompt vorangestellt.
+                </p>
+              </div>
+
+              {/* Protected Glossary */}
+              <div className="pt-2 border-t border-[#bbd1cd]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-[#1b5c53]">
+                    Geschützte ZQP-Nomenklatur & Begriffsersetzungen
+                  </span>
+                  <span className="text-[11px] text-[#6e6c70]">
+                    {glossary.length} Begriffe definiert
+                  </span>
+                </div>
+
+                {/* Glossary Table */}
+                <div className="border border-[#bbd1cd] rounded-xl overflow-hidden bg-white max-h-48 overflow-y-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead className="bg-[#f3f8f7] text-[#1b5c53] font-semibold sticky top-0 border-b border-[#bbd1cd]">
+                      <tr>
+                        <th className="p-2">Vermeiden (Alter Begriff)</th>
+                        <th className="p-2">Bevorzugter ZQP-Begriff</th>
+                        <th className="p-2 hidden sm:table-cell">Begründung / Notiz</th>
+                        <th className="p-2 w-8 text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#bbd1cd]/40">
+                      {glossary.map((entry) => (
+                        <tr key={entry.id} className="hover:bg-[#f9fbfb]">
+                          <td className="p-2 text-rose-700 font-medium line-through">
+                            {entry.term}
+                          </td>
+                          <td className="p-2 text-[#1b5c53] font-bold">
+                            {entry.preferred}
+                          </td>
+                          <td className="p-2 text-[11px] text-[#6e6c70] hidden sm:table-cell">
+                            {entry.explanation || "-"}
+                          </td>
+                          <td className="p-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteGlossaryEntry(entry.id)}
+                              className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                              title="Begriff entfernen"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Add new glossary entry */}
+                <div className="mt-2.5 p-2.5 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] flex flex-col gap-2">
+                  <span className="text-[11px] font-bold text-[#1b5c53]">
+                    Neuen Begriff hinzufügen:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Vermeiden (z.B. Heim)"
+                      value={newTerm}
+                      onChange={(e) => setNewTerm(e.target.value)}
+                      className="rounded-lg border border-[#bbd1cd] p-1.5 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Bevorzugt (z.B. Pflegeheim)"
+                      value={newPreferred}
+                      onChange={(e) => setNewPreferred(e.target.value)}
+                      className="rounded-lg border border-[#bbd1cd] p-1.5 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="Notiz (optional)"
+                        value={newExplanation}
+                        onChange={(e) => setNewExplanation(e.target.value)}
+                        className="flex-1 rounded-lg border border-[#bbd1cd] p-1.5 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddGlossaryEntry}
+                        disabled={!newTerm.trim() || !newPreferred.trim()}
+                        className="px-2.5 py-1.5 rounded-lg bg-[#247a6d] text-white hover:bg-[#1b5c53] text-xs font-semibold disabled:opacity-40 transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Hinzufügen</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
           )}
         </div>
 
@@ -290,14 +515,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-[#bbd1cd] text-xs font-medium hover:bg-gray-50"
+            className="px-4 py-2 rounded-lg border border-[#bbd1cd] text-xs font-medium hover:bg-gray-50 cursor-pointer"
           >
             Abbrechen
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-4 py-2 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold shadow-sm"
+            className="px-4 py-2 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold shadow-2xs cursor-pointer"
           >
             Einstellungen speichern
           </button>

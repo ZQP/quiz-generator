@@ -75,6 +75,22 @@ export interface BlankItem {
   options: string[];
 }
 
+export type EditorialStatus = "draft" | "in_review" | "approved";
+
+export interface GlossaryEntry {
+  id: string;
+  term: string;        // E.g. "Demenzkranke"
+  preferred: string;   // E.g. "Menschen mit Demenz"
+  explanation?: string;// E.g. "Person-zentrierte Sprache nach Tom Kitwood"
+}
+
+export interface FavoriteStation {
+  id: string;
+  savedAt: string;
+  category?: string;
+  station: QuizStation;
+}
+
 export interface QuizStation {
   id: string;
   type: StationType;
@@ -92,6 +108,9 @@ export interface QuizStation {
   checklistItems?: ChecklistItem[];
   fillInSentence?: string;
   fillInBlanks?: BlankItem[];
+  editorialStatus?: EditorialStatus;
+  editorialNotes?: string;
+  sourceQuote?: string; // Direct citation from source document (anti-hallucination)
 }
 
 export interface QuizGenerationResult {
@@ -106,6 +125,9 @@ export interface QuizGenerationResult {
   generatedJs: string;
   tailwindConfig?: string;
   enablePrintSummary?: boolean;
+  referenceSourceText?: string; // Full original uploaded/input text for verification
+  editorialStatus?: EditorialStatus;
+  editorialNotes?: string;
 }
 
 export interface AppSettings {
@@ -113,4 +135,6 @@ export interface AppSettings {
   selectedModel: string;
   availableModels: string[];
   autoUpdate: boolean;
+  editorialRules?: string;
+  glossary?: GlossaryEntry[];
 }
