@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   X,
   Key,
@@ -94,6 +94,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [newTerm, setNewTerm] = useState<string>("");
   const [newPreferred, setNewPreferred] = useState<string>("");
   const [newExplanation, setNewExplanation] = useState<string>("");
+  const newTermInputRef = useRef<HTMLInputElement>(null);
 
   // Updater State
   const [isCheckingUpdate, setIsCheckingUpdate] = useState<boolean>(false);
@@ -181,6 +182,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setNewTerm("");
     setNewPreferred("");
     setNewExplanation("");
+    setTimeout(() => {
+      newTermInputRef.current?.focus();
+    }, 0);
   };
 
   const handleDeleteGlossaryEntry = (id: string) => {
@@ -217,7 +221,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl border border-[#bbd1cd] max-w-2xl w-full max-h-[90vh] p-5 shadow-2xl flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#bbd1cd] max-w-3xl w-full max-h-[90vh] p-5 shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[#bbd1cd]">
           <div className="flex items-center gap-2">
@@ -273,7 +277,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto py-3 space-y-4">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-3 space-y-4">
           {activeTab === "api" ? (
             <>
               {/* API Key Input */}
@@ -470,33 +474,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 {/* Glossary Table */}
-                <div className="border border-[#bbd1cd] rounded-xl overflow-hidden bg-white max-h-48 overflow-y-auto">
-                  <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-[#f3f8f7] text-[#1b5c53] font-semibold sticky top-0 border-b border-[#bbd1cd]">
+                <div className="border border-[#bbd1cd] rounded-xl overflow-hidden bg-white max-h-52 overflow-y-auto">
+                  <table className="w-full text-left text-xs border-collapse table-fixed">
+                    <thead className="bg-[#f3f8f7] text-[#1b5c53] font-semibold sticky top-0 border-b border-[#bbd1cd] z-10">
                       <tr>
-                        <th className="p-2">Vermeiden (Alter Begriff)</th>
-                        <th className="p-2">Bevorzugter ZQP-Begriff</th>
-                        <th className="p-2 hidden sm:table-cell">Begründung / Notiz</th>
-                        <th className="p-2 w-8 text-center"></th>
+                        <th className="p-2.5 w-[32%]">Vermeiden (Alter Begriff)</th>
+                        <th className="p-2.5 w-[34%]">Bevorzugter ZQP-Begriff</th>
+                        <th className="p-2.5 w-[26%]">Begründung / Notiz</th>
+                        <th className="p-2.5 w-[8%] text-center"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#bbd1cd]/40">
                       {glossary.map((entry) => (
                         <tr key={entry.id} className="hover:bg-[#f9fbfb]">
-                          <td className="p-2 text-rose-700 font-medium line-through">
+                          <td className="p-2.5 text-rose-700 font-medium line-through break-words">
                             {entry.term}
                           </td>
-                          <td className="p-2 text-[#1b5c53] font-bold">
+                          <td className="p-2.5 text-[#1b5c53] font-bold break-words">
                             {entry.preferred}
                           </td>
-                          <td className="p-2 text-[11px] text-[#6e6c70] hidden sm:table-cell">
+                          <td className="p-2.5 text-[11px] text-[#6e6c70] break-words">
                             {entry.explanation || "-"}
                           </td>
-                          <td className="p-2 text-center">
+                          <td className="p-2.5 text-center">
                             <button
                               type="button"
                               onClick={() => handleDeleteGlossaryEntry(entry.id)}
-                              className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer"
+                              className="text-gray-400 hover:text-red-600 transition-colors cursor-pointer p-1 rounded hover:bg-red-50"
                               title="Begriff entfernen"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -509,43 +513,80 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
 
                 {/* Add new glossary entry */}
-                <div className="mt-2.5 p-2.5 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] flex flex-col gap-2">
-                  <span className="text-[11px] font-bold text-[#1b5c53]">
-                    Neuen Begriff hinzufügen:
+                <div className="mt-3 p-3 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] flex flex-col gap-2.5">
+                  <span className="text-xs font-bold text-[#1b5c53] flex items-center gap-1.5">
+                    <Plus className="w-3.5 h-3.5 text-[#247a6d]" />
+                    <span>Neuen Begriff zum Fachglossar hinzufügen</span>
                   </span>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                    <input
-                      type="text"
-                      placeholder="Vermeiden (z.B. Heim)"
-                      value={newTerm}
-                      onChange={(e) => setNewTerm(e.target.value)}
-                      className="rounded-lg border border-[#bbd1cd] p-1.5 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Bevorzugt (z.B. Pflegeheim)"
-                      value={newPreferred}
-                      onChange={(e) => setNewPreferred(e.target.value)}
-                      className="rounded-lg border border-[#bbd1cd] p-1.5 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
-                    />
-                    <div className="flex gap-1.5">
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                        Vermeiden (Alter Begriff) *
+                      </label>
+                      <input
+                        ref={newTermInputRef}
+                        type="text"
+                        placeholder="z. B. Demenzkranke, Altenheim"
+                        value={newTerm}
+                        onChange={(e) => setNewTerm(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newTerm.trim() && newPreferred.trim()) {
+                            e.preventDefault();
+                            handleAddGlossaryEntry();
+                          }
+                        }}
+                        className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                        Bevorzugter ZQP-Begriff *
+                      </label>
                       <input
                         type="text"
-                        placeholder="Notiz (optional)"
+                        placeholder="z. B. Menschen mit Demenz, Pflegeeinrichtung"
+                        value={newPreferred}
+                        onChange={(e) => setNewPreferred(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newTerm.trim() && newPreferred.trim()) {
+                            e.preventDefault();
+                            handleAddGlossaryEntry();
+                          }
+                        }}
+                        className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2.5 items-end">
+                    <div className="flex-1 w-full min-w-0">
+                      <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                        Begründung / redaktionelle Notiz (optional)
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="z. B. Personenzentrierte Sprache nach Tom Kitwood"
                         value={newExplanation}
                         onChange={(e) => setNewExplanation(e.target.value)}
-                        className="flex-1 rounded-lg border border-[#bbd1cd] p-1.5 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newTerm.trim() && newPreferred.trim()) {
+                            e.preventDefault();
+                            handleAddGlossaryEntry();
+                          }
+                        }}
+                        className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
                       />
-                      <button
-                        type="button"
-                        onClick={handleAddGlossaryEntry}
-                        disabled={!newTerm.trim() || !newPreferred.trim()}
-                        className="px-2.5 py-1.5 rounded-lg bg-[#247a6d] text-white hover:bg-[#1b5c53] text-xs font-semibold disabled:opacity-40 transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Hinzufügen</span>
-                      </button>
                     </div>
+                    <button
+                      type="button"
+                      onClick={handleAddGlossaryEntry}
+                      disabled={!newTerm.trim() || !newPreferred.trim()}
+                      className="w-full sm:w-auto px-4 py-2 rounded-lg bg-[#247a6d] text-white hover:bg-[#1b5c53] text-xs font-semibold disabled:opacity-40 transition-colors flex items-center justify-center gap-1.5 shrink-0 cursor-pointer shadow-2xs h-[34px]"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Hinzufügen</span>
+                    </button>
                   </div>
                 </div>
               </div>
