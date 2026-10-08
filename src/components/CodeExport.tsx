@@ -10,7 +10,7 @@ interface CodeExportProps {
 
 export const CodeExport: React.FC<CodeExportProps> = ({ quiz, onTogglePrintSummary }) => {
   const [activeTab, setActiveTab] = useState<"html" | "css" | "js" | "tailwind">("html");
-  const [includeTailwindInHtml, setIncludeTailwindInHtml] = useState<boolean>(true);
+  const [includeTailwindInHtml, setIncludeTailwindInHtml] = useState<boolean>(false);
   const [copiedTab, setCopiedTab] = useState<string | null>(null);
 
   // Compile pixel-perfect production bundle matching QuizPreview 1:1
