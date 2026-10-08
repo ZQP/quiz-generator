@@ -14,6 +14,12 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.6 (Layout-Fix für Redaktionsleitfaden & Glossar)
+
+- **Layout & Overflow-Fix im Redaktionsleitfaden**: Horizontales Scrollen und abgeschnittene Formularbereiche im Einstellungsfenster behoben (`overflow-x-hidden`, verbreitertes Modal auf `max-w-3xl`).
+- **Neues 2-Zeilen-Formular für Glossarbegriffe**: Klare getrennte Felder für *„Vermeiden (Alter Begriff)“*, *„Bevorzugter ZQP-Begriff“* und Notizen mit Schnellbedienung via Enter-Taste.
+- **Stabile Tabellenbreiten**: Feste prozentuale Spalten und automatischer Zeilenumbruch für das geschützte ZQP-Fachglossar.
+
 ## Neu in v0.2.5 (Modell-Standard `gemini-3.8-flash` & Dynamischer Modellabruf)
 
 - **Gemini-Standardmodell `gemini-3.8-flash`**: Das Modell `gemini-3.8-flash` ist nun fest als primäres Standardmodell voreingestellt.
