@@ -404,7 +404,7 @@ export const App: React.FC = () => {
                 canRedo={historyIndex < quizHistory.length - 1}
                 onUndo={handleUndo}
                 onRedo={handleRedo}
-                versionInfo={`Version ${historyIndex + 1} von ${quizHistory.length}`}
+                versionInfo={`Revision ${historyIndex + 1} von ${quizHistory.length}`}
                 onSwitchToNewQuiz={() => setLeftPanelMode("create")}
               />
             ) : (
@@ -447,12 +447,20 @@ export const App: React.FC = () => {
               </button>
             </div>
 
-            {/* Persistence Indicator */}
+            {/* Persistence & Revision Indicator */}
             <div className="flex items-center gap-2">
               {quizHistory.length > 0 && (
                 <span className="text-[11px] text-[#247a6d] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] hidden sm:inline-flex items-center gap-1 font-medium shadow-2xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                   Gesichert
+                </span>
+              )}
+              {quizHistory.length > 1 && (
+                <span
+                  className="text-[11px] text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] font-semibold shadow-2xs"
+                  title={`Aktueller Bearbeitungsstand: Revision ${historyIndex + 1} von ${quizHistory.length}`}
+                >
+                  Revision {historyIndex + 1}
                 </span>
               )}
             </div>
