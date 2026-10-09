@@ -14,6 +14,15 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.7 (WYSIWYG-Stationen, Token-Optimierung, Glossar-Audit & Barrierearmut)
+
+- **Vollständige WYSIWYG-Station-Verwaltung**: Stationen können nun frei per Klick nach links/rechts verschoben (`‹` / `›`), dupliziert, gelöscht und als neue Station aus allen 9 Quiz-Formaten angelegt werden. Optionen lassen sich dynamisch hinzufügen und entfernen.
+- **Token- & Prompt-Effizienz**: Entlastung des Gemini-Prompts und JSON-Schemas um statischen HTML/CSS/JS-Code – spart rund 25 % Token und sorgt für schnellere, robustere Generierungen.
+- **Speichersicherheit (LocalStorage Quota)**: Automatisches Bereinigen schwerer kompilierter Bundles vor dem Speichern in LocalStorage, Fallback-Kompaktierung und visuelle Warnung bei Speicher-Überlauf.
+- **Qualitäts-Audit & ZQP-Glossar**: Automatischer Scan nach veralteten/unerwünschten Begriffen (z. B. „Verwirrtheit“, „Pflegebedürftiger“) inklusive 1-Klick-Autokorrektur aller betroffenen Stationen.
+- **Barrierefreiheit (A / A+ Schriftgrößen-Umschaltung)**: Schnelle Umschaltung für große Schriftgröße in der Vorschau und im HTML-Export inklusive sanftem vertikalen Scrolling.
+- **Globale Tastenkürzel**: `Escape` schließt alle Modals zuverlässig, `Strg+Z` und `Strg+Y` ermöglichen schnelles Rückgängigmachen / Wiederholen im Entwurfsverlauf.
+
 ## Neu in v0.2.6 (Layout-Fix für Redaktionsleitfaden & Glossar)
 
 - **Layout & Overflow-Fix im Redaktionsleitfaden**: Horizontales Scrollen und abgeschnittene Formularbereiche im Einstellungsfenster behoben (`overflow-x-hidden`, verbreitertes Modal auf `max-w-3xl`).
