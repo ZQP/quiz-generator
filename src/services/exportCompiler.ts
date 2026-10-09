@@ -152,21 +152,33 @@ tailwind.config = {
 }
 
 #zqp-game-root.zqp-font-large .zqp-header-title {
-  font-size: 1.25rem;
+  font-size: 1.25rem !important;
 }
 
-#zqp-game-root.zqp-font-large .zqp-prompt {
-  font-size: 0.9375rem !important;
+#zqp-game-root.zqp-font-large .zqp-prompt-instruction {
+  font-size: 1.05rem !important;
   line-height: 1.45 !important;
 }
 
-#zqp-game-root.zqp-font-large .zqp-choice-text,
-#zqp-game-root.zqp-font-large .zqp-matching-card,
-#zqp-game-root.zqp-font-large .zqp-sort-card,
-#zqp-game-root.zqp-font-large .zqp-scenario-desc,
-#zqp-game-root.zqp-font-large .zqp-statement-card {
-  font-size: 0.875rem !important;
+#zqp-game-root.zqp-font-large .zqp-papercut-card {
+  font-size: 0.9375rem !important;
   line-height: 1.4 !important;
+}
+
+#zqp-game-root.zqp-font-large .zqp-papercut-card p,
+#zqp-game-root.zqp-font-large .zqp-papercut-card span:not(.zqp-papercut-tag),
+#zqp-game-root.zqp-font-large .zqp-papercut-card label {
+  font-size: 0.9375rem !important;
+  line-height: 1.4 !important;
+}
+
+#zqp-game-root.zqp-font-large .zqp-hint-banner {
+  font-size: 0.875rem !important;
+}
+
+#zqp-game-root.zqp-font-large .zqp-drawer-body {
+  font-size: 0.95rem !important;
+  line-height: 1.5 !important;
 }
 
 #zqp-game-root .zqp-header-title {

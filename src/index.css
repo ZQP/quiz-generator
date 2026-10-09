@@ -178,3 +178,72 @@ body {
   background-image: radial-gradient(#bbd1cd 1.2px, transparent 1.2px);
   background-size: 8px 8px;
 }
+
+/* ==============================================================
+   BARRIEREFREIHEIT / ACCESSIBILITY: GROSSE SCHRIFTGRÖSSE (A+)
+   ============================================================== */
+
+.zqp-font-large {
+  font-size: 1.15em;
+}
+
+.zqp-font-large .text-\[9px\] {
+  font-size: 11px !important;
+  line-height: 1.35 !important;
+}
+
+.zqp-font-large .text-\[10px\] {
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+}
+
+.zqp-font-large .text-\[11px\] {
+  font-size: 13.5px !important;
+  line-height: 1.45 !important;
+}
+
+.zqp-font-large .text-xs,
+.zqp-font-large .text-\[12px\] {
+  font-size: 14.5px !important;
+  line-height: 1.45 !important;
+}
+
+.zqp-font-large .text-\[13px\] {
+  font-size: 15.5px !important;
+  line-height: 1.5 !important;
+}
+
+.zqp-font-large .text-sm,
+.zqp-font-large .text-\[14px\] {
+  font-size: 16.5px !important;
+  line-height: 1.5 !important;
+}
+
+.zqp-font-large .text-base,
+.zqp-font-large .text-\[15px\],
+.zqp-font-large .text-\[16px\] {
+  font-size: 18.5px !important;
+  line-height: 1.55 !important;
+}
+
+.zqp-font-large .text-lg {
+  font-size: 21px !important;
+  line-height: 1.6 !important;
+}
+
+.zqp-font-large .text-xl {
+  font-size: 23px !important;
+  line-height: 1.6 !important;
+}
+
+.zqp-font-large h3 {
+  font-size: 1.1rem !important;
+  line-height: 1.45 !important;
+}
+
+.zqp-font-large .zqp-papercut-card p,
+.zqp-font-large .zqp-papercut-card span:not(.zqp-papercut-tag) {
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+}
+

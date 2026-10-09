@@ -1117,8 +1117,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
             </div>
           </header>
 
-          {/* 2. COMPACT STAGE (flex-1 overflow-hidden p-3 sm:p-4 flex flex-col justify-start) */}
-          <div className="flex-1 min-h-0 overflow-hidden p-3 sm:p-4 flex flex-col justify-start relative">
+          {/* 2. COMPACT STAGE (flex-1 overflow-y-auto zqp-scrollbar p-3 sm:p-4 flex flex-col justify-start) */}
+          <div className="flex-1 min-h-0 overflow-y-auto zqp-scrollbar p-3 sm:p-4 flex flex-col justify-start relative">
             {!completed && currentStation && (
               <div className="flex flex-col gap-2.5 h-full">
                 <div>
