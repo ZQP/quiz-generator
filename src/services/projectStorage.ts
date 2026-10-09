@@ -32,11 +32,45 @@ export function loadProjects(): QuizProject[] {
   return [];
 }
 
-export function saveProjects(projects: QuizProject[]): void {
+export function stripCompiledBundle(quiz: QuizGenerationResult): QuizGenerationResult {
+  if (!quiz) return quiz;
+  const { generatedHtml, generatedCss, generatedJs, tailwindConfig, ...clean } = quiz;
+  return clean as QuizGenerationResult;
+}
+
+export function saveProjects(projects: QuizProject[]): boolean {
   try {
-    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
+    const compactProjects = projects.map((p) => ({
+      ...p,
+      history: (p.history || []).map(stripCompiledBundle),
+    }));
+    localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(compactProjects));
+    return true;
   } catch (err) {
-    console.warn("Fehler beim Speichern der Projektbibliothek:", err);
+    console.warn("Fehler beim Speichern der Projektbibliothek, versuche Notfall-Bereinigung:", err);
+    try {
+      // Emergency compaction: keep max 4 revisions per project to stay under quota
+      const trimmed = projects.map((p) => {
+        const h = (p.history || []).slice(-4).map(stripCompiledBundle);
+        return {
+          ...p,
+          history: h,
+          currentIndex: Math.min(p.currentIndex, Math.max(0, h.length - 1)),
+        };
+      });
+      localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(trimmed));
+      return true;
+    } catch (criticalErr) {
+      console.error("Kritischer Speicherfehler (LocalStorage Quota überschritten):", criticalErr);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("zqp_storage_quota_exceeded", {
+            detail: { message: "Lokaler Speicher ist voll. Bitte ältere Projekte exportieren oder löschen." },
+          })
+        );
+      }
+      return false;
+    }
   }
 }
 

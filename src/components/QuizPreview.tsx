@@ -58,6 +58,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
   onOpenAudit,
 }) => {
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
+  const [fontSizeScale, setFontSizeScale] = useState<"normal" | "large">("normal");
   const [currentStationIdx, setCurrentStationIdx] = useState<number>(0);
   const [completed, setCompleted] = useState<boolean>(false);
 
@@ -858,7 +859,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
               <button
                 type="button"
                 onClick={() => setViewport("desktop")}
-                className={`p-1 rounded text-xs transition-colors ${
+                className={`p-1 rounded text-xs transition-colors cursor-pointer ${
                   viewport === "desktop" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
                 }`}
                 title="Desktop-Ansicht"
@@ -868,12 +869,36 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
               <button
                 type="button"
                 onClick={() => setViewport("mobile")}
-                className={`p-1 rounded text-xs transition-colors ${
+                className={`p-1 rounded text-xs transition-colors cursor-pointer ${
                   viewport === "mobile" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
                 }`}
                 title="Smartphone-Ansicht"
               >
                 <Smartphone className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Font size toggle for accessibility */}
+            <div className="flex bg-[#e3eeec] p-0.5 rounded-lg border border-[#bbd1cd] h-7 items-center">
+              <button
+                type="button"
+                onClick={() => setFontSizeScale("normal")}
+                className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                  fontSizeScale === "normal" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
+                }`}
+                title="Normale Schriftgröße"
+              >
+                A
+              </button>
+              <button
+                type="button"
+                onClick={() => setFontSizeScale("large")}
+                className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
+                  fontSizeScale === "large" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
+                }`}
+                title="Große Schriftgröße (Barrierearm)"
+              >
+                A+
               </button>
             </div>
 
@@ -1030,7 +1055,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
             viewport === "mobile"
               ? "max-w-[390px] h-[570px] max-h-[85vh]"
               : "max-w-2xl h-[570px] max-h-[85vh]"
-          }`}
+          } ${fontSizeScale === "large" ? "zqp-font-large text-[15px]" : ""}`}
         >
           {/* 1. FIXED HEADER (shrink-0) */}
           <header className="bg-gradient-to-r from-[#247a6d] to-[#1b5c53] text-white px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm shrink-0">
@@ -1039,11 +1064,39 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                 <Puzzle className="w-3.5 h-3.5 text-emerald-400" />
                 ZQP Interaktiver Praxistest
               </span>
-              <span>
-                {completed
-                  ? "Abgeschlossen"
-                  : `Station ${currentStationIdx + 1} von ${quiz.stations.length}`}
-              </span>
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center bg-[#00473d]/50 border border-[#bbd1cd]/30 rounded p-0.5 gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setFontSizeScale("normal")}
+                    className={`px-1.5 py-0.2 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                      fontSizeScale === "normal"
+                        ? "bg-white text-[#1b5c53] shadow-xs"
+                        : "text-[#bbd1cd] hover:text-white"
+                    }`}
+                    title="Normale Schriftgröße"
+                  >
+                    A
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFontSizeScale("large")}
+                    className={`px-1.5 py-0.2 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                      fontSizeScale === "large"
+                        ? "bg-white text-[#1b5c53] shadow-xs"
+                        : "text-[#bbd1cd] hover:text-white"
+                    }`}
+                    title="Große Schriftgröße (Barrierearm)"
+                  >
+                    A+
+                  </button>
+                </div>
+                <span>
+                  {completed
+                    ? "Abgeschlossen"
+                    : `Station ${currentStationIdx + 1} von ${quiz.stations.length}`}
+                </span>
+              </div>
             </div>
             <h2 className="text-base sm:text-lg font-bold leading-tight text-white line-clamp-1">
               {quiz.title}

@@ -10,6 +10,7 @@ import {
   saveFavoriteStation,
   loadFavoriteStations,
   deleteFavoriteStation,
+  stripCompiledBundle,
 } from "./projectStorage";
 import { QuizGenerationResult } from "../types";
 
@@ -156,6 +157,23 @@ describe("projectStorage", () => {
     expect(loadFavoriteStations().length).toBe(0);
     expect(eventDispatched).toBe(true);
     window.removeEventListener("zqp_favorites_changed", listener);
+  });
+
+  it("strips bulky compiled code bundles to save localStorage space", () => {
+    const bulkyQuiz: QuizGenerationResult = {
+      ...mockQuiz,
+      generatedHtml: "<div id='heavy-html'>...50kb...</div>",
+      generatedCss: ".heavy-css { color: red; }",
+      generatedJs: "console.log('heavy-js');",
+      tailwindConfig: "tailwind.config = {};",
+    };
+
+    const stripped = stripCompiledBundle(bulkyQuiz);
+    expect(stripped.title).toBe("Demenz-Quiz");
+    expect(stripped.generatedHtml).toBeUndefined();
+    expect(stripped.generatedCss).toBeUndefined();
+    expect(stripped.generatedJs).toBeUndefined();
+    expect(stripped.tailwindConfig).toBeUndefined();
   });
 });
 

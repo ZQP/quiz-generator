@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { analyzeQuizQuality } from "./qualityAnalyzer";
+import { analyzeQuizQuality, applyGlossaryFixesToQuiz } from "./qualityAnalyzer";
 import { QuizGenerationResult } from "../types";
 
 describe("qualityAnalyzer", () => {
@@ -57,5 +57,49 @@ describe("qualityAnalyzer", () => {
 
     expect(report.didacticScore).toBe(100);
     expect(report.overallScore).toBeGreaterThanOrEqual(80);
+  });
+
+  it("detects prohibited glossary terms and reports them in glossaryViolations", () => {
+    const dirtyQuiz: QuizGenerationResult = {
+      ...mockQuiz,
+      title: "Quiz für Demenzkranke und Bettlägerige",
+      stations: [
+        {
+          ...mockQuiz.stations[0],
+          promptOrInstruction: "Wie sollten Demenzkranke im Altenheim gepflegt werden?",
+        },
+      ],
+    };
+
+    const report = analyzeQuizQuality(dirtyQuiz);
+
+    expect(report.glossaryViolations.length).toBeGreaterThan(0);
+    expect(report.glossaryViolations.some((v) => v.term === "Demenzkranke")).toBe(true);
+    expect(report.glossaryViolations.some((v) => v.term === "Bettlägerige")).toBe(true);
+    expect(report.glossaryViolations.some((v) => v.term === "Altenheim")).toBe(true);
+    expect(report.findings.some((f) => f.title.includes("ZQP-Fachglossar"))).toBe(true);
+  });
+
+  it("applies 1-click glossary fixes and restores 100% compliance", () => {
+    const dirtyQuiz: QuizGenerationResult = {
+      ...mockQuiz,
+      title: "Quiz für Demenzkranke",
+      stations: [
+        {
+          ...mockQuiz.stations[0],
+          promptOrInstruction: "Betreuung im Altenheim für Pflegefälle.",
+        },
+      ],
+    };
+
+    const fixed = applyGlossaryFixesToQuiz(dirtyQuiz);
+    expect(fixed.title).toContain("Menschen mit Demenz");
+    expect(fixed.title).not.toContain("Demenzkranke");
+    expect(fixed.stations[0].promptOrInstruction).toContain("Pflegeeinrichtung");
+    expect(fixed.stations[0].promptOrInstruction).toContain("Pflegebedürftige");
+
+    const newReport = analyzeQuizQuality(fixed);
+    expect(newReport.glossaryViolations).toHaveLength(0);
+    expect(newReport.glossaryScore).toBe(100);
   });
 });

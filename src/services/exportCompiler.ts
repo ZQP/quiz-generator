@@ -118,6 +118,57 @@ tailwind.config = {
   color: #6ee7b7;
 }
 
+#zqp-game-root .zqp-font-controls {
+  display: inline-flex;
+  align-items: center;
+  background: rgba(0, 71, 61, 0.45);
+  border: 1px solid rgba(187, 209, 205, 0.4);
+  border-radius: 6px;
+  padding: 1px;
+  gap: 2px;
+}
+
+#zqp-game-root .zqp-font-btn {
+  background: transparent;
+  border: none;
+  color: #bbd1cd;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  line-height: 1.2;
+  transition: all 0.15s ease;
+}
+
+#zqp-game-root .zqp-font-btn:hover {
+  color: #ffffff;
+}
+
+#zqp-game-root .zqp-font-btn.active {
+  background: #ffffff;
+  color: #1b5c53;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+}
+
+#zqp-game-root.zqp-font-large .zqp-header-title {
+  font-size: 1.25rem;
+}
+
+#zqp-game-root.zqp-font-large .zqp-prompt {
+  font-size: 0.9375rem !important;
+  line-height: 1.45 !important;
+}
+
+#zqp-game-root.zqp-font-large .zqp-choice-text,
+#zqp-game-root.zqp-font-large .zqp-matching-card,
+#zqp-game-root.zqp-font-large .zqp-sort-card,
+#zqp-game-root.zqp-font-large .zqp-scenario-desc,
+#zqp-game-root.zqp-font-large .zqp-statement-card {
+  font-size: 0.875rem !important;
+  line-height: 1.4 !important;
+}
+
 #zqp-game-root .zqp-header-title {
   font-size: 1.125rem;
   font-weight: 700;
@@ -492,7 +543,13 @@ tailwind.config = {
   <header class="zqp-header">
     <div class="zqp-header-top">
       <span class="zqp-badge-praxistest">🧩 ZQP INTERAKTIVER PRAXISTEST</span>
-      <span id="zqp-station-counter">Station 1 von ${targetCount}</span>
+      <div style="display:flex; align-items:center; gap:0.625rem;">
+        <div class="zqp-font-controls" role="group" aria-label="Schriftgröße einstellen">
+          <button type="button" class="zqp-font-btn zqp-font-norm active" aria-label="Normale Schriftgröße" title="Normale Schrift (A)">A</button>
+          <button type="button" class="zqp-font-btn zqp-font-lg" aria-label="Große Schriftgröße" title="Große Schrift (A+)">A+</button>
+        </div>
+        <span id="zqp-station-counter">Station 1 von ${targetCount}</span>
+      </div>
     </div>
     <h2 id="zqp-game-title" class="zqp-header-title">${quiz.title}</h2>
     <div class="zqp-progress-bar">
@@ -1189,6 +1246,22 @@ tailwind.config = {
 
   if (btnCloseDrawer) {
     btnCloseDrawer.onclick = closeDrawer;
+  }
+
+  // Accessible font size toggle
+  var btnFontNorm = root.querySelector(".zqp-font-norm");
+  var btnFontLg = root.querySelector(".zqp-font-lg");
+  if (btnFontNorm && btnFontLg) {
+    btnFontNorm.onclick = function() {
+      root.classList.remove("zqp-font-large");
+      btnFontNorm.classList.add("active");
+      btnFontLg.classList.remove("active");
+    };
+    btnFontLg.onclick = function() {
+      root.classList.add("zqp-font-large");
+      btnFontLg.classList.add("active");
+      btnFontNorm.classList.remove("active");
+    };
   }
 
   // Initial render

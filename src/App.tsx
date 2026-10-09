@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Header } from "./components/Header";
 import { PromptInput } from "./components/PromptInput";
 import { QuizRefiner } from "./components/QuizRefiner";
@@ -12,6 +12,7 @@ import { SourceInspectorModal } from "./components/SourceInspectorModal";
 import { FavoritesLibraryModal } from "./components/FavoritesLibraryModal";
 import { AppSettings, QuizGenerationResult, TargetAudience, StationType, EditorialStatus, QuizStation } from "./types";
 import { loadSettings, saveSettings, generateQuizWithGemini, refineQuizWithGemini } from "./services/geminiService";
+import { compileQuizToBundle } from "./services/exportCompiler";
 import {
   QuizProject,
   loadProjects,
@@ -21,6 +22,7 @@ import {
   getActiveProjectId,
   setActiveProjectId,
   importProjectFromJson,
+  stripCompiledBundle,
 } from "./services/projectStorage";
 import { Eye, Code2, Sparkles, PlusCircle } from "lucide-react";
 
@@ -84,18 +86,35 @@ export const App: React.FC = () => {
     return draft ? draft.index : -1;
   });
 
-  const currentQuiz: QuizGenerationResult | null = historyIndex >= 0 ? quizHistory[historyIndex] : null;
+  const rawCurrentQuiz: QuizGenerationResult | null = historyIndex >= 0 ? quizHistory[historyIndex] : null;
+
+  // Ensure currentQuiz always has a compiled code bundle hydrated
+  const currentQuiz = useMemo(() => {
+    if (!rawCurrentQuiz) return null;
+    if (!rawCurrentQuiz.generatedHtml || !rawCurrentQuiz.generatedCss || !rawCurrentQuiz.generatedJs) {
+      const bundle = compileQuizToBundle(rawCurrentQuiz);
+      return {
+        ...rawCurrentQuiz,
+        generatedHtml: bundle.html,
+        generatedCss: bundle.css,
+        generatedJs: bundle.js,
+        tailwindConfig: bundle.tailwindConfig,
+      };
+    }
+    return rawCurrentQuiz;
+  }, [rawCurrentQuiz]);
 
   // Mode in left column: create new from scratch vs. refine existing (always start on 'create' / Neues Thema)
   const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">("create");
 
-  // Save current quiz history to localStorage & active project whenever it changes
+  // Save compact current quiz history to localStorage & active project whenever it changes
   useEffect(() => {
     if (quizHistory.length > 0 && historyIndex >= 0) {
       try {
+        const compactHistory = quizHistory.map(stripCompiledBundle);
         localStorage.setItem(
           DRAFT_STORAGE_KEY,
-          JSON.stringify({ history: quizHistory, index: historyIndex })
+          JSON.stringify({ history: compactHistory, index: historyIndex })
         );
       } catch (err) {
         console.warn("Konnte Entwurf nicht in localStorage speichern:", err);
@@ -106,6 +125,62 @@ export const App: React.FC = () => {
       }
     }
   }, [quizHistory, historyIndex, activeProjectId]);
+
+  // Listen for storage quota warnings
+  useEffect(() => {
+    const handleStorageQuota = (e: any) => {
+      alert(`Speicher-Warnung: ${e?.detail?.message || "Lokaler Speicher ist voll."}`);
+    };
+    window.addEventListener("zqp_storage_quota_exceeded", handleStorageQuota);
+    return () => window.removeEventListener("zqp_storage_quota_exceeded", handleStorageQuota);
+  }, []);
+
+  // Global Keyboard Shortcuts (Escape to close modals, Ctrl+Z Undo, Ctrl+Y Redo)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. ESC closes open modal
+      if (e.key === "Escape") {
+        if (isStationEditorOpen) { setIsStationEditorOpen(false); return; }
+        if (isSourceInspectorOpen) { setIsSourceInspectorOpen(false); return; }
+        if (isFavoritesLibraryOpen) { setIsFavoritesLibraryOpen(false); return; }
+        if (isAuditOpen) { setIsAuditOpen(false); return; }
+        if (isLibraryOpen) { setIsLibraryOpen(false); return; }
+        if (isSettingsOpen) { setIsSettingsOpen(false); return; }
+      }
+
+      // Skip Undo/Redo if typing inside an input/textarea
+      const target = e.target as HTMLElement | null;
+      const isInput = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable);
+      if (isInput) return;
+
+      // 2. Undo: Ctrl+Z or Cmd+Z
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && (e.key === "z" || e.key === "Z")) {
+        e.preventDefault();
+        handleUndo();
+      }
+
+      // 3. Redo: Ctrl+Y or Cmd+Shift+Z or Ctrl+Shift+Z
+      if (
+        ((e.ctrlKey || e.metaKey) && (e.key === "y" || e.key === "Y")) ||
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === "z" || e.key === "Z"))
+      ) {
+        e.preventDefault();
+        handleRedo();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    isStationEditorOpen,
+    isSourceInspectorOpen,
+    isFavoritesLibraryOpen,
+    isAuditOpen,
+    isLibraryOpen,
+    isSettingsOpen,
+    historyIndex,
+    quizHistory.length,
+  ]);
 
   const handleSaveSettings = (newSettings: AppSettings) => {
     setSettings(newSettings);
@@ -558,6 +633,8 @@ export const App: React.FC = () => {
         isOpen={isAuditOpen}
         onClose={() => setIsAuditOpen(false)}
         quiz={currentQuiz}
+        glossary={settings.glossary}
+        onApplyGlossaryFixes={(fixedQuiz) => handleSaveStationEdit(fixedQuiz)}
       />
 
       {/* WYSIWYG Station Editor Modal */}

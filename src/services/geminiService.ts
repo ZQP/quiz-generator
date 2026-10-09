@@ -261,6 +261,7 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
    - Jedes Quiz MUSS am alleruntersten Rand eine dezente Fußzeile besitzen:
      "Stiftung Zentrum für Qualität in der Pflege • [Aktuelles Kalenderjahr]" (z. B. "Stiftung Zentrum für Qualität in der Pflege • ${new Date().getFullYear()}").
 6. RÜCKGABESCHEMA (reines, valides JSON):
+WICHTIG: Erzeuge KEINEN HTML-, CSS- oder JavaScript-Code im JSON (das Bundle wird vom Compiler lokal erzeugt). Konzentriere dich vollständig auf die fachliche und didaktische Qualität der Stationen (Fragen, Begründungen 'Warum richtig/falsch', ZQP-Rationale).
 {
   "title": "string",
   "targetAudience": "${targetAudience}",
@@ -304,11 +305,7 @@ WICHTIGE REDAKTIONELLE & DESIGN-VORGABEN:
         { "id": "BLANK_1", "correctWord": "Wort", "options": ["Wort", "AnderesWort", "DrittesWort"] }
       ]
     }
-  ],
-  "generatedHtml": "Semantisches HTML für WordPress (Gutenberg)",
-  "generatedCss": "Ergänzende ZQP Animationen und Barrierefreiheits-Stile",
-  "generatedJs": "Reines Vanilla JS für Interaktion, Tastaturnavigation und Lösung-Anzeigen-Logik",
-  "tailwindConfig": "tailwind.config = { theme: { extend: { colors: { zqp: { petrol: '#247a6d', 'petrol-dark': '#1b5c53', 'petrol-deep': '#00473d', 'bg-soft': '#f3f8f7', 'bg-accent': '#e3eeec', border: '#bbd1cd', text: '#444444', alert: '#722b28' } } } } };"
+  ]
 }`;
 
   const userContent = `Thema & Lernziel: ${topicPrompt}
@@ -404,11 +401,19 @@ WICHTIGE ANWEISUNGEN:
 1. Nimm das bestehende Quiz als Basis und führe die gewünschte Änderung des Nutzers präzise und feinfühlig durch.
 2. Behalte alle unveränderten Stationen, Texte und didaktischen Erklärungen exakt bei.
 3. Achte weiterhin streng auf ZQP Corporate Design (#247a6d, #1b5c53, #f3f8f7) und Barrierefreiheit (BITV 2.0 / WCAG 2.1 AA).
-4. Sorge dafür, dass bei allen Antwortoptionen weiterhin die 'Warum richtig / Warum falsch' Begründungen vorhanden sind.
-5. Die Ausgabe MUSS zwingend valides JSON im bekannten QuizGenerationResult-Schema sein.`;
+5. Die Ausgabe MUSS zwingend valides JSON sein mit den Feldern 'title', 'targetAudience', 'summary', 'needsTailwind', 'needsFontAwesome', 'stations'. Erzeuge KEINE 'generatedHtml', 'generatedCss' oder 'generatedJs' Felder (diese werden automatisch im Client kompiliert).`;
+
+  const strippedQuiz = {
+    title: existingQuiz.title,
+    targetAudience: existingQuiz.targetAudience,
+    summary: existingQuiz.summary,
+    needsTailwind: existingQuiz.needsTailwind,
+    needsFontAwesome: existingQuiz.needsFontAwesome,
+    stations: existingQuiz.stations,
+  };
 
   const userContent = `Bestehendes Quiz (JSON):
-${JSON.stringify(existingQuiz, null, 2)}
+${JSON.stringify(strippedQuiz, null, 2)}
 
 Gewünschte Anpassung des Nutzers:
 ${refinementPrompt}`;
