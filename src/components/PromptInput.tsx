@@ -282,7 +282,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               <span>Erlaubte Spielformate & Quizoptionen</span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-[#bbd1cd] text-[#247a6d] font-bold">
                 {mechanics.length === ALL_MECHANICS.length
-                  ? "Pool: Alle 9 Formate erlaubt"
+                  ? `Pool: Alle ${ALL_MECHANICS.length} Formate erlaubt`
                   : `Pool: ${mechanics.length} von ${ALL_MECHANICS.length} erlaubt`}
               </span>
             </span>
