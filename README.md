@@ -14,6 +14,10 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.9 (Dynamisches Format-Badge im Pool)
+
+- **Dynamische Formatzählung im Pool-Badge**: Die Kopfzeile des Format-Akkordeons berechnet die Gesamtzahl der Spielmechaniken nun dynamisch (`Pool: Alle 10 Formate erlaubt` statt bisher statisch „9“) und zeigt bei Teil-Auswahl exakt an, wie viele der 10 Formate aktiviert sind.
+
 ## Neu in v0.2.8 (Verzweigte Fallbeispiele, CI-Build-Beschleunigung & Chunking)
 
 - **10. Lernmechanik „Verzweigtes Fallbeispiel (Branching Scenario)“**: Situationsgestützte Szenarien mit 2- oder 3-stufiger konvergenter Verzweigung. Interaktive Pfadauswahl mit differenzierten Zwischenkonsequenzen, didaktischen ZQP-Tipps und reflexivem Abschluss inklusive Wiederholungs-Möglichkeit.
@@ -24,7 +28,7 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
 
 ## Neu in v0.2.7 (WYSIWYG-Stationen, Token-Optimierung, Glossar-Audit & Barrierearmut)
 
-- **Vollständige WYSIWYG-Station-Verwaltung**: Stationen können nun frei per Klick nach links/rechts verschoben (`‹` / `›`), dupliziert, gelöscht und als neue Station aus allen 9 Quiz-Formaten angelegt werden. Optionen lassen sich dynamisch hinzufügen und entfernen.
+- **Vollständige WYSIWYG-Station-Verwaltung**: Stationen können nun frei per Klick nach links/rechts verschoben (`‹` / `›`), dupliziert, gelöscht und als neue Station aus allen 10 Quiz-Formaten angelegt werden. Optionen lassen sich dynamisch hinzufügen und entfernen.
 - **Token- & Prompt-Effizienz**: Entlastung des Gemini-Prompts und JSON-Schemas um statischen HTML/CSS/JS-Code – spart rund 25 % Token und sorgt für schnellere, robustere Generierungen.
 - **Speichersicherheit (LocalStorage Quota)**: Automatisches Bereinigen schwerer kompilierter Bundles vor dem Speichern in LocalStorage, Fallback-Kompaktierung und visuelle Warnung bei Speicher-Überlauf.
 - **Qualitäts-Audit & ZQP-Glossar**: Automatischer Scan nach veralteten/unerwünschten Begriffen (z. B. „Verwirrtheit“, „Pflegebedürftiger“) inklusive 1-Klick-Autokorrektur aller betroffenen Stationen.
