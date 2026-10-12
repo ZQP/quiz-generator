@@ -821,6 +821,32 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
     return pairColorThemes[idx % pairColorThemes.length];
   };
 
+  const getStationIcon = (type?: string) => {
+    switch (type) {
+      case "matching":
+        return "🧩";
+      case "ordering":
+        return "🔢";
+      case "myth_fact":
+        return "❌";
+      case "bucket_sort":
+        return "📥";
+      case "comparison":
+        return "⚖️";
+      case "dilemma":
+        return "🎭";
+      case "checklist":
+        return "📋";
+      case "fill_in_the_blank":
+        return "✍️";
+      case "branching_scenario":
+        return "🌿";
+      case "single_choice":
+      default:
+        return "💡";
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* 1. EDITORIAL & PREVIEW TOOLBAR (Top Bar) */}
@@ -941,30 +967,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
               </button>
             </div>
 
-            {/* Font size toggle for accessibility */}
-            <div className="flex bg-[#e3eeec] p-0.5 rounded-lg border border-[#bbd1cd] h-7 items-center">
-              <button
-                type="button"
-                onClick={() => setFontSizeScale("normal")}
-                className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
-                  fontSizeScale === "normal" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
-                }`}
-                title="Normale Schriftgröße"
-              >
-                A
-              </button>
-              <button
-                type="button"
-                onClick={() => setFontSizeScale("large")}
-                className={`px-1.5 py-0.5 rounded text-[11px] font-bold transition-colors cursor-pointer ${
-                  fontSizeScale === "large" ? "bg-white text-[#1b5c53] shadow-xs" : "text-[#6e6c70]"
-                }`}
-                title="Große Schriftgröße (Barrierearm)"
-              >
-                A+
-              </button>
-            </div>
-
             <button
               type="button"
               onClick={handleReset}
@@ -1002,7 +1004,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
 
-            {/* Clickable Station Pills */}
+            {/* Clickable Station Pills with Format Icons */}
             {quiz.stations.map((st, idx) => {
               const isActive = !completed && currentStationIdx === idx;
               const isSolved = stationResults[idx] === "solved";
@@ -1015,16 +1017,17 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                     setCompleted(false);
                     setCurrentStationIdx(idx);
                   }}
-                  className={`h-6 min-w-[24px] px-1.5 rounded text-xs font-bold transition-all cursor-pointer border flex items-center justify-center gap-0.5 ${
+                  className={`h-6.5 px-2 rounded-md text-xs font-bold transition-all cursor-pointer border flex items-center justify-center gap-1 ${
                     isActive
                       ? "bg-[#247a6d] text-white border-[#1b5c53] shadow-2xs"
                       : "bg-white hover:bg-[#e3eeec] text-[#1b5c53] border-[#bbd1cd]"
                   }`}
-                  title={`Zu Station ${idx + 1} springen: „${st.title}“${
+                  title={`Zu Station ${idx + 1} springen: „${st.title}“ (${st.type})${
                     isFav ? " (⭐ In Schatzkiste)" : ""
                   }`}
                 >
                   <span>{idx + 1}</span>
+                  <span className="text-[10px] leading-none opacity-85">{getStationIcon(st.type)}</span>
                   {isFav && (
                     <Star
                       className={`w-2.5 h-2.5 -mr-0.5 ${
@@ -1095,6 +1098,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                   ? "📋 Checkliste"
                   : currentStation?.type === "fill_in_the_blank"
                   ? "✍️ Wort-Lückentext"
+                  : currentStation?.type === "branching_scenario"
+                  ? "🌿 Verzweigtes Fallbeispiel"
                   : "💡 Wissenscheck"}
               </span>
             </span>

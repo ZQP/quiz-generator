@@ -14,6 +14,13 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.3.0 (Streamlined Workspace & Station-Format-Icons)
+
+- **Sticky Action-Footer (Linke Spalte)**: Der Schieberegler für die Stationsanzahl und der primäre Generierungs-Button („Interaktives Quiz mit Gemini generieren“) sind nun fest am unteren Rand verankert. Dadurch muss bei langen Prompts, Vorlagen oder Wissensdokumenten nicht mehr nach unten gescrollt werden.
+- **Kompakte Format-Chips**: Die bisherigen großen 2-Spalten-Karten für die 10 Spielmechaniken wurden durch platzsparende, interaktive Format-Chips (Pills) mit Icons und Aktiv-/Inaktiv-Status ersetzt (70 % Platzersparnis).
+- **Format-Icons auf der Stations-Timeline**: Die Stations-Auswahlbuttons in der Vorschau zeigen nun direkt das Format-Icon neben der Nummer an (`[ 1 🎭 ] [ 2 🧩 ] [ 3 🔢 ] ... [ 🏆 Ergebnis ]`). Redakteur:innen sehen sofort die didaktische Methodenvielfalt des Quiz.
+- **Bereinigte Vorschau-Toolbar**: Die Toolbar wurde klar gegliedert (Redaktions-Tools links, Stations-Aktionen und Viewport-Steuerung rechts). Die redundante Schriftgrößen-Umschaltung `A / A+` in der oberen Leiste wurde entfernt und verbleibt aufgeräumt direkt im Header des interaktiven Quiz-Simulators.
+
 ## Neu in v0.2.9 (Dynamisches Format-Badge im Pool)
 
 - **Dynamische Formatzählung im Pool-Badge**: Die Kopfzeile des Format-Akkordeons berechnet die Gesamtzahl der Spielmechaniken nun dynamisch (`Pool: Alle 10 Formate erlaubt` statt bisher statisch „9“) und zeigt bei Teil-Auswahl exakt an, wie viele der 10 Formate aktiviert sind.

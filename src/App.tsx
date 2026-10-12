@@ -491,21 +491,23 @@ export const App: React.FC = () => {
             </span>
           </div>
 
-          {/* Left Panel Scrollable Content */}
-          <div className="flex-1 overflow-y-auto p-3.5 bg-[#fcfaf8]">
+          {/* Left Panel Content */}
+          <div className="flex-1 min-h-0 bg-[#fcfaf8] flex flex-col overflow-hidden">
             {leftPanelMode === "refine" && currentQuiz ? (
-              <QuizRefiner
-                currentQuiz={currentQuiz}
-                onRefine={handleRefineQuiz}
-                isLoading={isLoading}
-                loadingStepText={loadingStepText}
-                canUndo={historyIndex > 0}
-                canRedo={historyIndex < quizHistory.length - 1}
-                onUndo={handleUndo}
-                onRedo={handleRedo}
-                versionInfo={`Revision ${historyIndex + 1} von ${quizHistory.length}`}
-                onSwitchToNewQuiz={() => setLeftPanelMode("create")}
-              />
+              <div className="flex-1 overflow-y-auto p-3.5">
+                <QuizRefiner
+                  currentQuiz={currentQuiz}
+                  onRefine={handleRefineQuiz}
+                  isLoading={isLoading}
+                  loadingStepText={loadingStepText}
+                  canUndo={historyIndex > 0}
+                  canRedo={historyIndex < quizHistory.length - 1}
+                  onUndo={handleUndo}
+                  onRedo={handleRedo}
+                  versionInfo={`Revision ${historyIndex + 1} von ${quizHistory.length}`}
+                  onSwitchToNewQuiz={() => setLeftPanelMode("create")}
+                />
+              </div>
             ) : (
               <PromptInput
                 onGenerate={handleGenerateNewQuiz}
