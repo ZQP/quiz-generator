@@ -14,6 +14,14 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.2.8 (Verzweigte Fallbeispiele, CI-Build-Beschleunigung & Chunking)
+
+- **10. Lernmechanik „Verzweigtes Fallbeispiel (Branching Scenario)“**: Situationsgestützte Szenarien mit 2- oder 3-stufiger konvergenter Verzweigung. Interaktive Pfadauswahl mit differenzierten Zwischenkonsequenzen, didaktischen ZQP-Tipps und reflexivem Abschluss inklusive Wiederholungs-Möglichkeit.
+- **Vollständiger WYSIWYG-Szenario-Editor**: Sämtliche Szenen, Situationsbeschreibungen, Konsequenzen, ZQP-Ratschläge und optimale Handlungsstränge können im modalen Stationseditor direkt gepflegt und angepasst werden.
+- **Standalone HTML-Export**: Verzweigte Fallbeispiele werden vollständig in autonome, barrierefreie HTML5-Dateien mit robuster JavaScript-Zustandsverwaltung und Lösungsanzeige kompiliert.
+- **Qualitäts- & Glossar-Integration**: Der automatische Qualitätsprüfer (Flesch-Index, ZQP-Begründungsquote, Fachglossar-Audit) und die 1-Klick-Autokorrektur unterstützen alle Ebenen des Fallbeispiels nahtlos.
+- **CI- & Build-Optimierungen**: Integration von `cargo check` und `swatinem/rust-cache@v2` in GitHub Actions für schnelle Pipeline-Durchläufe, flexibleres Build-Skript und Rollup-Chunk-Splitting (Vendor, Icons, PDF).
+
 ## Neu in v0.2.7 (WYSIWYG-Stationen, Token-Optimierung, Glossar-Audit & Barrierearmut)
 
 - **Vollständige WYSIWYG-Station-Verwaltung**: Stationen können nun frei per Klick nach links/rechts verschoben (`‹` / `›`), dupliziert, gelöscht und als neue Station aus allen 9 Quiz-Formaten angelegt werden. Optionen lassen sich dynamisch hinzufügen und entfernen.
