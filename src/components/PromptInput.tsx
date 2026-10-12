@@ -103,6 +103,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     "checklist",
     "fill_in_the_blank",
     "single_choice",
+    "branching_scenario",
   ]);
 
   const ALL_MECHANICS: StationType[] = [
@@ -115,6 +116,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     "checklist",
     "fill_in_the_blank",
     "single_choice",
+    "branching_scenario",
   ];
 
   const toggleMechanic = (type: StationType) => {
@@ -421,7 +423,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                   </div>
                 </label>
 
-                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer col-span-2">
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-white border border-[#e3eeec] hover:border-[#247a6d] cursor-pointer">
                   <input
                     type="checkbox"
                     checked={mechanics.includes("single_choice")}
@@ -431,6 +433,22 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                   <div>
                     <span className="font-semibold block text-[#1b5c53]">💡 Wissenscheck</span>
                     <span className="text-[10px] text-[#6e6c70]">Klassische Single-Choice</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-2 p-2 rounded-lg bg-[#f3f8f7] border border-[#247a6d] hover:bg-[#e3eeec] cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={mechanics.includes("branching_scenario")}
+                    onChange={() => toggleMechanic("branching_scenario")}
+                    className="w-3.5 h-3.5 text-[#247a6d] rounded focus:ring-[#247a6d]"
+                  />
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold block text-[#1b5c53]">🌿 Verzweigtes Fallbeispiel</span>
+                      <span className="text-[9px] bg-[#247a6d] text-white font-bold px-1 py-0.2 rounded">NEU</span>
+                    </div>
+                    <span className="text-[10px] text-[#6e6c70]">Entscheidungsbaum mit Konsequenz</span>
                   </div>
                 </label>
               </div>

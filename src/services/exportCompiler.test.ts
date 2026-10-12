@@ -233,4 +233,64 @@ describe("exportCompiler - compileQuizToBundle", () => {
     expect(bundleWithPrint.js).toContain("Ergebnis als PDF drucken");
     expect(bundleWithPrint.js).toContain("window.print()");
   });
+
+  it("includes branching scenario logic, renderer and dispatcher in generated JavaScript", () => {
+    const quizWithBranching: QuizGenerationResult = {
+      ...sampleQuiz,
+      stations: [
+        ...sampleQuiz.stations,
+        {
+          id: "s-branch",
+          type: "branching_scenario",
+          title: "Verzweigtes Fallbeispiel: Unruhe am Abend",
+          promptOrInstruction: "Begleiten Sie Herrn Müller durch den Abend:",
+          zqpRationale: "Bedürfnisorientierte Deeskalation.",
+          solutionExplanation: "Empathie führt zur Beruhigung.",
+          branchingScenario: {
+            depthMode: "compact_2_steps",
+            rootNodeId: "node_1",
+            zqpSummaryAdvice: "Validierende Kommunikation verhindert Eskalationen.",
+            nodes: {
+              node_1: {
+                id: "node_1",
+                sceneTitle: "Szene 1: Die Haustür",
+                situationDescription: "Herr Müller packt seine Tasche und möchte gehen.",
+                choices: [
+                  {
+                    id: "c1",
+                    text: "Ihn freundlich ansprechen und eine Tasse Tee anbieten.",
+                    consequenceText: "Herr Müller setzt sich und entspannt sich.",
+                    isOptimal: true,
+                    nextStepId: "node_2",
+                    zqpAdvice: "Ablenkung durch vertraute Rituale.",
+                  },
+                ],
+              },
+              node_2: {
+                id: "node_2",
+                sceneTitle: "Szene 2: Das Wohnzimmer",
+                situationDescription: "Herr Müller trinkt Tee und erzählt von früher.",
+                choices: [
+                  {
+                    id: "c2",
+                    text: "Gemeinsam das Fotoalbum anschauen.",
+                    consequenceText: "Herr Müller geht danach ruhig schlafen.",
+                    isOptimal: true,
+                    zqpAdvice: "Biografiearbeit stärkt das Sicherheitsgefühl.",
+                  },
+                ],
+              },
+            },
+          },
+        },
+      ],
+    };
+
+    const bundle = compileQuizToBundle(quizWithBranching);
+    expect(bundle.js).toContain("renderBranchingScenario");
+    expect(bundle.js).toContain("window.zqpSelectBranchingChoice");
+    expect(bundle.js).toContain("window.zqpResetBranching");
+    expect(bundle.js).toContain('st.type === "branching_scenario"');
+    expect(bundle.fullStandaloneHtml).toContain("Unruhe am Abend");
+  });
 });

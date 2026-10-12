@@ -632,6 +632,9 @@ tailwind.config = {
   var checkedItemIds = [];
   var selectedChoiceIdx = null;
   var selectedDilemmaId = null;
+  var branchingNodeId = null;
+  var branchingHistory = [];
+  var branchingCompleted = false;
 
   // Drag state
   var pointerDrag = null;
@@ -707,6 +710,9 @@ tailwind.config = {
     checkedItemIds = [];
     bucketAssignments = {};
     filledBlanks = {};
+    branchingNodeId = null;
+    branchingHistory = [];
+    branchingCompleted = false;
 
     var st = stationsData[idx];
     if (!st) return;
@@ -742,6 +748,8 @@ tailwind.config = {
       renderChecklist(st);
     } else if (st.type === "fill_in_the_blank" && st.fillInBlanks) {
       renderFillInBlank(st);
+    } else if (st.type === "branching_scenario" && st.branchingScenario) {
+      renderBranchingScenario(st);
     } else {
       renderGeneric(st);
     }
@@ -1083,6 +1091,131 @@ tailwind.config = {
     content.innerHTML = html;
   }
 
+  // 8b. BRANCHING SCENARIO RENDERER
+  function renderBranchingScenario(st) {
+    var scenario = st.branchingScenario;
+    if (!scenario || !scenario.nodes) {
+      renderGeneric(st);
+      return;
+    }
+
+    var nodes = scenario.nodes;
+    var currentNodeId = branchingNodeId || scenario.rootNodeId || Object.keys(nodes)[0];
+    var currentNode = nodes[currentNodeId];
+    if (!currentNode) {
+      renderGeneric(st);
+      return;
+    }
+
+    var lastHistory = branchingHistory.length > 0 ? branchingHistory[branchingHistory.length - 1] : null;
+    var stepCount = branchingHistory.length + 1;
+    var totalSteps = scenario.depthMode === "deep_3_steps" ? 3 : 2;
+
+    var html = '<h3 class="zqp-prompt-instruction">' + (st.promptOrInstruction || "Fallbeispiel: Entscheiden Sie über das weitere Vorgehen") + '</h3>' +
+      '<div style="display:flex; flex-direction:column; gap:0.6rem;">';
+
+    // Breadcrumbs / Phase
+    html += '<div style="display:flex; align-items:center; gap:0.4rem; font-size:0.6875rem; font-weight:600; color:#1b5c53; padding-bottom:0.25rem; border-bottom:1px solid #e2ddd5;">' +
+      '<span class="zqp-papercut-tag" style="background:#e3eeec; color:#1b5c53; border-color:#bbd1cd;">' + (currentNode.sceneTitle || ('Szene ' + stepCount)) + '</span>' +
+      '<span style="color:#6e6c70; font-size:0.625rem;">(Schritt ' + stepCount + ' von ' + totalSteps + ')</span>' +
+    '</div>';
+
+    // Consequence banner of previous step
+    if (lastHistory && !branchingCompleted) {
+      var isOpt = lastHistory.isOptimal;
+      html += '<div style="padding:0.5rem 0.625rem; border-radius:0.5rem; font-size:0.75rem; border:1px solid ' + (isOpt ? '#86efac; background:#f0fdf4; color:#14532d;' : '#fcd34d; background:#fffbeb; color:#78350f;') + '">' +
+        '<div style="display:flex; justify-content:space-between; font-size:0.625rem; font-weight:700; text-transform:uppercase; margin-bottom:0.2rem;">' +
+          '<span>' + (isOpt ? '🌿 Deeskalierende Reaktion' : '⚡ Zugespitzte Reaktion') + '</span>' +
+          '<span style="opacity:0.8;">Konsequenz</span>' +
+        '</div>' +
+        '<p style="margin:0 0 0.25rem 0; font-weight:500; line-height:1.4;">' + (lastHistory.consequenceText || '') + '</p>' +
+        (lastHistory.zqpAdvice ? '<p style="margin:0; font-size:0.625rem; opacity:0.9; border-top:1px solid rgba(0,0,0,0.08); padding-top:0.2rem;">💡 <strong>ZQP-Tipp:</strong> ' + lastHistory.zqpAdvice + '</p>' : '') +
+      '</div>';
+    }
+
+    if (!branchingCompleted) {
+      // Current situation
+      html += '<div style="background:#f3f8f7; border-left:4px solid #247a6d; padding:0.625rem 0.75rem; border-radius:0 0.5rem 0.5rem 0;">' +
+        '<p style="margin:0; font-size:0.75rem; color:#3a352d; line-height:1.5; font-weight:500;">' + currentNode.situationDescription + '</p>' +
+      '</div>';
+
+      // Choices
+      html += '<div style="display:flex; flex-direction:column; gap:0.4rem; padding-top:0.25rem;">' +
+        '<p style="margin:0; font-size:0.6875rem; font-weight:700; color:#1b5c53; text-transform:uppercase; letter-spacing:0.025em;">Wie reagieren Sie in dieser Situation?</p>' +
+        '<div style="display:flex; flex-direction:column; gap:0.35rem;">';
+
+      var letters = ["A", "B", "C", "D"];
+      (currentNode.choices || []).forEach(function(choice, cIdx) {
+        var letter = letters[cIdx] || (cIdx + 1);
+        html += '<button type="button" class="zqp-papercut-card ' + (canAdvance ? 'locked' : '') + '" style="text-align:left; padding:0.5rem 0.625rem; display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;" onclick="window.zqpSelectBranchingChoice(' + cIdx + ')">' +
+          '<span style="width:1.25rem; height:1.25rem; border-radius:9999px; background:#e3eeec; border:1px solid #bbd1cd; color:#1b5c53; font-weight:700; font-size:0.6875rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:0.05rem;">' + letter + '</span>' +
+          '<span style="font-size:0.75rem; font-weight:600; color:#3a352d; line-height:1.4; flex:1;">' + choice.text + '</span>' +
+        '</button>';
+      });
+
+      html += '</div></div>';
+    } else {
+      // Completed state
+      html += '<div class="zqp-papercut-card" style="padding:0.875rem; border:2px solid #247a6d; background:#f3f8f7; border-radius:0.75rem;">' +
+        '<div style="display:flex; align-items:center; gap:0.5rem; color:#1b5c53; margin-bottom:0.5rem;">' +
+          '<span style="width:1.5rem; height:1.5rem; border-radius:9999px; background:#247a6d; color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.75rem;">✓</span>' +
+          '<strong style="font-size:0.75rem;">Fallbeispiel durchgespielt • ZQP-Fachbegründung</strong>' +
+        '</div>' +
+        '<p style="margin:0 0 0.75rem 0; font-size:0.75rem; color:#3a352d; line-height:1.5;">' +
+          (scenario.zqpSummaryAdvice || st.zqpRationale || "Personenzentrierte Deeskalation schenkt Betroffenen und Pflegenden Sicherheit.") +
+        '</p>' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid #bbd1cd; padding-top:0.5rem;">' +
+          '<button type="button" class="zqp-btn-secondary" onclick="window.zqpResetBranching()" style="font-size:0.6875rem; padding:0.35rem 0.65rem;">' +
+            '🔄 Anderen Handlungsweg ausprobieren' +
+          '</button>' +
+          '<span style="font-size:0.6875rem; color:#247a6d; font-weight:700;">Gelöst ✓</span>' +
+        '</div>' +
+      '</div>';
+    }
+
+    html += '</div>';
+    content.innerHTML = html;
+  }
+
+  window.zqpSelectBranchingChoice = function(cIdx) {
+    if (canAdvance || branchingCompleted) return;
+    var st = stationsData[currentStation];
+    if (!st || !st.branchingScenario) return;
+    var scenario = st.branchingScenario;
+    var currentNodeId = branchingNodeId || scenario.rootNodeId || Object.keys(scenario.nodes)[0];
+    var currentNode = scenario.nodes[currentNodeId];
+    if (!currentNode || !currentNode.choices || !currentNode.choices[cIdx]) return;
+
+    var choice = currentNode.choices[cIdx];
+    branchingHistory.push({
+      nodeId: currentNodeId,
+      choiceId: choice.id,
+      choiceText: choice.text,
+      consequenceText: choice.consequenceText,
+      isOptimal: choice.isOptimal,
+      zqpAdvice: choice.zqpAdvice
+    });
+
+    if (choice.nextStepId && scenario.nodes[choice.nextStepId]) {
+      branchingNodeId = choice.nextStepId;
+      renderBranchingScenario(st);
+    } else {
+      branchingCompleted = true;
+      markStationCompleted("solved", choice.consequenceText + (choice.zqpAdvice ? " • " + choice.zqpAdvice : ""), scenario.zqpSummaryAdvice || st.zqpRationale);
+      renderBranchingScenario(st);
+    }
+  };
+
+  window.zqpResetBranching = function() {
+    var st = stationsData[currentStation];
+    if (!st || !st.branchingScenario) return;
+    branchingNodeId = st.branchingScenario.rootNodeId || Object.keys(st.branchingScenario.nodes)[0];
+    branchingHistory = [];
+    branchingCompleted = false;
+    closeDrawer();
+    renderBranchingScenario(st);
+  };
+
   function renderGeneric(st) {
     content.innerHTML = '<h3 class="zqp-prompt-instruction">' + st.promptOrInstruction + '</h3>' +
       '<div class="zqp-papercut-card" style="padding:1rem; text-align:center;">' +
@@ -1233,6 +1366,9 @@ tailwind.config = {
       } else if (st.type === "checklist" && st.checklistItems) {
         checkedItemIds = st.checklistItems.filter(function(i) { return i.isCorrect; }).map(function(i) { return i.id; });
         renderChecklist(st);
+      } else if (st.type === "branching_scenario" && st.branchingScenario) {
+        branchingCompleted = true;
+        renderBranchingScenario(st);
       }
       markStationCompleted("unsolved", st.solutionExplanation || "Lösung für die Station", st.zqpRationale);
     };

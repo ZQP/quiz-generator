@@ -9,7 +9,8 @@ export type StationType =
   | "bucket_sort"
   | "dilemma"
   | "checklist"
-  | "fill_in_the_blank";
+  | "fill_in_the_blank"
+  | "branching_scenario";
 
 export interface MatchingPair {
   id: string;
@@ -75,6 +76,29 @@ export interface BlankItem {
   options: string[];
 }
 
+export interface BranchingChoice {
+  id: string;
+  text: string;               // Handlung/Antwort des Nutzers
+  consequenceText: string;    // Was daraufhin geschieht (Reaktion der Person)
+  isOptimal: boolean;         // Didaktisch optimal vs. risikobehaftet
+  nextStepId?: string;        // ID des nächsten Schritts / Knotens (oder undefined für Abschluss)
+  zqpAdvice: string;          // ZQP-Praxistipp zu dieser spezifischen Wahl
+}
+
+export interface BranchingNode {
+  id: string;                 // z.B. "step_1", "step_2_a", "step_2_b"
+  sceneTitle: string;         // z.B. "Szene 1: Nächtliche Unruhe", "Szene 2: Deeskalation"
+  situationDescription: string;
+  choices: BranchingChoice[];
+}
+
+export interface BranchingScenarioData {
+  rootNodeId: string;
+  depthMode: "compact_2_steps" | "deep_3_steps";
+  nodes: Record<string, BranchingNode>;
+  zqpSummaryAdvice: string;
+}
+
 export type EditorialStatus = "draft" | "in_review" | "approved";
 
 export interface GlossaryEntry {
@@ -108,6 +132,7 @@ export interface QuizStation {
   checklistItems?: ChecklistItem[];
   fillInSentence?: string;
   fillInBlanks?: BlankItem[];
+  branchingScenario?: BranchingScenarioData;
   editorialStatus?: EditorialStatus;
   editorialNotes?: string;
   sourceQuote?: string; // Direct citation from source document (anti-hallucination)

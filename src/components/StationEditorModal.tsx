@@ -36,6 +36,7 @@ const STATION_TYPE_LABELS: Record<StationType, string> = {
   dilemma: "Praxis-Dilemma",
   checklist: "Checkliste",
   fill_in_the_blank: "Lückentext",
+  branching_scenario: "Verzweigtes Fallbeispiel",
 };
 
 function createDefaultStation(type: StationType, index: number): QuizStation {
@@ -127,6 +128,69 @@ function createDefaultStation(type: StationType, index: number): QuizStation {
           { id: "BLANK_1", correctWord: "Sorgfalt", options: ["Sorgfalt", "Hektik", "Ignoranz"] },
           { id: "BLANK_2", correctWord: "Stürze", options: ["Stürze", "Ruhe", "Freude"] },
         ],
+      };
+    case "branching_scenario":
+      return {
+        ...base,
+        promptOrInstruction: "Begleiten Sie diese herausfordernde Situation im Pflegealltag Schritt für Schritt und finden Sie den deeskalierenden Weg:",
+        branchingScenario: {
+          rootNodeId: "node_1",
+          depthMode: "compact_2_steps",
+          nodes: {
+            node_1: {
+              id: "node_1",
+              sceneTitle: "1. Ausgangssituation",
+              situationDescription: "Beschreibung der herausfordernden Pflegesituation...",
+              choices: [
+                {
+                  id: "c1_a",
+                  text: "Erste Reaktionsmöglichkeit (Risikobehaftet)",
+                  consequenceText: "Die Person reagiert verunsichert und zieht sich zurück.",
+                  isOptimal: false,
+                  nextStepId: "node_2_a",
+                  zqpAdvice: "Logischer Widerspruch führt oft zu Abwehr.",
+                },
+                {
+                  id: "c1_b",
+                  text: "Zweite Reaktionsmöglichkeit (Deeskalierend)",
+                  consequenceText: "Die Person fühlt sich verstanden, die Anspannung fällt spürbar ab.",
+                  isOptimal: true,
+                  nextStepId: "node_2_b",
+                  zqpAdvice: "Gefühle validieren schenkt Orientierung und Vertrauen.",
+                },
+              ],
+            },
+            node_2_a: {
+              id: "node_2_a",
+              sceneTitle: "2. Zuspitzung & Deeskalation",
+              situationDescription: "Die Situation hat sich zugespitzt. Wie fangen Sie die Lage auf?",
+              choices: [
+                {
+                  id: "c2_a1",
+                  text: "Einen Schritt zurücktreten, Stimme senken und Ruhe signalisieren",
+                  consequenceText: "Die Person beruhigt sich allmählich wieder.",
+                  isOptimal: true,
+                  zqpAdvice: "Ruhe und Deeskalation wirken auch bei Verhärtung.",
+                },
+              ],
+            },
+            node_2_b: {
+              id: "node_2_b",
+              sceneTitle: "2. Stabilisierung & Übergang",
+              situationDescription: "Die Anspannung hat nachgelassen. Wie gestalten Sie den nächsten Schritt?",
+              choices: [
+                {
+                  id: "c2_b1",
+                  text: "Gemeinsam eine Tasse Tee trinken und sanft zur Alltagsroutine zurückkehren",
+                  consequenceText: "Erfolgreich deeskaliert und Vertrauen gestärkt.",
+                  isOptimal: true,
+                  zqpAdvice: "Gemeinsame Ruheinseln schaffen nachhaltige Stabilität.",
+                },
+              ],
+            },
+          },
+          zqpSummaryAdvice: "Personenzentrierte Haltung nach Tom Kitwood: Validieren, Sicherheit schenken und Überlastung vorbeugen.",
+        },
       };
   }
 }
@@ -1157,6 +1221,173 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
                       <span>+ Weiteren Prüfpunkt hinzufügen</span>
                     </button>
                   )}
+                </div>
+              )}
+
+              {/* BRANCHING SCENARIO */}
+              {currentStation.type === "branching_scenario" && currentStation.branchingScenario && (
+                <div className="space-y-4">
+                  {/* Depth mode & summary */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-[#e3eeec]/60 rounded-xl border border-[#bbd1cd]">
+                    <div>
+                      <label className="block text-xs font-bold text-[#1b5c53] mb-1">
+                        Szenario-Tiefe
+                      </label>
+                      <select
+                        value={currentStation.branchingScenario.depthMode}
+                        onChange={(e) => {
+                          const mode = e.target.value as "compact_2_steps" | "deep_3_steps";
+                          handleUpdateStation("branchingScenario", {
+                            ...currentStation.branchingScenario!,
+                            depthMode: mode,
+                          });
+                        }}
+                        className="w-full text-xs p-1.5 rounded-lg border border-[#bbd1cd] bg-white font-semibold text-[#1b5c53]"
+                      >
+                        <option value="compact_2_steps">Kompakter 2-Schritte-Pfad (Standard)</option>
+                        <option value="deep_3_steps">Ausführlicher 3-Schritte-Pfad (Vertieft)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[#1b5c53] mb-1">
+                        ZQP-Zusammenfassung & Leitfaden
+                      </label>
+                      <input
+                        type="text"
+                        value={currentStation.branchingScenario.zqpSummaryAdvice || ""}
+                        onChange={(e) => {
+                          handleUpdateStation("branchingScenario", {
+                            ...currentStation.branchingScenario!,
+                            zqpSummaryAdvice: e.target.value,
+                          });
+                        }}
+                        placeholder="Leitsatz nach ZQP-Expertenstandards..."
+                        className="w-full text-xs p-1.5 rounded-lg border border-[#bbd1cd] bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {/* List of Scenes / Nodes */}
+                  <div className="space-y-3">
+                    <label className="block text-xs font-bold text-[#1b5c53] uppercase tracking-wide">
+                      Szenen & Handlungspfade ({Object.keys(currentStation.branchingScenario.nodes || {}).length} Szenen)
+                    </label>
+
+                    {Object.entries(currentStation.branchingScenario.nodes || {}).map(([nodeId, node], nIdx) => (
+                      <div key={nodeId} className="p-3 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] space-y-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-[#1b5c53]">
+                            Szene {nIdx + 1}: {node.sceneTitle || nodeId}
+                          </span>
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white border border-[#bbd1cd] text-slate-600">
+                            ID: {nodeId}
+                          </span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="block text-[11px] font-semibold text-slate-700">Szenentitel</label>
+                          <input
+                            type="text"
+                            value={node.sceneTitle}
+                            onChange={(e) => {
+                              const newNodes = { ...currentStation.branchingScenario!.nodes };
+                              newNodes[nodeId] = { ...node, sceneTitle: e.target.value };
+                              handleUpdateStation("branchingScenario", { ...currentStation.branchingScenario!, nodes: newNodes });
+                            }}
+                            className="w-full text-xs p-1.5 rounded-lg border border-[#bbd1cd] bg-white"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="block text-[11px] font-semibold text-slate-700">Situationsbeschreibung</label>
+                          <textarea
+                            rows={2}
+                            value={node.situationDescription}
+                            onChange={(e) => {
+                              const newNodes = { ...currentStation.branchingScenario!.nodes };
+                              newNodes[nodeId] = { ...node, situationDescription: e.target.value };
+                              handleUpdateStation("branchingScenario", { ...currentStation.branchingScenario!, nodes: newNodes });
+                            }}
+                            className="w-full text-xs p-1.5 rounded-lg border border-[#bbd1cd] bg-white"
+                          />
+                        </div>
+
+                        {/* Choices in this node */}
+                        <div className="space-y-2 pt-1 border-t border-[#bbd1cd]/50">
+                          <label className="block text-[11px] font-bold text-slate-700">Entscheidungs-Optionen ({node.choices?.length || 0})</label>
+                          {(node.choices || []).map((ch, cIdx) => (
+                            <div key={ch.id || cIdx} className="p-2 bg-white rounded-lg border border-[#bbd1cd] space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <label className="flex items-center gap-1.5 text-[11px] font-bold text-[#1b5c53] cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={ch.isOptimal}
+                                    onChange={(e) => {
+                                      const newChoices = [...node.choices];
+                                      newChoices[cIdx] = { ...ch, isOptimal: e.target.checked };
+                                      const newNodes = { ...currentStation.branchingScenario!.nodes };
+                                      newNodes[nodeId] = { ...node, choices: newChoices };
+                                      handleUpdateStation("branchingScenario", { ...currentStation.branchingScenario!, nodes: newNodes });
+                                    }}
+                                    className="text-[#247a6d] focus:ring-[#247a6d] rounded"
+                                  />
+                                  <span>Option {cIdx + 1} ({ch.isOptimal ? "Deeskalierend / Optimal" : "Risikobehaftet"})</span>
+                                </label>
+                                {ch.nextStepId && (
+                                  <span className="text-[10px] text-slate-500 font-mono">
+                                    ➔ {ch.nextStepId}
+                                  </span>
+                                )}
+                              </div>
+
+                              <input
+                                type="text"
+                                value={ch.text}
+                                onChange={(e) => {
+                                  const newChoices = [...node.choices];
+                                  newChoices[cIdx] = { ...ch, text: e.target.value };
+                                  const newNodes = { ...currentStation.branchingScenario!.nodes };
+                                  newNodes[nodeId] = { ...node, choices: newChoices };
+                                  handleUpdateStation("branchingScenario", { ...currentStation.branchingScenario!, nodes: newNodes });
+                                }}
+                                placeholder="Reaktionstext..."
+                                className="w-full text-xs p-1.5 rounded border border-[#bbd1cd]"
+                              />
+
+                              <input
+                                type="text"
+                                value={ch.consequenceText}
+                                onChange={(e) => {
+                                  const newChoices = [...node.choices];
+                                  newChoices[cIdx] = { ...ch, consequenceText: e.target.value };
+                                  const newNodes = { ...currentStation.branchingScenario!.nodes };
+                                  newNodes[nodeId] = { ...node, choices: newChoices };
+                                  handleUpdateStation("branchingScenario", { ...currentStation.branchingScenario!, nodes: newNodes });
+                                }}
+                                placeholder="Unmittelbare Konsequenz / Reaktion der Person..."
+                                className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] text-slate-600"
+                              />
+
+                              <input
+                                type="text"
+                                value={ch.zqpAdvice || ""}
+                                onChange={(e) => {
+                                  const newChoices = [...node.choices];
+                                  newChoices[cIdx] = { ...ch, zqpAdvice: e.target.value };
+                                  const newNodes = { ...currentStation.branchingScenario!.nodes };
+                                  newNodes[nodeId] = { ...node, choices: newChoices };
+                                  handleUpdateStation("branchingScenario", { ...currentStation.branchingScenario!, nodes: newNodes });
+                                }}
+                                placeholder="ZQP-Praxistipp zu dieser Wahl..."
+                                className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] text-slate-600"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

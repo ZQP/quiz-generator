@@ -88,6 +88,17 @@ export function analyzeQuizQuality(
       optionsCount += st.bucketSortItems.length;
       optionsWithExplanation += st.bucketSortItems.filter((b) => !!b.explanation).length;
     }
+    if (st.branchingScenario?.nodes) {
+      allText += `${st.branchingScenario.zqpSummaryAdvice || ""} `;
+      Object.values(st.branchingScenario.nodes).forEach((n) => {
+        allText += `${n.sceneTitle} ${n.situationDescription} `;
+        optionsCount += n.choices.length;
+        optionsWithExplanation += n.choices.filter((c) => !!c.consequenceText).length;
+        n.choices.forEach((c) => {
+          allText += `${c.text} ${c.consequenceText} ${c.zqpAdvice || ""} `;
+        });
+      });
+    }
   });
 
   // Sentence analysis
@@ -238,6 +249,22 @@ export function analyzeQuizQuality(
 
     if (st.fillInSentence) {
       checkFieldForGlossary(st.fillInSentence, `${sName}: Lückentext`, sIdx);
+    }
+
+    if (st.branchingScenario?.nodes) {
+      if (st.branchingScenario.zqpSummaryAdvice) {
+        checkFieldForGlossary(st.branchingScenario.zqpSummaryAdvice, `${sName}: ZQP-Gesamtrat`, sIdx);
+      }
+      Object.values(st.branchingScenario.nodes).forEach((n, nIdx) => {
+        checkFieldForGlossary(n.situationDescription, `${sName}: Situation (${n.sceneTitle || `Szene ${nIdx + 1}`})`, sIdx);
+        n.choices.forEach((c, cIdx) => {
+          checkFieldForGlossary(c.text, `${sName}: Option ${cIdx + 1}`, sIdx);
+          checkFieldForGlossary(c.consequenceText, `${sName}: Konsequenz ${cIdx + 1}`, sIdx);
+          if (c.zqpAdvice) {
+            checkFieldForGlossary(c.zqpAdvice, `${sName}: ZQP-Tipp ${cIdx + 1}`, sIdx);
+          }
+        });
+      });
     }
   });
 
@@ -429,6 +456,23 @@ export function applyGlossaryFixesToQuiz(
 
     if (st.fillInSentence) {
       st.fillInSentence = replaceInText(st.fillInSentence);
+    }
+
+    if (st.branchingScenario?.nodes) {
+      if (st.branchingScenario.zqpSummaryAdvice) {
+        st.branchingScenario.zqpSummaryAdvice = replaceInText(st.branchingScenario.zqpSummaryAdvice);
+      }
+      Object.values(st.branchingScenario.nodes).forEach((n) => {
+        n.sceneTitle = replaceInText(n.sceneTitle);
+        n.situationDescription = replaceInText(n.situationDescription);
+        n.choices.forEach((c) => {
+          c.text = replaceInText(c.text);
+          c.consequenceText = replaceInText(c.consequenceText);
+          if (c.zqpAdvice) {
+            c.zqpAdvice = replaceInText(c.zqpAdvice);
+          }
+        });
+      });
     }
   });
 

@@ -154,6 +154,19 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
   const [draggedWord, setDraggedWord] = useState<string | null>(null);
   const [dragOverBlankId, setDragOverBlankId] = useState<string | null>(null);
 
+  // 10. BRANCHING SCENARIO STATE
+  const [branchingCurrentNodeId, setBranchingCurrentNodeId] = useState<string>("node_1");
+  const [branchingSelectedChoiceId, setBranchingSelectedChoiceId] = useState<string | null>(null);
+  const [branchingHistory, setBranchingHistory] = useState<{
+    nodeId: string;
+    choiceId: string;
+    choiceText: string;
+    consequenceText: string;
+    isOptimal: boolean;
+    zqpAdvice: string;
+  }[]>([]);
+  const [branchingIsCompleted, setBranchingIsCompleted] = useState<boolean>(false);
+
   // UNIFIED FEEDBACK & DRAWER STATE
   interface FeedbackState {
     type: "correct" | "incorrect" | "revealed";
@@ -193,6 +206,11 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
     setActiveBlankId(null);
     setDraggedWord(null);
     setDragOverBlankId(null);
+
+    setBranchingCurrentNodeId(currentStation?.branchingScenario?.rootNodeId || "node_1");
+    setBranchingSelectedChoiceId(null);
+    setBranchingHistory([]);
+    setBranchingIsCompleted(false);
 
     setFeedback(null);
     setCanAdvance(false);
@@ -268,6 +286,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
         allFilled[b.id] = b.correctWord;
       });
       setFilledBlanks(allFilled);
+    } else if (currentStation.type === "branching_scenario" && currentStation.branchingScenario) {
+      setBranchingIsCompleted(true);
     }
 
     setFeedback({
@@ -596,6 +616,49 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
       setCanAdvance(false);
     }
     setIsDrawerOpen(true);
+  };
+
+  // --- 10. BRANCHING SCENARIO LOGIC ---
+  const handleSelectBranchingChoice = (choice: any) => {
+    if (canAdvance || branchingIsCompleted) return;
+    setBranchingSelectedChoiceId(choice.id);
+
+    const historyEntry = {
+      nodeId: branchingCurrentNodeId,
+      choiceId: choice.id,
+      choiceText: choice.text,
+      consequenceText: choice.consequenceText,
+      isOptimal: choice.isOptimal,
+      zqpAdvice: choice.zqpAdvice,
+    };
+    const newHistory = [...branchingHistory, historyEntry];
+    setBranchingHistory(newHistory);
+
+    if (choice.nextStepId && currentStation?.branchingScenario?.nodes[choice.nextStepId]) {
+      setBranchingCurrentNodeId(choice.nextStepId);
+      setBranchingSelectedChoiceId(null);
+    } else {
+      setBranchingIsCompleted(true);
+      setFeedback({
+        type: "correct",
+        title: "Fallbeispiel abgeschlossen!",
+        selectionExplanation: choice.consequenceText + (choice.zqpAdvice ? ` • ${choice.zqpAdvice}` : ""),
+        zqpBackground: currentStation?.branchingScenario?.zqpSummaryAdvice || currentStation?.zqpRationale || "Personenzentrierte Deeskalation schenkt Betroffenen und Pflegenden Sicherheit.",
+      });
+      setStationResults((prev) => ({ ...prev, [currentStationIdx]: "solved" }));
+      setCanAdvance(true);
+      setIsDrawerOpen(true);
+    }
+  };
+
+  const handleResetBranchingScenario = () => {
+    setBranchingCurrentNodeId(currentStation?.branchingScenario?.rootNodeId || "node_1");
+    setBranchingSelectedChoiceId(null);
+    setBranchingHistory([]);
+    setBranchingIsCompleted(false);
+    setFeedback(null);
+    setIsDrawerOpen(false);
+    setCanAdvance(false);
   };
 
   const handleNextStation = () => {
@@ -1804,6 +1867,143 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                         );
                       })}
                     </div>
+                  </div>
+                )}
+
+                {/* ==============================================================
+                    10. BRANCHING SCENARIO STATION
+                    ============================================================== */}
+                {currentStation.type === "branching_scenario" && currentStation.branchingScenario && (
+                  <div className="space-y-3">
+                    {(() => {
+                      const scenario = currentStation.branchingScenario;
+                      const nodes = scenario.nodes || {};
+                      const currentNode = nodes[branchingCurrentNodeId] || nodes[scenario.rootNodeId] || Object.values(nodes)[0];
+
+                      if (!currentNode) {
+                        return <div className="text-xs text-slate-500">Szenariodaten nicht verfügbar.</div>;
+                      }
+
+                      const lastHistory = branchingHistory.length > 0 ? branchingHistory[branchingHistory.length - 1] : null;
+
+                      return (
+                        <div className="space-y-3">
+                          {/* Phasen-Indikator / Breadcrumbs */}
+                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#1b5c53] pb-1 border-b border-[#e2ddd5]">
+                            <span className="px-2 py-0.5 rounded bg-[#e3eeec] border border-[#bbd1cd]">
+                              {currentNode.sceneTitle || "Szene " + (branchingHistory.length + 1)}
+                            </span>
+                            <span className="text-[#6e6c70] text-[10px]">
+                              (Schritt {branchingHistory.length + 1} {scenario.depthMode === "deep_3_steps" ? "von 3" : "von 2"})
+                            </span>
+                          </div>
+
+                          {/* Vorherige Wahl & Konsequenz-Zusammenfassung (falls in Folgeszene) */}
+                          {lastHistory && !branchingIsCompleted && (
+                            <div className={`p-2.5 rounded-xl border text-xs space-y-1 ${
+                              lastHistory.isOptimal
+                                ? "bg-emerald-50/70 border-emerald-300 text-emerald-950"
+                                : "bg-amber-50/70 border-amber-300 text-amber-950"
+                            }`}>
+                              <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wide">
+                                <span>{lastHistory.isOptimal ? "🌿 Deeskalierende Reaktion" : "⚡ Zugespitzte Reaktion"}</span>
+                                <span className="text-[10px] opacity-80">Konsequenz</span>
+                              </div>
+                              <p className="text-[11px] font-medium leading-snug">
+                                {lastHistory.consequenceText}
+                              </p>
+                              {lastHistory.zqpAdvice && (
+                                <p className="text-[10px] opacity-90 pt-0.5 border-t border-black/10">
+                                  💡 <strong>ZQP-Tipp:</strong> {lastHistory.zqpAdvice}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Aktuelle Szene / Situation */}
+                          {!branchingIsCompleted && (
+                            <div className="bg-[#f3f8f7] border-l-4 border-[#247a6d] p-3 rounded-r-xl">
+                              <p className="text-xs text-[#3a352d] leading-relaxed font-medium">
+                                {currentNode.situationDescription}
+                              </p>
+                            </div>
+                          )}
+
+                          {/* Handlungsmöglichkeiten / Choices */}
+                          {!branchingIsCompleted && (
+                            <div className="space-y-2 pt-1">
+                              <p className="text-[11px] font-bold text-[#1b5c53] uppercase tracking-wide">
+                                Wie reagieren Sie in dieser Situation?
+                              </p>
+                              <div className="space-y-1.5">
+                                {(currentNode.choices || []).map((choice, cIdx) => {
+                                  const letters = ["A", "B", "C", "D"];
+                                  const isSelected = branchingSelectedChoiceId === choice.id;
+
+                                  return (
+                                    <button
+                                      key={choice.id || cIdx}
+                                      type="button"
+                                      disabled={canAdvance}
+                                      onClick={() => handleSelectBranchingChoice(choice)}
+                                      className={`w-full text-left p-2.5 sm:p-3 rounded-xl border transition-all flex items-start gap-2.5 cursor-pointer ${
+                                        isSelected
+                                          ? "zqp-papercut-selected border-[#247a6d] bg-[#f3f8f7]"
+                                          : "zqp-papercut-card hover:border-[#247a6d] hover:bg-[#f3f8f7]/40"
+                                      } ${canAdvance ? "locked pointer-events-none" : ""}`}
+                                    >
+                                      <span className="w-5 h-5 rounded-full bg-[#e3eeec] border border-[#bbd1cd] text-[#1b5c53] font-bold text-[11px] flex items-center justify-center shrink-0 mt-0.5">
+                                        {letters[cIdx] || (cIdx + 1)}
+                                      </span>
+                                      <div className="flex-1">
+                                        <span className="text-xs font-semibold text-[#3a352d] leading-snug block">
+                                          {choice.text}
+                                        </span>
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Abschluss & Reflexions-Ansicht */}
+                          {branchingIsCompleted && (
+                            <div className="p-4 bg-[#f3f8f7] border-2 border-[#247a6d] rounded-2xl space-y-3">
+                              <div className="flex items-center gap-2 text-[#1b5c53]">
+                                <span className="w-6 h-6 rounded-full bg-[#247a6d] text-white flex items-center justify-center font-bold text-xs">
+                                  ✓
+                                </span>
+                                <h4 className="font-bold text-xs">
+                                  Fallbeispiel durchgespielt • ZQP-Fachbegründung
+                                </h4>
+                              </div>
+
+                              <div className="space-y-1.5">
+                                <p className="text-xs text-[#3a352d] leading-relaxed">
+                                  {scenario.zqpSummaryAdvice || currentStation.zqpRationale}
+                                </p>
+                              </div>
+
+                              <div className="pt-2 border-t border-[#bbd1cd]/70 flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={handleResetBranchingScenario}
+                                  className="px-3 py-1.5 rounded-lg border border-[#bbd1cd] bg-white hover:bg-[#e3eeec] text-xs font-semibold text-[#1b5c53] flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                                  title="Dieses Szenario von Anfang an mit anderen Entscheidungen wiederholen"
+                                >
+                                  <RotateCcw className="w-3.5 h-3.5 text-[#247a6d]" />
+                                  <span>Anderen Handlungsweg ausprobieren</span>
+                                </button>
+                                <span className="text-[11px] text-[#6e6c70] font-medium">
+                                  Gelöst ✓
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

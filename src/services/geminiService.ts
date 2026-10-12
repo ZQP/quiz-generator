@@ -271,7 +271,7 @@ WICHTIG: Erzeuge KEINEN HTML-, CSS- oder JavaScript-Code im JSON (das Bundle wir
   "stations": [
     {
       "id": "s1",
-      "type": "matching" | "ordering" | "comparison" | "single_choice" | "myth_fact" | "bucket_sort" | "dilemma" | "checklist" | "fill_in_the_blank",
+      "type": "matching" | "ordering" | "comparison" | "single_choice" | "myth_fact" | "bucket_sort" | "dilemma" | "checklist" | "fill_in_the_blank" | "branching_scenario",
       "title": "Stationstitel",
       "promptOrInstruction": "Anweisung",
       "zqpRationale": "ZQP-Hintergrundwissen zur Station",
@@ -303,7 +303,39 @@ WICHTIG: Erzeuge KEINEN HTML-, CSS- oder JavaScript-Code im JSON (das Bundle wir
       "fillInSentence": "Satz mit [BLANK_1] und [BLANK_2]",
       "fillInBlanks": [
         { "id": "BLANK_1", "correctWord": "Wort", "options": ["Wort", "AnderesWort", "DrittesWort"] }
-      ]
+      ],
+      "branchingScenario": {
+        "rootNodeId": "step_1",
+        "depthMode": "compact_2_steps",
+        "nodes": {
+          "step_1": {
+            "id": "step_1",
+            "sceneTitle": "Ausgangssituation",
+            "situationDescription": "Konkreter Pflegekonflikt...",
+            "choices": [
+              { "id": "1A", "text": "Handlung A (Konfrontativ)", "consequenceText": "Konsequenz A...", "isOptimal": false, "nextStepId": "step_2_confront", "zqpAdvice": "Tipp A" },
+              { "id": "1B", "text": "Handlung B (Deeskalierend)", "consequenceText": "Konsequenz B...", "isOptimal": true, "nextStepId": "step_2_validate", "zqpAdvice": "Tipp B" }
+            ]
+          },
+          "step_2_confront": {
+            "id": "step_2_confront",
+            "sceneTitle": "Zuspitzung & Deeskalation",
+            "situationDescription": "Die Lage nach Handlung A...",
+            "choices": [
+              { "id": "2A1", "text": "Deeskalationsschritt", "consequenceText": "Beruhigung setzt ein", "isOptimal": true, "zqpAdvice": "Validation beruhigt" }
+            ]
+          },
+          "step_2_validate": {
+            "id": "step_2_validate",
+            "sceneTitle": "Stabilisierung",
+            "situationDescription": "Die Lage nach Handlung B...",
+            "choices": [
+              { "id": "2B1", "text": "Sanfter Übergang", "consequenceText": "Erfolgreich gelöst", "isOptimal": true, "zqpAdvice": "Ressourcenorientiert" }
+            ]
+          }
+        },
+        "zqpSummaryAdvice": "Zusammenfassender ZQP-Leitfaden"
+      }
     }
   ]
 }`;
@@ -713,31 +745,83 @@ function generateLocalDemoQuiz(
     },
     {
       id: "st-10",
-      type: "ordering",
-      title: "Station 10: Notfallkette nach einem häuslichen Sturz",
-      promptOrInstruction: "Welche Reihenfolge ist unmittelbar nach einem Sturz einer pflegebedürftigen Person einzuhalten?",
-      zqpRationale: "Überstürztes Aufrichten nach einem Sturz kann Frakturen und Kreislaufkollapse verschlimmern.",
-      solutionExplanation: "Die richtige Notfallfolge: 1. Ruhe bewahren und Schmerzen/Atmung prüfen. 2. Notruf oder Hausnotrufknopf betätigen, wenn kein schmerzfreies Aufstehen möglich ist. 3. Person warmhalten und betreuen.",
-      orderingSteps: [
-        {
-          id: "notfall-1",
-          text: "Ruhe bewahren, nach Schmerzen fragen und Ansprechbarkeit prüfen",
-          correctIndex: 0,
-          reason: "Schritt 1: Verschaffen Sie sich erst einen Überblick, um Schock oder Brüche nicht durch voreilige Bewegung zu verschlimmern."
+      type: "branching_scenario",
+      title: "Station 10: Verzweigtes Fallbeispiel: Nächtliche Unruhe",
+      promptOrInstruction: "Begleiten Sie diese herausfordernde Situation im Pflegealltag Schritt für Schritt und finden Sie den deeskalierenden Weg:",
+      zqpRationale: "Validation und empathisches Eingehen auf die Gefühlswelt deeskalieren Verwirrtheitszustände, während logische Konfrontation Angst und Gegenwehr schürt.",
+      solutionExplanation: "Die deeskalierende ZQP-Strategie: Gefühle spiegeln (Sorge um die Schule anerkennen), Vertrauen durch eine gemeinsame Tasse Tee aufbauen und anschließend sanft zur Nachtruhe überleiten.",
+      branchingScenario: {
+        rootNodeId: "node_1",
+        depthMode: "compact_2_steps",
+        nodes: {
+          "node_1": {
+            id: "node_1",
+            sceneTitle: "Ausgangssituation: Die Haustür um 2:30 Uhr",
+            situationDescription: "Es ist 2:30 Uhr nachts. Ihre 82-jährige Mutter mit Demenz steht im Flur, hat ihren Wintermantel an und sucht hastig ihre Handtasche: „Ich muss sofort los in die Schule, die Kinder warten schon auf mich im Unterricht!“ Sie selbst sind nach einem langen Arbeitstag erschöpft und müssen um 6:00 Uhr wieder aufstehen.",
+            choices: [
+              {
+                id: "c1_a",
+                text: "„Mama, zieh bitte den Mantel aus. Du bist seit 25 Jahren pensioniert und es ist mitten in der Nacht!“",
+                consequenceText: "Ihre Mutter fühlt sich bevormundet, gerät in Panik und klammert sich an die Haustür: „Ihr wollt mich hier gefangen halten!“",
+                isOptimal: false,
+                nextStepId: "node_2_confront",
+                zqpAdvice: "Logische Richtigstellung scheitert bei Demenz und erzeugt akute Verunsicherung und Abwehr."
+              },
+              {
+                id: "c1_b",
+                text: "„Du machst dir Sorgen um deine Klasse, stimmts? Komm, wir setzen uns kurz in die Küche und trinken eine warme Tasse Tee.“",
+                consequenceText: "Die Anspannung fällt sichtbar ab. Ihre Mutter lässt den Koffer los, setzt sich an den Küchentisch und nimmt dankbar die warme Tasse.",
+                isOptimal: true,
+                nextStepId: "node_2_validate",
+                zqpAdvice: "Gefühle spiegeln (Validieren) nimmt den Druck und schafft einen Moment des Vertrauens."
+              }
+            ]
+          },
+          "node_2_confront": {
+            id: "node_2_confront",
+            sceneTitle: "Zuspitzung & Deeskalation: Wie fangen Sie die Lage auf?",
+            situationDescription: "Die Situation droht zu eskalieren. Ihre Mutter weint und klammert sich an den Türgriff. Wie deeskalieren Sie jetzt?",
+            choices: [
+              {
+                id: "c2_a1",
+                text: "Schritt zurücktreten, Stimme senken: „Entschuldige, Mama. Ich sehe, wie wichtig dir die Kinder sind. Lass uns kurz hinsetzen und bereden, was zu tun ist.“",
+                consequenceText: "Durch die sanfte Stimme und den Rückzug beruhigt sich die Mutter langsam wieder und lässt die Tür los.",
+                isOptimal: true,
+                zqpAdvice: "Eigene Fehler eingestehen, Ruhe ausstrahlen und Deeskalation anbieten wirkt auch in zugespitzten Lagen."
+              },
+              {
+                id: "c2_a2",
+                text: "Den Kalender holen und ihr das aktuelle Jahr und ihr Alter beweisen wollen.",
+                consequenceText: "Die Mutter bricht in Tränen aus, fühlt sich bloßgestellt und zieht sich vollkommen zurück.",
+                isOptimal: false,
+                zqpAdvice: "Recht haben zu wollen schädigt die Beziehung und verstärkt die Desorientierung."
+              }
+            ]
+          },
+          "node_2_validate": {
+            id: "node_2_validate",
+            sceneTitle: "Stabilisierung: Der Übergang zurück zur Nachtruhe",
+            situationDescription: "Die erste Hürde ist geschafft. Ihre Mutter erzählt in der Küche entspannt von früher. Wie leiten Sie nun sanft ins Bett?",
+            choices: [
+              {
+                id: "c2_b1",
+                text: "Gemeinsam das Bett vorbereiten: „Vor dem großen Schultag brauchst du frische Energie. Komm, wir kuscheln uns noch 2 Stunden ins warme Bett.“",
+                consequenceText: "Die Mutter nickt erleichtert, lässt sich ins Schlafzimmer begleiten und schläft friedlich ein.",
+                isOptimal: true,
+                zqpAdvice: "In ihrer Realität bleiben und positive Assoziationen (Kraft für den Tag) mit dem Schlafen verknüpfen."
+              },
+              {
+                id: "c2_b2",
+                text: "Mitten in ihrer Erzählung die Tasse wegnehmen: „So, jetzt reicht es aber mit dem Gerede, ab ins Bett.“",
+                consequenceText: "Der plötzliche Abbruch zerstört das Vertrauen und weckt neue Unruhe.",
+                isOptimal: false,
+                zqpAdvice: "Abrupte Beziehungsabbrüche ohne Übergang lösen Verlustängste aus."
+              }
+            ]
+          }
         },
-        {
-          id: "notfall-2",
-          text: "Hausnotruf oder 112 auslösen, falls eigenständiges Aufstehen unmöglich ist",
-          correctIndex: 1,
-          reason: "Schritt 2: Professionelle Hilfe herbeirufen, bevor ungeeignete Hebeversuche unternommen werden."
-        },
-        {
-          id: "notfall-3",
-          text: "Person mit einer Decke wärmen und bis zum Eintreffen der Hilfe beruhigend begleiten",
-          correctIndex: 2,
-          reason: "Schritt 3: Auskühlung auf kaltem Boden verhindern und psychischen Halt geben."
-        }
-      ]
+        zqpSummaryAdvice: "Personenzentrierte Haltung nach Tom Kitwood: Validieren, Sicherheit schenken und gemeinsame Ruheinseln schaffen."
+      }
     }
   ];
 
