@@ -24,7 +24,7 @@ import {
   importProjectFromJson,
   stripCompiledBundle,
 } from "./services/projectStorage";
-import { Eye, Code2, Sparkles, PlusCircle } from "lucide-react";
+import { Eye, Code2, Sparkles, PlusCircle, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 
 const DRAFT_STORAGE_KEY = "zqp_quiz_generator_draft_v1";
 
@@ -106,6 +106,7 @@ export const App: React.FC = () => {
 
   // Mode in left column: create new from scratch vs. refine existing (always start on 'create' / Neues Thema)
   const [leftPanelMode, setLeftPanelMode] = useState<"create" | "refine">("create");
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState<boolean>(false);
 
   // Save compact current quiz history to localStorage & active project whenever it changes
   useEffect(() => {
@@ -449,77 +450,149 @@ export const App: React.FC = () => {
         onOpenLibrary={() => setIsLibraryOpen(true)}
       />
 
-      {/* Main Two-Column Content (Viewport-Fitted, Aligned Grid) */}
-      <main className="flex-1 max-w-[1800px] w-full mx-auto p-3 md:p-4 grid grid-cols-1 lg:grid-cols-12 gap-3.5 min-h-0 overflow-hidden">
-        {/* Left Column: Input, Customization & Refinement (5 cols) */}
-        <div className="lg:col-span-5 flex flex-col min-h-0 bg-white rounded-xl border border-[#bbd1cd] shadow-2xs overflow-hidden">
-          {/* Mode Switcher Tab Header (Aligned with Right Column) */}
-          <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1">
+      {/* Main Responsive Content (Studio Mode with Collapsible Left Rail) */}
+      <main className="flex-1 max-w-[1800px] w-full mx-auto p-3 md:p-4 flex flex-col lg:flex-row gap-3.5 min-h-0 overflow-hidden">
+        {/* Collapsed Left Rail (Studio Mode) */}
+        {isLeftPanelCollapsed ? (
+          <div className="w-12 shrink-0 hidden lg:flex flex-col items-center bg-white rounded-xl border border-[#bbd1cd] shadow-2xs py-3 px-1 justify-between min-h-0 transition-all duration-200">
+            <div className="flex flex-col items-center gap-3 w-full">
               <button
                 type="button"
-                onClick={() => setLeftPanelMode("create")}
-                className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
-                  leftPanelMode === "create"
-                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs"
-                    : "text-[#6e6c70] hover:text-[#1b5c53]"
-                }`}
+                onClick={() => setIsLeftPanelCollapsed(false)}
+                className="p-1.5 rounded-lg text-[#1b5c53] hover:bg-[#e3eeec] transition-colors cursor-pointer"
+                title="Seitenleiste ausklappen (Prompt & Formate)"
               >
-                <PlusCircle className="w-3.5 h-3.5 text-[#247a6d]" />
-                <span>1. Neues Thema</span>
+                <PanelLeftOpen className="w-4 h-4 text-[#247a6d]" />
+              </button>
+
+              <div className="w-6 h-[1px] bg-[#bbd1cd]" />
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLeftPanelMode("create");
+                  setIsLeftPanelCollapsed(false);
+                }}
+                className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                  leftPanelMode === "create" ? "bg-[#edf7f4] text-[#1b5c53]" : "text-[#6e6c70] hover:text-[#1b5c53]"
+                }`}
+                title="1. Neues Thema (Ausklappen)"
+              >
+                <PlusCircle className="w-4 h-4 text-[#247a6d]" />
               </button>
 
               <button
                 type="button"
-                onClick={() => currentQuiz && setLeftPanelMode("refine")}
+                onClick={() => {
+                  if (currentQuiz) {
+                    setLeftPanelMode("refine");
+                    setIsLeftPanelCollapsed(false);
+                  }
+                }}
                 disabled={!currentQuiz}
-                className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors ${
+                className={`p-2 rounded-lg transition-colors ${
                   leftPanelMode === "refine"
-                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs cursor-pointer"
+                    ? "bg-[#edf7f4] text-[#1b5c53] cursor-pointer"
                     : currentQuiz
                     ? "text-[#6e6c70] hover:text-[#1b5c53] cursor-pointer"
-                    : "text-gray-400 opacity-40 cursor-not-allowed"
+                    : "text-gray-300 opacity-40 cursor-not-allowed"
                 }`}
+                title="2. Quiz verfeinern (Ausklappen)"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
-                <span>2. Quiz verfeinern</span>
+                <Sparkles className="w-4 h-4 text-[#247a6d]" />
               </button>
             </div>
 
-            <span className="text-[11px] text-[#6e6c70] hidden sm:inline font-medium">
-              {leftPanelMode === "create" ? "Themenwahl & Vorlagen" : "KI-Anpassung"}
-            </span>
+            <button
+              type="button"
+              onClick={() => setIsLeftPanelCollapsed(false)}
+              className="text-[10px] font-bold text-[#6e6c70] hover:text-[#1b5c53] py-2 [writing-mode:vertical-rl] rotate-180 cursor-pointer"
+              title="Seitenleiste ausklappen"
+            >
+              Studio-Modus
+            </button>
           </div>
+        ) : (
+          /* Left Column: Input, Customization & Refinement */
+          <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0 flex flex-col min-h-0 bg-white rounded-xl border border-[#bbd1cd] shadow-2xs overflow-hidden transition-all duration-200">
+            {/* Mode Switcher Tab Header (Aligned with Right Column) */}
+            <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setLeftPanelMode("create")}
+                  className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                    leftPanelMode === "create"
+                      ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs"
+                      : "text-[#6e6c70] hover:text-[#1b5c53]"
+                  }`}
+                >
+                  <PlusCircle className="w-3.5 h-3.5 text-[#247a6d]" />
+                  <span>1. Neues Thema</span>
+                </button>
 
-          {/* Left Panel Content */}
-          <div className="flex-1 min-h-0 bg-[#fcfaf8] flex flex-col overflow-hidden">
-            {leftPanelMode === "refine" && currentQuiz ? (
-              <div className="flex-1 overflow-y-auto p-3.5">
-                <QuizRefiner
-                  currentQuiz={currentQuiz}
-                  onRefine={handleRefineQuiz}
+                <button
+                  type="button"
+                  onClick={() => currentQuiz && setLeftPanelMode("refine")}
+                  disabled={!currentQuiz}
+                  className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors ${
+                    leftPanelMode === "refine"
+                      ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs cursor-pointer"
+                      : currentQuiz
+                      ? "text-[#6e6c70] hover:text-[#1b5c53] cursor-pointer"
+                      : "text-gray-400 opacity-40 cursor-not-allowed"
+                  }`}
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
+                  <span>2. Quiz verfeinern</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] text-[#6e6c70] hidden sm:inline font-medium">
+                  {leftPanelMode === "create" ? "Themenwahl & Vorlagen" : "KI-Anpassung"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsLeftPanelCollapsed(true)}
+                  className="hidden lg:flex p-1 text-[#6e6c70] hover:text-[#1b5c53] hover:bg-[#e3eeec] rounded transition-colors cursor-pointer"
+                  title="Seitenleiste einklappen (Studio-Modus für maximale Vorschau)"
+                >
+                  <PanelLeftClose className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Left Panel Content */}
+            <div className="flex-1 min-h-0 bg-[#fcfaf8] flex flex-col overflow-hidden">
+              {leftPanelMode === "refine" && currentQuiz ? (
+                <div className="flex-1 overflow-y-auto p-3.5">
+                  <QuizRefiner
+                    currentQuiz={currentQuiz}
+                    onRefine={handleRefineQuiz}
+                    isLoading={isLoading}
+                    loadingStepText={loadingStepText}
+                    canUndo={historyIndex > 0}
+                    canRedo={historyIndex < quizHistory.length - 1}
+                    onUndo={handleUndo}
+                    onRedo={handleRedo}
+                    versionInfo={`Revision ${historyIndex + 1} von ${quizHistory.length}`}
+                    onSwitchToNewQuiz={() => setLeftPanelMode("create")}
+                  />
+                </div>
+              ) : (
+                <PromptInput
+                  onGenerate={handleGenerateNewQuiz}
                   isLoading={isLoading}
                   loadingStepText={loadingStepText}
-                  canUndo={historyIndex > 0}
-                  canRedo={historyIndex < quizHistory.length - 1}
-                  onUndo={handleUndo}
-                  onRedo={handleRedo}
-                  versionInfo={`Revision ${historyIndex + 1} von ${quizHistory.length}`}
-                  onSwitchToNewQuiz={() => setLeftPanelMode("create")}
                 />
-              </div>
-            ) : (
-              <PromptInput
-                onGenerate={handleGenerateNewQuiz}
-                isLoading={isLoading}
-                loadingStepText={loadingStepText}
-              />
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* Right Column: Preview & Code Export (7 cols) */}
-        <div className="lg:col-span-7 flex flex-col min-h-0 bg-white rounded-xl border border-[#bbd1cd] shadow-2xs overflow-hidden">
+        {/* Right Column: Preview & Code Export */}
+        <div className="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-[#bbd1cd] shadow-2xs overflow-hidden">
           {/* Tab Navigation Header (Matched with Left Column) */}
           <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-1">

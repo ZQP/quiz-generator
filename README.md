@@ -14,6 +14,14 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.3.1 (Studio-Modus & Station-Editor Live-Drawer)
+
+- **Station-Editor als Live-Drawer (Vorschlag B)**: Der WYSIWYG-Stationseditor öffnet sich nun standardmäßig als eleganter Schiebe-Drawer von der rechten Seite. Die interaktive Quiz-Vorschau bleibt im Hintergrund sichtbar und orientiert die Bearbeitung räumlich direkt am fertigen Quiz.
+- **Sofortige Live-Übernahme („In Vorschau anwenden“)**: Über die neue Schaltfläche *„In Vorschau anwenden“* (mit Vorschau-Auge) können Änderungen an Texten, Optionen und Didaktik sofort in die Simulator-Vorschau übertragen werden, ohne den Editor schließen zu müssen.
+- **Modus-Umschaltung (Drawer ⤢ Vollbild)**: Redakteur:innen können jederzeit über die Kopfzeile zwischen dem seitlichen Schiebe-Drawer und dem klassischen zentrierten Vollbild-Modal wechseln (Präferenz wird lokal gespeichert).
+- **Format-Icons in der Editor-Navigationsleiste**: Die Stations-Tabs im Editor zeigen nun ebenfalls die Format-Icons (`[ 1 🎭 ] [ 2 🧩 ]`) und den Titel an.
+- **Studio-Modus mit einklappbarer Seitenleiste**: Die linke Spalte (Themen-Prompt & Format-Pool) kann mit einem Klick auf eine schlanke 48-Pixel-Iconleiste minimiert werden, um maximalen Arbeitsplatz für Vorschau und Editor-Drawer freizugeben.
+
 ## Neu in v0.3.0 (Streamlined Workspace & Station-Format-Icons)
 
 - **Sticky Action-Footer (Linke Spalte)**: Der Schieberegler für die Stationsanzahl und der primäre Generierungs-Button („Interaktives Quiz mit Gemini generieren“) sind nun fest am unteren Rand verankert. Dadurch muss bei langen Prompts, Vorlagen oder Wissensdokumenten nicht mehr nach unten gescrollt werden.

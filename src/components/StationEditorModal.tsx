@@ -11,6 +11,9 @@ import {
   Copy,
   Trash2,
   Plus,
+  Maximize2,
+  Sidebar,
+  Eye,
 } from "lucide-react";
 import { QuizGenerationResult, QuizStation, AppSettings, EditorialStatus, StationType } from "../types";
 import { compileQuizToBundle } from "../services/exportCompiler";
@@ -37,6 +40,23 @@ const STATION_TYPE_LABELS: Record<StationType, string> = {
   checklist: "Checkliste",
   fill_in_the_blank: "Lückentext",
   branching_scenario: "Verzweigtes Fallbeispiel",
+};
+
+const getStationIcon = (type?: string) => {
+  switch (type) {
+    case "matching": return "🧩";
+    case "ordering": return "🔢";
+    case "myth_fact": return "❌";
+    case "bucket_sort": return "📥";
+    case "comparison": return "⚖️";
+    case "dilemma": return "🎭";
+    case "checklist": return "📋";
+    case "fill_in_the_blank": return "✍️";
+    case "branching_scenario": return "🌿";
+    case "single_choice":
+    default:
+      return "💡";
+  }
 };
 
 function createDefaultStation(type: StationType, index: number): QuizStation {
@@ -211,6 +231,22 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
   const [isAddMenuOpen, setIsAddMenuOpen] = useState<boolean>(false);
   const [savedFavMsg, setSavedFavMsg] = useState<string | null>(null);
 
+  const [displayMode, setDisplayMode] = useState<"drawer" | "modal">(() => {
+    try {
+      return (localStorage.getItem("zqp_station_editor_display_mode") as "drawer" | "modal") || "drawer";
+    } catch {
+      return "drawer";
+    }
+  });
+
+  const toggleDisplayMode = () => {
+    const next = displayMode === "drawer" ? "modal" : "drawer";
+    setDisplayMode(next);
+    try {
+      localStorage.setItem("zqp_station_editor_display_mode", next);
+    } catch {}
+  };
+
   if (!isOpen) return null;
 
   const currentStation = stations[activeStationIdx];
@@ -285,6 +321,22 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
     });
   };
 
+  const handleApplyToPreview = () => {
+    const updatedQuiz: QuizGenerationResult = {
+      ...quiz,
+      stations: stations,
+    };
+    const compiled = compileQuizToBundle(updatedQuiz);
+    updatedQuiz.generatedHtml = compiled.html;
+    updatedQuiz.generatedCss = compiled.css;
+    updatedQuiz.generatedJs = compiled.js;
+    updatedQuiz.tailwindConfig = compiled.tailwindConfig;
+
+    onSaveQuiz(updatedQuiz);
+    setSavedFavMsg("In Live-Vorschau aktualisiert! ✓");
+    setTimeout(() => setSavedFavMsg(null), 2500);
+  };
+
   const handleSaveAll = () => {
     const updatedQuiz: QuizGenerationResult = {
       ...quiz,
@@ -306,51 +358,96 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
         role="dialog"
         aria-modal="true"
         aria-labelledby="station-editor-title"
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-xs animate-in fade-in duration-150"
+        className={`fixed inset-0 z-50 animate-in fade-in duration-150 ${
+          displayMode === "drawer"
+            ? "flex justify-end bg-black/20 backdrop-blur-[1px]"
+            : "flex items-center justify-center bg-black/50 p-3 sm:p-4 backdrop-blur-xs"
+        }`}
       >
-        <div className="bg-white rounded-2xl border border-[#bbd1cd] shadow-2xl max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+        {/* Clickable Backdrop overlay */}
+        <div
+          className="absolute inset-0 cursor-default"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+
+        <div
+          className={`relative bg-white border-[#bbd1cd] shadow-2xl flex flex-col overflow-hidden z-10 transition-all ${
+            displayMode === "drawer"
+              ? "w-full sm:w-[580px] lg:w-[680px] xl:w-[740px] h-full border-l animate-in slide-in-from-right duration-200"
+              : "rounded-2xl border max-w-4xl w-full max-h-[92vh] animate-in zoom-in-95 duration-150"
+          }`}
+        >
           {/* Header */}
-          <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-6 py-3.5 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#247a6d] text-white flex items-center justify-center shadow-xs">
-                <Edit3 className="w-5 h-5" />
+          <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-5 py-3 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-[#247a6d] text-white flex items-center justify-center shadow-xs shrink-0">
+                <Edit3 className="w-4.5 h-4.5" />
               </div>
-              <div>
-                <h2 id="station-editor-title" className="text-base font-bold text-[#1b5c53]">
-                  Station direkt bearbeiten (WYSIWYG-Editor)
+              <div className="min-w-0">
+                <h2 id="station-editor-title" className="text-sm sm:text-base font-bold text-[#1b5c53] truncate">
+                  {displayMode === "drawer" ? "Station-Editor (Live-Drawer)" : "Station bearbeiten (WYSIWYG-Editor)"}
                 </h2>
-                <p className="text-xs text-[#6e6c70]">
-                  Texte, Optionen, Reihenfolge & Struktur ohne KI anpassen
+                <p className="text-[11px] text-[#6e6c70] truncate">
+                  {displayMode === "drawer" ? "Live-Änderungen parallel zur Quiz-Vorschau" : "Texte, Optionen, Reihenfolge & Struktur anpassen"}
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              aria-label="Schließen"
-              className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-[#e3eeec] transition-colors cursor-pointer"
-            >
-              <X className="w-5 h-5" />
-            </button>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Display Mode Toggle: Drawer <-> Modal */}
+              <button
+                type="button"
+                onClick={toggleDisplayMode}
+                className="px-2.5 py-1 rounded-lg text-[#1b5c53] bg-white hover:bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-semibold shadow-2xs"
+                title={displayMode === "drawer" ? "Auf zentriertes Vollbild-Modal vergrößern" : "Als seitlichen Schiebe-Drawer anzeigen"}
+              >
+                {displayMode === "drawer" ? (
+                  <>
+                    <Maximize2 className="w-3.5 h-3.5 text-[#247a6d]" />
+                    <span className="hidden sm:inline">Vollbild</span>
+                  </>
+                ) : (
+                  <>
+                    <Sidebar className="w-3.5 h-3.5 text-[#247a6d]" />
+                    <span className="hidden sm:inline">Drawer-Modus</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={onClose}
+                aria-label="Schließen"
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-[#e3eeec] transition-colors cursor-pointer"
+                title="Editor schließen"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Station Navigation Tab Bar with Reorder & Add */}
-          <div className="bg-[#fcfaf8] border-b border-[#e2ddd5] px-6 py-2 flex items-center justify-between gap-2 overflow-x-auto">
+          <div className="bg-[#fcfaf8] border-b border-[#e2ddd5] px-4 sm:px-6 py-2 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
             <div className="flex items-center gap-1.5 flex-nowrap">
               {stations.map((st, idx) => (
                 <button
                   key={st.id || idx}
                   onClick={() => setActiveStationIdx(idx)}
-                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                  className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
                     activeStationIdx === idx
                       ? "bg-[#247a6d] text-white shadow-2xs"
                       : "bg-white border border-[#bbd1cd] text-[#6e6c70] hover:text-[#1b5c53]"
                   }`}
+                  title={`Station ${idx + 1}: ${st.title} (${st.type})`}
                 >
                   <span>
-                    Station {idx + 1}: {st.type}
+                    {idx + 1} {getStationIcon(st.type)}
+                  </span>
+                  <span className="max-w-[80px] sm:max-w-[120px] truncate hidden xs:inline">
+                    {st.title || st.type}
                   </span>
                   <span
-                    className={`w-2 h-2 rounded-full ${
+                    className={`w-2 h-2 rounded-full shrink-0 ${
                       st.editorialStatus === "approved"
                         ? "bg-emerald-400"
                         : st.editorialStatus === "in_review"
@@ -1408,23 +1505,43 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
           </div>
 
           {/* Footer */}
-          <div className="bg-[#f3f8f7] border-t border-[#bbd1cd] px-6 py-3 flex items-center justify-between">
-            <span className="text-xs text-[#6e6c70]">
-              Speichern erzeugt eine neue Version im Revisionsverlauf (Undo/Redo bleibt erhalten).
-            </span>
-            <div className="flex items-center gap-2">
+          <div className="bg-[#f3f8f7] border-t border-[#bbd1cd] px-5 py-3 flex items-center justify-between shrink-0 gap-2">
+            <div className="min-w-0">
+              {savedFavMsg ? (
+                <span className="text-xs font-semibold text-emerald-700 animate-in fade-in">
+                  ✓ {savedFavMsg}
+                </span>
+              ) : (
+                <span className="text-[11px] text-[#6e6c70] hidden sm:inline truncate">
+                  Speichern erzeugt eine neue Version im Revisionsverlauf.
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
               <button
+                type="button"
                 onClick={onClose}
-                className="px-4 py-2 bg-white border border-[#bbd1cd] hover:border-[#247a6d] text-xs font-semibold text-[#1b5c53] rounded-lg transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-white border border-[#bbd1cd] hover:border-[#247a6d] text-xs font-semibold text-[#1b5c53] rounded-lg transition-colors cursor-pointer"
               >
                 Abbrechen
               </button>
               <button
+                type="button"
+                onClick={handleApplyToPreview}
+                className="px-3 py-1.5 bg-white hover:bg-[#edf7f4] border border-[#247a6d] text-xs font-semibold text-[#1b5c53] rounded-lg shadow-2xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Sofort in die Live-Vorschau übernehmen, ohne den Editor zu schließen"
+              >
+                <Eye className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span className="hidden sm:inline">In Vorschau anwenden</span>
+                <span className="sm:hidden">Anwenden</span>
+              </button>
+              <button
+                type="button"
                 onClick={handleSaveAll}
-                className="px-4 py-2 bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold rounded-lg shadow-sm flex items-center gap-1.5 transition-colors cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
-                <span>Änderungen als neue Version speichern</span>
+                <span>Speichern & Schließen</span>
               </button>
             </div>
           </div>
