@@ -521,8 +521,9 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
           </div>
 
           {/* Station Navigation Tab Bar with Reorder & Add */}
-          <div className="bg-[#fcfaf8] border-b border-[#e2ddd5] px-4 sm:px-6 py-2 flex items-center justify-between gap-2 overflow-x-auto shrink-0">
-            <div className="flex items-center gap-1.5 flex-nowrap">
+          <div className="bg-[#fcfaf8] border-b border-[#e2ddd5] px-3.5 sm:px-5 py-2 flex items-center gap-2 shrink-0">
+            {/* Scrollable Tabs Container */}
+            <div className="flex-1 min-w-0 overflow-x-auto flex items-center gap-1.5 py-0.5 zqp-scrollbar">
               {stations.map((st, idx) => (
                 <button
                   key={st.id || idx}
@@ -587,7 +588,7 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
                 )}
               </div>
 
-              <div className="h-5 w-px bg-gray-300 mx-1 shrink-0" />
+              <div className="h-4 w-px bg-gray-300 mx-1 shrink-0" />
 
               {/* Special Tabs: Ergebnis-Station & UI-Texte */}
               <button
@@ -619,39 +620,30 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center gap-1 shrink-0">
-              {editorSection === "station" ? (
-                <>
-                  <button
-                    onClick={() => setActiveStationIdx((prev) => Math.max(0, prev - 1))}
-                    disabled={activeStationIdx === 0}
-                    className="p-1 text-gray-500 hover:text-[#1b5c53] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                    title="Vorherige Station"
-                  >
-                    <ArrowLeft className="w-4 h-4" />
-                  </button>
-                  <span className="text-xs font-bold text-[#1b5c53]">
-                    {activeStationIdx + 1} / {stations.length}
-                  </span>
-                  <button
-                    onClick={() => setActiveStationIdx((prev) => Math.min(stations.length - 1, prev + 1))}
-                    disabled={activeStationIdx === stations.length - 1}
-                    className="p-1 text-gray-500 hover:text-[#1b5c53] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                    title="Nächste Station"
-                  >
-                    <ArrowRight className="w-4 h-4" />
-                  </button>
-                </>
-              ) : editorSection === "result" ? (
-                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  🏁 Abschluss-Ansicht
+            {/* Pinned Navigation Controls: only show station stepper when in station section */}
+            {editorSection === "station" && stations.length > 1 && (
+              <div className="flex items-center gap-1 shrink-0 pl-2 border-l border-[#bbd1cd]/60">
+                <button
+                  onClick={() => setActiveStationIdx((prev) => Math.max(0, prev - 1))}
+                  disabled={activeStationIdx === 0}
+                  className="p-1 text-gray-500 hover:text-[#1b5c53] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer rounded hover:bg-[#e3eeec]"
+                  title="Vorherige Station"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <span className="text-xs font-bold text-[#1b5c53] px-0.5 select-none whitespace-nowrap">
+                  {activeStationIdx + 1} / {stations.length}
                 </span>
-              ) : (
-                <span className="text-xs font-bold text-[#1b5c53] bg-[#e3eeec] px-2 py-0.5 rounded border border-[#bbd1cd]">
-                  ⚙️ Globale Quiz-Texte
-                </span>
-              )}
-            </div>
+                <button
+                  onClick={() => setActiveStationIdx((prev) => Math.min(stations.length - 1, prev + 1))}
+                  disabled={activeStationIdx === stations.length - 1}
+                  className="p-1 text-gray-500 hover:text-[#1b5c53] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer rounded hover:bg-[#e3eeec]"
+                  title="Nächste Station"
+                >
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Editor Body */}
