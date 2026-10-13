@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Sparkles, FileText, Upload, ChevronDown, ChevronRight, CheckSquare, Layers, Globe, Download } from "lucide-react";
 import { TargetAudience, StationType } from "../types";
 import { parseDocumentFile, ParsedDocumentResult } from "../services/documentParser";
@@ -71,22 +71,128 @@ const ZQP_TEMPLATES: ZqpTemplate[] = [
 interface MechanicMeta {
   type: StationType;
   label: string;
+  badgeTitle: string;
   icon: string;
-  desc: string;
+  category: string;
+  tagline: string;
+  didactics: string;
+  example: string;
+  interaction: string;
   isNew?: boolean;
 }
 
 const MECHANIC_DEFINITIONS: MechanicMeta[] = [
-  { type: "matching", label: "Zuordnung", icon: "🧩", desc: "Gefahr ↔ Schutzmaßnahme" },
-  { type: "ordering", label: "Ablauf", icon: "🔢", desc: "Schritte umsortieren" },
-  { type: "myth_fact", label: "Mythos/Fakt", icon: "❌/💡", desc: "Irrtümer entlarven" },
-  { type: "bucket_sort", label: "Dos & Don'ts", icon: "📥", desc: "2-Spalten Sortierung" },
-  { type: "comparison", label: "Vergleich", icon: "⚖️", desc: "Szenario A vs. B" },
-  { type: "dilemma", label: "Dilemma", icon: "🎭", desc: "Pflegealltag & Entscheidung" },
-  { type: "checklist", label: "Checkliste", icon: "📋", desc: "Lochkarten-Auswahl" },
-  { type: "fill_in_the_blank", label: "Lückentext", icon: "✍️", desc: "Wortbausteine einsetzen" },
-  { type: "branching_scenario", label: "Fallbeispiel", icon: "🌿", desc: "Entscheidungsbaum", isNew: true },
-  { type: "single_choice", label: "Wissenscheck", icon: "💡", desc: "Klassische Single-Choice" },
+  {
+    type: "matching",
+    label: "Zuordnung",
+    badgeTitle: "Zuordnungs-Puzzle",
+    icon: "🧩",
+    category: "Assoziation & Risikotransfer",
+    tagline: "Gefahrenstellen und Schutzmaßnahmen miteinander verknüpfen.",
+    didactics: "Schult das Erkennen von Ursache-Wirkungs-Prinzipien. Die Lernenden verbinden Risiken im häuslichen Umfeld direkt mit den passenden ZQP-Präventionslösungen.",
+    example: "Lose Teppichkante im Flur ↔ Rutschhemmende Gittermatte unterlegen",
+    interaction: "Paare verknüpfen per Klick oder Drag & Drop",
+  },
+  {
+    type: "ordering",
+    label: "Ablauf",
+    badgeTitle: "Ablauf & Reihenfolge",
+    icon: "🔢",
+    category: "Prozess- & Handlungsketten",
+    tagline: "Chronologische Schritte eines Pflegeablaufs sortieren.",
+    didactics: "Verankert handlungssichere Routinen in Notfall- oder Pflegesituationen. Die Lernenden bringen Handlungsschritte strukturiert in die richtige zeitliche Abfolge.",
+    example: "Aufstehen nach Sturz: 1. Ruhen & Durchatmen → 2. Vierfüßlerstand → 3. Stuhl nutzen → 4. Aufrichten",
+    interaction: "Schritte nach oben/unten verschieben oder ziehen",
+  },
+  {
+    type: "myth_fact",
+    label: "Mythos/Fakt",
+    badgeTitle: "Mythos vs. Fakt",
+    icon: "❌/💡",
+    category: "Aufklärung & Vorurteilsabbau",
+    tagline: "Weit verbreitete Pflege-Irrtümer evidenzbasiert entlarven.",
+    didactics: "Konfrontiert mit klassischen Fehleinschätzungen und korrigiert diese mit fundierten wissenschaftlichen Fakten der ZQP-Praxisleitlinien.",
+    example: "Mythos: „Bettgitter schützen Demenzkranke zuverlässig vor Stürzen.“ (Fakt: Sturzgefahr steigt durch Überklettern!)",
+    interaction: "1-Klick-Entscheidung [Mythos] vs. [Fakt] mit Begründung",
+  },
+  {
+    type: "bucket_sort",
+    label: "Dos & Don'ts",
+    badgeTitle: "Dos & Don'ts (Sortierung)",
+    icon: "📥",
+    category: "Verhaltensregeln & Leitlinien",
+    tagline: "Maßnahmen in 2 Töpfe („Empfehlenswert“ vs. „Zu vermeiden“) sortieren.",
+    didactics: "Differenziert zwischen gut gemeinten, aber riskanten Angewohnheiten und fachlich empfohlenem Verhalten. Schärft den kritischen Blick im Pflegealltag.",
+    example: "Do: Feste Hausschuhe mit Fersenhalt ↔ Don't: Rutschige Socken auf glattem Laminat",
+    interaction: "Kärtchen per Drag & Drop oder Klick-Zuweisung einsortieren",
+  },
+  {
+    type: "comparison",
+    label: "Vergleich",
+    badgeTitle: "Situationsvergleich (A vs. B)",
+    icon: "⚖️",
+    category: "Fallanalyse & Reflexion",
+    tagline: "Zwei reale Pflegesituationen abwägen und die optimale Option ermitteln.",
+    didactics: "Fördert das differenzierte Abwägen zwischen zwei Alternativen unter Berücksichtigung von Sicherheit, Würde und Selbstbestimmung der Person.",
+    example: "Situation A: Nächtliche Fixierung vs. Situation B: Niedrigflurbett mit Boden-Sensormatte",
+    interaction: "A/B-Auswahlschalter mit vergleichender ZQP-Begründung",
+  },
+  {
+    type: "dilemma",
+    label: "Dilemma",
+    badgeTitle: "Praxis-Dilemma & Reflexion",
+    icon: "🎭",
+    category: "Ethische & emotionale Konflikte",
+    tagline: "Komplexe Pflege-Konflikte ohne einfache Pauschallösung reflektieren.",
+    didactics: "Sensibilisiert für Spannungsfelder (z. B. Autonomie vs. Fürsorge) und schult den empathischen Perspektivenwechsel bei herausforderndem Verhalten.",
+    example: "Angehörige wollen helfen, doch die pflegebedürftige Person weist jede Unterstützung energisch zurück.",
+    interaction: "Reaktionspfade wählen und didaktische Konsequenzen analysieren",
+  },
+  {
+    type: "checklist",
+    label: "Checkliste",
+    badgeTitle: "Interaktive Checkliste",
+    icon: "📋",
+    category: "Multifaktorielle Prüfung",
+    tagline: "Alle relevanten Risikofaktoren oder Kriterien in einer Auswahl markieren.",
+    didactics: "Trainiert das Erkennen mehrerer zusammenhängender Einflussfaktoren (Lochkarten-Prinzip), z. B. bei Gefahrenquellen im Wohnumfeld oder Medikationsrisiken.",
+    example: "Welche 3 Faktoren im Bad erhöhen das Ausrutschrisiko drastisch? (Nasse Fliesen, fehlende Haltegriffe, Seifenreste)",
+    interaction: "Mehrfachauswahl mit Kontrollkästchen und Gesamtrückmeldung",
+  },
+  {
+    type: "fill_in_the_blank",
+    label: "Lückentext",
+    badgeTitle: "Fachwort- & Merksatz-Lückentext",
+    icon: "✍️",
+    category: "Terminologie & Merkwissen",
+    tagline: "Zentrale Schlüsselbegriffe passgenau in Leitlinien-Sätze einsetzen.",
+    didactics: "Verankert didaktische Kernaussagen und wesentliche ZQP-Schlüsselbegriffe aktiv im Langzeitgedächtnis.",
+    example: "„Die Erhaltung der [...] hat bei allen präventiven Maßnahmen oberste Priorität.“ → Selbstständigkeit",
+    interaction: "Wortbausteine per Klick auswählen oder in Satzlücken einsetzen",
+  },
+  {
+    type: "branching_scenario",
+    label: "Fallbeispiel",
+    badgeTitle: "Verzweigtes Fallbeispiel",
+    icon: "🌿",
+    category: "Dynamische Situationssimulation",
+    tagline: "Mehrstufige Praxissituation: Entscheidungen führen zu realen Konsequenzen.",
+    didactics: "Simuliert einen authentischen Pflegeverlauf. Die Lernenden treffen etappenweise Entscheidungen und erleben die unmittelbare Auswirkung auf das Wohlbefinden.",
+    example: "Herr M. verweigert die Nahrungsaufnahme: Bieten Sie kleine Lieblingsspeisen an, drängen Sie oder informieren Sie den Arzt?",
+    interaction: "Interaktiver Entscheidungsbaum mit Konsequenzen & ZQP-Tipp",
+    isNew: true,
+  },
+  {
+    type: "single_choice",
+    label: "Wissenscheck",
+    badgeTitle: "Single-Choice Wissenscheck",
+    icon: "💡",
+    category: "Fakten- & Grundlagenwissen",
+    tagline: "Klassische Quizfrage mit 3–4 Optionen und genau einer korrekten Antwort.",
+    didactics: "Prüft gezielt Faktenwissen und Grundverständnis ab. Liefert sofort fundierte ZQP-Erklärungen für alle richtigen und falschen Distraktoren.",
+    example: "„Welche Beleuchtungsstärke ist nachts im Flurbereich empfehlenswert, um Stürze zu vermeiden?“",
+    interaction: "1-Klick-Auswahl mit sofortigem Auswertungs-Drawer",
+  },
 ];
 
 const ALL_MECHANICS: StationType[] = MECHANIC_DEFINITIONS.map((m) => m.type);
@@ -131,6 +237,22 @@ export const PromptInput: React.FC<PromptInputProps> = ({
       setMechanics(["single_choice"]);
     }
   };
+
+  const [hoveredMechanic, setHoveredMechanic] = useState<{
+    meta: MechanicMeta;
+    rect: DOMRect;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!hoveredMechanic) return;
+    const dismiss = () => setHoveredMechanic(null);
+    window.addEventListener("scroll", dismiss, true);
+    window.addEventListener("resize", dismiss);
+    return () => {
+      window.removeEventListener("scroll", dismiss, true);
+      window.removeEventListener("resize", dismiss);
+    };
+  }, [hoveredMechanic]);
 
   const [isParsingDoc, setIsParsingDoc] = useState<boolean>(false);
   const [parsedDocInfo, setParsedDocInfo] = useState<ParsedDocumentResult | null>(null);
@@ -276,29 +398,56 @@ export const PromptInput: React.FC<PromptInputProps> = ({
             <button
               type="button"
               onClick={() => setIsMechanicsOpen(!isMechanicsOpen)}
-              className="w-full bg-[#f3f8f7] px-3.5 py-2.5 text-left text-xs font-semibold text-[#1b5c53] flex items-center justify-between hover:bg-[#e3eeec] transition-colors cursor-pointer"
+              className="w-full bg-[#f3f8f7] px-3.5 py-2.5 text-left text-xs font-semibold text-[#1b5c53] flex items-center justify-between hover:bg-[#e3eeec] transition-colors cursor-pointer group"
             >
-              <span className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#247a6d]" />
-                <span>Erlaubte Spielformate & Quizoptionen</span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-white border border-[#bbd1cd] text-[#247a6d] font-bold">
-                  {mechanics.length === ALL_MECHANICS.length
-                    ? `Pool: Alle ${ALL_MECHANICS.length} Formate erlaubt`
-                    : `Pool: ${mechanics.length} von ${ALL_MECHANICS.length} erlaubt`}
+              <div className="flex items-center gap-2 min-w-0">
+                <Layers className="w-4 h-4 text-[#247a6d] shrink-0" />
+                <span className="font-semibold text-xs text-[#1b5c53]">
+                  Erlaubte Spielformate
                 </span>
-              </span>
-              {isMechanicsOpen ? (
-                <ChevronDown className="w-4 h-4 text-[#247a6d]" />
-              ) : (
-                <ChevronRight className="w-4 h-4 text-[#247a6d]" />
-              )}
+              </div>
+
+              <div className="flex items-center gap-2 shrink-0">
+                <span
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border transition-all ${
+                    mechanics.length === ALL_MECHANICS.length
+                      ? "bg-[#e2f0ed] text-[#1b5c53] border-[#247a6d]/30"
+                      : mechanics.length === 1
+                      ? "bg-gray-100 text-[#6e6c70] border-gray-300"
+                      : "bg-amber-50 text-amber-800 border-amber-300"
+                  }`}
+                  title={`${mechanics.length} von ${ALL_MECHANICS.length} Formaten für den KI-Pool aktiviert`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      mechanics.length === ALL_MECHANICS.length
+                        ? "bg-[#247a6d]"
+                        : mechanics.length === 1
+                        ? "bg-gray-400"
+                        : "bg-amber-500"
+                    }`}
+                  />
+                  <span>
+                    {mechanics.length === ALL_MECHANICS.length
+                      ? `Alle ${ALL_MECHANICS.length} aktiv`
+                      : `${mechanics.length}/${ALL_MECHANICS.length} aktiv`}
+                  </span>
+                </span>
+
+                {isMechanicsOpen ? (
+                  <ChevronDown className="w-4 h-4 text-[#247a6d] transition-transform" />
+                ) : (
+                  <ChevronRight className="w-4 h-4 text-[#247a6d] transition-transform" />
+                )}
+              </div>
             </button>
 
             {isMechanicsOpen && (
               <div className="p-3 bg-white flex flex-col gap-2">
                 <div className="flex items-center justify-between pb-1.5 border-b border-[#bbd1cd]/40">
-                  <span className="text-[11px] text-[#6e6c70]">
-                    Klicken zum Aktivieren/Deaktivieren für den KI-Pool:
+                  <span className="text-[11px] text-[#6e6c70] flex items-center gap-1">
+                    <span>Auswahl für die KI:</span>
+                    <span className="text-[10px] text-gray-400 italic">(Hover für Details)</span>
                   </span>
                   <div className="flex items-center gap-2">
                     <button
@@ -327,12 +476,16 @@ export const PromptInput: React.FC<PromptInputProps> = ({
                         key={m.type}
                         type="button"
                         onClick={() => toggleMechanic(m.type)}
+                        onMouseEnter={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setHoveredMechanic({ meta: m, rect });
+                        }}
+                        onMouseLeave={() => setHoveredMechanic(null)}
                         className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
                           isSelected
-                            ? "bg-[#edf7f4] border-[#247a6d] text-[#1b5c53] shadow-2xs ring-1 ring-[#247a6d]/20"
-                            : "bg-white border-[#bbd1cd] text-[#6e6c70] opacity-60 hover:opacity-100 hover:border-[#247a6d]/50"
+                            ? "bg-[#edf7f4] border-[#247a6d] text-[#1b5c53] shadow-2xs ring-1 ring-[#247a6d]/20 hover:bg-[#e2f0ed]"
+                            : "bg-white border-[#bbd1cd] text-[#6e6c70] opacity-65 hover:opacity-100 hover:border-[#247a6d]/50 hover:bg-[#f3f8f7]"
                         }`}
-                        title={`${m.label}: ${m.desc}${isSelected ? " (Aktiviert)" : " (Deaktiviert)"}`}
                       >
                         <span className="text-sm">{m.icon}</span>
                         <span>{m.label}</span>
@@ -607,6 +760,119 @@ export const PromptInput: React.FC<PromptInputProps> = ({
           </div>
         </div>
       </form>
+
+      {/* Floating Rich Tooltip for Hovered Quiz Mechanic */}
+      {hoveredMechanic && (() => {
+        const meta = hoveredMechanic.meta;
+        const isSelected = mechanics.includes(meta.type);
+        const rect = hoveredMechanic.rect;
+
+        const tooltipWidth = 340;
+        const tooltipHeight = 280;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const showAbove = spaceBelow < tooltipHeight && rect.top > tooltipHeight;
+
+        const top = showAbove
+          ? Math.max(10, rect.top - tooltipHeight - 8)
+          : Math.min(window.innerHeight - tooltipHeight - 10, rect.bottom + 8);
+
+        const chipCenter = rect.left + rect.width / 2;
+        const left = Math.max(12, Math.min(window.innerWidth - tooltipWidth - 12, chipCenter - tooltipWidth / 2));
+        const arrowLeft = Math.max(20, Math.min(tooltipWidth - 20, chipCenter - left));
+
+        return (
+          <div
+            style={{
+              position: "fixed",
+              top: `${top}px`,
+              left: `${left}px`,
+              width: `${tooltipWidth}px`,
+              zIndex: 99999,
+              pointerEvents: "none",
+            }}
+            className="bg-[#122e28] text-white rounded-xl shadow-2xl border border-[#2d6359] p-3.5 space-y-2.5 animate-in fade-in zoom-in-95 duration-150 backdrop-blur-md ring-1 ring-black/30"
+          >
+            {/* Arrow */}
+            {showAbove ? (
+              <div
+                className="absolute -bottom-1.5 w-3 h-3 bg-[#122e28] border-b border-r border-[#2d6359]"
+                style={{ left: `${arrowLeft}px`, transform: "translateX(-50%) rotate(45deg)" }}
+              />
+            ) : (
+              <div
+                className="absolute -top-1.5 w-3 h-3 bg-[#122e28] border-t border-l border-[#2d6359]"
+                style={{ left: `${arrowLeft}px`, transform: "translateX(-50%) rotate(45deg)" }}
+              />
+            )}
+
+            {/* Header */}
+            <div className="flex items-start justify-between gap-2 border-b border-[#2d6359]/70 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl p-1.5 rounded-lg bg-[#247a6d]/40 flex items-center justify-center">
+                  {meta.icon}
+                </span>
+                <div>
+                  <div className="flex items-center gap-1.5">
+                    <h4 className="text-xs font-bold text-white leading-tight">
+                      {meta.badgeTitle}
+                    </h4>
+                    {meta.isNew && (
+                      <span className="text-[9px] bg-[#247a6d] text-white font-bold px-1 py-0.2 rounded">
+                        NEU
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[#86c4ba] font-semibold block mt-0.5">
+                    {meta.category}
+                  </span>
+                </div>
+              </div>
+
+              <span
+                className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1 ${
+                  isSelected
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "bg-white/10 text-gray-300 border border-white/15"
+                }`}
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? "bg-emerald-400" : "bg-gray-400"}`} />
+                {isSelected ? "Im KI-Pool" : "Deaktiviert"}
+              </span>
+            </div>
+
+            {/* Tagline & Didactics */}
+            <div className="space-y-1">
+              <p className="text-[#f0f8f6] font-semibold text-[11px] leading-snug">
+                {meta.tagline}
+              </p>
+              <p className="text-[#c0dbd5] text-[11px] leading-relaxed">
+                {meta.didactics}
+              </p>
+            </div>
+
+            {/* Concrete Example */}
+            <div className="p-2.5 rounded-lg bg-[#0c1e1a] border border-[#247a6d]/30 text-[11px] space-y-1">
+              <span className="text-[9px] uppercase font-bold text-[#86c4ba] tracking-wider block">
+                💡 ZQP-Praxisbeispiel:
+              </span>
+              <p className="italic text-[#d2eae5] text-[11px] leading-relaxed">
+                {meta.example}
+              </p>
+            </div>
+
+            {/* Interaction mechanics & Hint */}
+            <div className="flex items-center justify-between text-[10px] text-[#86c4ba] pt-0.5 border-t border-[#2d6359]/50">
+              <span className="flex items-center gap-1 truncate max-w-[210px]" title={meta.interaction}>
+                <span>🕹️</span>
+                <span className="text-white/90 truncate">{meta.interaction}</span>
+              </span>
+              <span className="text-white/60 font-medium shrink-0">
+                Klick = {isSelected ? "Abwählen" : "Auswählen"}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };
