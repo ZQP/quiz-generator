@@ -14,6 +14,22 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.3.3 (UI-Feinschliff, Tooltip-Didaktik & Ergebnis-Lesbarkeit)
+
+- **Schickes Pool-Status-Badge**: Die sperrige weiße Beschriftung in der Kopfzeile der Spielmechaniken wurde durch ein dezentes, elegantes ZQP-Petrol-Badge (`● Alle 10 aktiv` bzw. `● X von 10 aktiv`) mit Statusindikator ersetzt.
+- **Didaktische Hover-Tooltips für alle 10 Quiz-Formate**:
+  - Jeder Spielmechanik-Chip verfügt nun über einen schnellen, modernen ZQP-Tooltip mit Pfeil.
+  - Zeigt Formatkategorie, pädagogische Kernaussage, didaktischen Einsatzzweck, konkrete ZQP-Praxisbeispiele und die genaue Interaktionsmechanik.
+  - Dynamische Viewport-Positionierung verhindert Abschneiden an Bildschirmecken.
+- **Fehlerbehebung Stations-Editor & Synchronisation**:
+  - Behoben: Beim Öffnen des Stations-Editors nach Neuerstellung eines Quiz wurde nicht mehr das alte Musterquiz geladen, sondern verlässlich das aktuell aktive Quiz synchronisiert.
+  - Das Editor-Modal wird nur noch bei tatsächlichem Öffnen gemountet und synchronisiert sich via `useEffect`.
+- **Bereinigte Editor-Navigationsleiste (Keine Überlappungen mehr)**:
+  - Scrollbare Stations-Tabs sind nun in einem isolierten Container gekapselt, der nicht mehr mit der Steuerung kollidiert.
+  - Redundante doppelte Text-Badges am rechten Rand entfernt und dezente ZQP-Scrollbar integriert.
+- **Verbesserte Lesbarkeit auf der Ergebnis-Station**:
+  - Die gelösten/ungelösten Aufgaben werden nicht mehr in zwei schmalen, abgeschnittenen Spalten dargestellt, sondern übersichtlich vollflächig untereinander in Zeilen mit vollständigem Aufgabentitel und Format-Icon.
+
 ## Neu in v0.3.2 (Anpassbare Textbausteine, UI-Labels & Editierbare Ergebnis-Station)
 
 - **Vollständig anpassbare Textbausteine & Micro-Copy**:
