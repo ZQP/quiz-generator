@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   X,
   Edit3,
@@ -285,6 +285,57 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
     } catch {}
   };
 
+  // Synchronize internal state whenever modal opens with the current quiz and station index
+  useEffect(() => {
+    if (!isOpen) return;
+    setStations(JSON.parse(JSON.stringify(quiz.stations || [])));
+    setResultConfig(
+      JSON.parse(
+        JSON.stringify(
+          quiz.resultScreen || {
+            title: "Praxistest abgeschlossen",
+            subtitle: quiz.summary || "",
+            scoreLabel: "Ihr Praxistest-Ergebnis:",
+            perfectScoreTitle: "Hervorragend! Alle Aufgaben gelöst",
+            perfectScoreText: "Perfektes Ergebnis: Alle {total} Stationen eigenständig gemeistert (100%).",
+            goodScoreTitle: "Gutes Ergebnis im Praxistest",
+            goodScoreText: "Solide Leistung: {solved} von {total} Stationen eigenständig gelöst ({percent}%).",
+            lowScoreTitle: "Praxistest abgeschlossen",
+            lowScoreText: "{solved} von {total} Stationen gelöst ({percent}%). Nutzen Sie die ZQP-Erklärungen zur Vertiefung.",
+            zeroScoreTitle: "Praxistest durchlaufen",
+            zeroScoreText: "Keine Station eigenständig gelöst. Wiederholen Sie das Training, um das Wissen zu festigen.",
+            restartButtonText: "Praxistest wiederholen",
+            printButtonText: "Ergebnis als PDF drucken",
+          }
+        )
+      )
+    );
+    setCustomLabels(
+      JSON.parse(
+        JSON.stringify(
+          quiz.customLabels || {
+            feedbackWhyLabel: "Warum richtig / Warum falsch:",
+            feedbackKnowledgeLabel: "ZQP-Praxiswissen:",
+            feedbackCloseLabel: "Ansicht ansehen ✕",
+            bucketDoLabel: "Do ✓",
+            bucketDontLabel: "Don't ✕",
+            bucketDoHeader: "Empfohlen (Do)",
+            bucketDontHeader: "Vermeiden (Don't)",
+            nextStationLabel: "Nächste Station",
+            finishStationLabel: "Zur Gesamtauswertung",
+            restartQuizLabel: "Praxistest wiederholen",
+          }
+        )
+      )
+    );
+    setEditorSection(initialStationIndex === -1 ? "result" : "station");
+    setActiveStationIdx(
+      initialStationIndex >= 0
+        ? Math.min(initialStationIndex, Math.max(0, (quiz.stations || []).length - 1))
+        : 0
+    );
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const currentStation = stations[activeStationIdx] || stations[0];
@@ -364,6 +415,8 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
     const updatedQuiz: QuizGenerationResult = {
       ...quiz,
       stations: stations,
+      resultScreen: resultConfig,
+      customLabels: customLabels,
     };
     const compiled = compileQuizToBundle(updatedQuiz);
     updatedQuiz.generatedHtml = compiled.html;

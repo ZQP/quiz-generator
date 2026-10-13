@@ -713,7 +713,7 @@ export const App: React.FC = () => {
       />
 
       {/* WYSIWYG Station Editor Modal */}
-      {currentQuiz && (
+      {currentQuiz && isStationEditorOpen && (
         <StationEditorModal
           isOpen={isStationEditorOpen}
           onClose={() => setIsStationEditorOpen(false)}
@@ -725,7 +725,7 @@ export const App: React.FC = () => {
       )}
 
       {/* Source Inspector Modal (Anti-Halluzination & Quelltext-Abgleich) */}
-      {currentQuiz && (
+      {currentQuiz && isSourceInspectorOpen && (
         <SourceInspectorModal
           isOpen={isSourceInspectorOpen}
           onClose={() => setIsSourceInspectorOpen(false)}

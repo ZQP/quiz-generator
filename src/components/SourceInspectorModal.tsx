@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   X,
   FileSearch,
@@ -32,6 +32,13 @@ export const SourceInspectorModal: React.FC<SourceInspectorModalProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isEditingRefText, setIsEditingRefText] = useState<boolean>(false);
   const [customRefText, setCustomRefText] = useState<string>(quiz.referenceSourceText || "");
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setCustomRefText(quiz.referenceSourceText || "");
+    setSelectedStationIdx(0);
+    setIsEditingRefText(false);
+  }, [isOpen, quiz.referenceSourceText]);
 
   const stations = quiz.stations || [];
   const currentStation: QuizStation | undefined = stations[selectedStationIdx];
