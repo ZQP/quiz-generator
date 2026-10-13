@@ -109,6 +109,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [isInstallingUpdate, setIsInstallingUpdate] = useState<boolean>(false);
   const [installProgress, setInstallProgress] = useState<string>("");
 
+  // Global Default Labels & Result State
+  const [defaultLabels, setDefaultLabels] = useState<QuizCustomLabels>(() =>
+    JSON.parse(JSON.stringify(settings.defaultCustomLabels || defaultCustomLabels))
+  );
+  const [defaultResultConfig, setDefaultResultConfig] = useState<QuizResultScreenConfig>(() =>
+    JSON.parse(JSON.stringify(settings.defaultResultScreen || defaultResultScreen))
+  );
+
   if (!isOpen) return null;
 
   const handleRefreshModels = async () => {
@@ -192,14 +200,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       newTermInputRef.current?.focus();
     }, 0);
   };
-
-  // Global Default Labels & Result State
-  const [defaultLabels, setDefaultLabels] = useState<QuizCustomLabels>(() =>
-    JSON.parse(JSON.stringify(settings.defaultCustomLabels || defaultCustomLabels))
-  );
-  const [defaultResultConfig, setDefaultResultConfig] = useState<QuizResultScreenConfig>(() =>
-    JSON.parse(JSON.stringify(settings.defaultResultScreen || defaultResultScreen))
-  );
 
   const handleDeleteGlossaryEntry = (id: string) => {
     setGlossary((prev) => prev.filter((item) => item.id !== id));

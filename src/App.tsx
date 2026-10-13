@@ -687,12 +687,14 @@ export const App: React.FC = () => {
         </main>
 
       {/* Settings Modal */}
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-        settings={settings}
-        onSave={handleSaveSettings}
-      />
+      {isSettingsOpen && (
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          settings={settings}
+          onSave={handleSaveSettings}
+        />
+      )}
 
       {/* Project Library Modal */}
       <ProjectLibraryModal

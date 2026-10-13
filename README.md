@@ -14,6 +14,15 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.3.4 (Stabilität, White-Screen-Fix & Error Boundary)
+
+- **Behebung des White-Screen-Absturzes beim Öffnen der Einstellungen**:
+  - React „Rule of Hooks“-Verletzung in `SettingsModal.tsx` behoben (Hooks für Standard-Textbausteine und Ergebnis-Station wurden vor dem bedingten Abbruch platziert).
+  - Sauberes bedingtes Mounten des Modals in `App.tsx` (`{isSettingsOpen && <SettingsModal ... />}`) verhindert fehlerhafte Hook-Zyklen.
+- **Integrierte React-Error-Boundary (Fehler-Schutzschirm)**:
+  - Fängt unvorhergesehene Rendering-Fehler in allen Komponenten zentral ab.
+  - Verhindert das unkontrollierte Erscheinen eines weißen Bildschirms und bietet stattdessen ein benutzerfreundliches ZQP-Wiederherstellungsfenster mit Fehlerdiagnose, „Neu laden“- und „Cache leeren“-Möglichkeit.
+
 ## Neu in v0.3.3 (UI-Feinschliff, Tooltip-Didaktik & Ergebnis-Lesbarkeit)
 
 - **Schickes Pool-Status-Badge**: Die sperrige weiße Beschriftung in der Kopfzeile der Spielmechaniken wurde durch ein dezentes, elegantes ZQP-Petrol-Badge (`● Alle 10 aktiv` bzw. `● X von 10 aktiv`) mit Statusindikator ersetzt.
