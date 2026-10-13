@@ -14,8 +14,10 @@ import {
   Maximize2,
   Sidebar,
   Eye,
+  Award,
+  Sliders,
 } from "lucide-react";
-import { QuizGenerationResult, QuizStation, AppSettings, EditorialStatus, StationType } from "../types";
+import { QuizGenerationResult, QuizStation, AppSettings, EditorialStatus, StationType, QuizCustomLabels, QuizResultScreenConfig } from "../types";
 import { compileQuizToBundle } from "../services/exportCompiler";
 import { saveFavoriteStation } from "../services/projectStorage";
 import { StationVariantsModal } from "./StationVariantsModal";
@@ -223,9 +225,45 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
   onSaveQuiz,
   settings,
 }) => {
-  const [activeStationIdx, setActiveStationIdx] = useState<number>(initialStationIndex);
+  const [editorSection, setEditorSection] = useState<"station" | "result" | "labels">(() =>
+    initialStationIndex === -1 ? "result" : "station"
+  );
+  const [activeStationIdx, setActiveStationIdx] = useState<number>(() =>
+    initialStationIndex >= 0 ? initialStationIndex : 0
+  );
   const [stations, setStations] = useState<QuizStation[]>(() =>
     JSON.parse(JSON.stringify(quiz.stations || []))
+  );
+  const [resultConfig, setResultConfig] = useState<QuizResultScreenConfig>(() =>
+    JSON.parse(JSON.stringify(quiz.resultScreen || {
+      title: "Praxistest abgeschlossen",
+      subtitle: quiz.summary || "",
+      scoreLabel: "Ihr Praxistest-Ergebnis:",
+      perfectScoreTitle: "Hervorragend! Alle Aufgaben gelöst",
+      perfectScoreText: "Perfektes Ergebnis: Alle {total} Stationen eigenständig gemeistert (100%).",
+      goodScoreTitle: "Gutes Ergebnis im Praxistest",
+      goodScoreText: "Solide Leistung: {solved} von {total} Stationen eigenständig gelöst ({percent}%).",
+      lowScoreTitle: "Praxistest abgeschlossen",
+      lowScoreText: "{solved} von {total} Stationen gelöst ({percent}%). Nutzen Sie die ZQP-Erklärungen zur Vertiefung.",
+      zeroScoreTitle: "Praxistest durchlaufen",
+      zeroScoreText: "Keine Station eigenständig gelöst. Wiederholen Sie das Training, um das Wissen zu festigen.",
+      restartButtonText: "Praxistest wiederholen",
+      printButtonText: "Ergebnis als PDF drucken",
+    }))
+  );
+  const [customLabels, setCustomLabels] = useState<QuizCustomLabels>(() =>
+    JSON.parse(JSON.stringify(quiz.customLabels || {
+      feedbackWhyLabel: "Warum richtig / Warum falsch:",
+      feedbackKnowledgeLabel: "ZQP-Praxiswissen:",
+      feedbackCloseLabel: "Ansicht ansehen ✕",
+      bucketDoLabel: "Do ✓",
+      bucketDontLabel: "Don't ✕",
+      bucketDoHeader: "Empfohlen (Do)",
+      bucketDontHeader: "Vermeiden (Don't)",
+      nextStationLabel: "Nächste Station",
+      finishStationLabel: "Zur Gesamtauswertung",
+      restartQuizLabel: "Praxistest wiederholen",
+    }))
   );
   const [isVariantsModalOpen, setIsVariantsModalOpen] = useState<boolean>(false);
   const [isAddMenuOpen, setIsAddMenuOpen] = useState<boolean>(false);
@@ -249,8 +287,8 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
 
   if (!isOpen) return null;
 
-  const currentStation = stations[activeStationIdx];
-  if (!currentStation) return null;
+  const currentStation = stations[activeStationIdx] || stations[0];
+  if (!currentStation && editorSection === "station") return null;
 
   const handleUpdateStation = (field: keyof QuizStation, value: any) => {
     setStations((prev) => {
@@ -301,6 +339,7 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
     const newStation = createDefaultStation(type, stations.length);
     setStations((prev) => [...prev, newStation]);
     setActiveStationIdx(stations.length);
+    setEditorSection("station");
     setIsAddMenuOpen(false);
   };
 
@@ -341,6 +380,8 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
     const updatedQuiz: QuizGenerationResult = {
       ...quiz,
       stations: stations,
+      resultScreen: resultConfig,
+      customLabels: customLabels,
     };
     const compiled = compileQuizToBundle(updatedQuiz);
     updatedQuiz.generatedHtml = compiled.html;
@@ -432,9 +473,12 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
               {stations.map((st, idx) => (
                 <button
                   key={st.id || idx}
-                  onClick={() => setActiveStationIdx(idx)}
+                  onClick={() => {
+                    setActiveStationIdx(idx);
+                    setEditorSection("station");
+                  }}
                   className={`px-2.5 py-1 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                    activeStationIdx === idx
+                    editorSection === "station" && activeStationIdx === idx
                       ? "bg-[#247a6d] text-white shadow-2xs"
                       : "bg-white border border-[#bbd1cd] text-[#6e6c70] hover:text-[#1b5c53]"
                   }`}
@@ -489,34 +533,79 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
                   </div>
                 )}
               </div>
+
+              <div className="h-5 w-px bg-gray-300 mx-1 shrink-0" />
+
+              {/* Special Tabs: Ergebnis-Station & UI-Texte */}
+              <button
+                type="button"
+                onClick={() => setEditorSection("result")}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                  editorSection === "result"
+                    ? "bg-[#247a6d] text-white shadow-2xs"
+                    : "bg-white border border-[#bbd1cd] text-[#1b5c53] hover:bg-[#e3eeec]"
+                }`}
+                title="Ergebnis-Station und Abschluss-Texte bearbeiten"
+              >
+                <Award className={`w-3.5 h-3.5 ${editorSection === "result" ? "text-white" : "text-amber-500"}`} />
+                <span>🏁 Ergebnis-Station</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setEditorSection("labels")}
+                className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                  editorSection === "labels"
+                    ? "bg-[#247a6d] text-white shadow-2xs"
+                    : "bg-white border border-[#bbd1cd] text-[#1b5c53] hover:bg-[#e3eeec]"
+                }`}
+                title="Text-Bausteine & UI-Labels für dieses Quiz bearbeiten"
+              >
+                <Sliders className={`w-3.5 h-3.5 ${editorSection === "labels" ? "text-white" : "text-[#247a6d]"}`} />
+                <span>⚙️ Text-Bausteine</span>
+              </button>
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
-              <button
-                onClick={() => setActiveStationIdx((prev) => Math.max(0, prev - 1))}
-                disabled={activeStationIdx === 0}
-                className="p-1 text-gray-500 hover:text-[#1b5c53] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                title="Vorherige Station"
-              >
-                <ArrowLeft className="w-4 h-4" />
-              </button>
-              <span className="text-xs font-bold text-[#1b5c53]">
-                {activeStationIdx + 1} / {stations.length}
-              </span>
-              <button
-                onClick={() => setActiveStationIdx((prev) => Math.min(stations.length - 1, prev + 1))}
-                disabled={activeStationIdx === stations.length - 1}
-                className="p-1 text-gray-500 hover:text-[#1b5c53] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                title="Nächste Station"
-              >
-                <ArrowRight className="w-4 h-4" />
-              </button>
+              {editorSection === "station" ? (
+                <>
+                  <button
+                    onClick={() => setActiveStationIdx((prev) => Math.max(0, prev - 1))}
+                    disabled={activeStationIdx === 0}
+                    className="p-1 text-gray-500 hover:text-[#1b5c53] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    title="Vorherige Station"
+                  >
+                    <ArrowLeft className="w-4 h-4" />
+                  </button>
+                  <span className="text-xs font-bold text-[#1b5c53]">
+                    {activeStationIdx + 1} / {stations.length}
+                  </span>
+                  <button
+                    onClick={() => setActiveStationIdx((prev) => Math.min(stations.length - 1, prev + 1))}
+                    disabled={activeStationIdx === stations.length - 1}
+                    className="p-1 text-gray-500 hover:text-[#1b5c53] disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                    title="Nächste Station"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </>
+              ) : editorSection === "result" ? (
+                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  🏁 Abschluss-Ansicht
+                </span>
+              ) : (
+                <span className="text-xs font-bold text-[#1b5c53] bg-[#e3eeec] px-2 py-0.5 rounded border border-[#bbd1cd]">
+                  ⚙️ Globale Quiz-Texte
+                </span>
+              )}
             </div>
           </div>
 
           {/* Editor Body */}
           <div className="p-6 overflow-y-auto flex-1 space-y-4">
-            {/* Redaktions- & Struktur-Toolbar (Status, Reorder, Copy, Delete) */}
+            {editorSection === "station" && (
+              <>
+                {/* Redaktions- & Struktur-Toolbar (Status, Reorder, Copy, Delete) */}
             <div className="p-3 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] flex flex-wrap items-center justify-between gap-2.5">
               {/* Left: Reorder & Management */}
               <div className="flex items-center gap-1.5 flex-wrap">
@@ -1067,6 +1156,54 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
               {/* BUCKET SORT */}
               {currentStation.type === "bucket_sort" && currentStation.bucketSortItems && (
                 <div className="space-y-2.5">
+                  <div className="p-3 bg-white rounded-xl border border-[#bbd1cd] grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <label className="block text-[11px] font-bold text-emerald-800 mb-0.5">
+                        Positiver Eimer (Button & Ablagezone):
+                      </label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={currentStation.bucketDoLabel || ""}
+                          onChange={(e) => handleUpdateStation("bucketDoLabel", e.target.value)}
+                          placeholder="Button (z. B. Do ✓)"
+                          className="w-1/2 p-1.5 text-xs rounded border border-[#bbd1cd] bg-white text-[#3a352d]"
+                          title="Button-Beschriftung für diesen Eimer"
+                        />
+                        <input
+                          type="text"
+                          value={currentStation.bucketDoHeader || ""}
+                          onChange={(e) => handleUpdateStation("bucketDoHeader", e.target.value)}
+                          placeholder="Titel (z. B. 🟢 Empfohlen)"
+                          className="w-1/2 p-1.5 text-xs rounded border border-[#bbd1cd] bg-white text-[#3a352d]"
+                          title="Titel der Ablagezone"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-rose-800 mb-0.5">
+                        Negativer Eimer (Button & Ablagezone):
+                      </label>
+                      <div className="flex gap-1.5">
+                        <input
+                          type="text"
+                          value={currentStation.bucketDontLabel || ""}
+                          onChange={(e) => handleUpdateStation("bucketDontLabel", e.target.value)}
+                          placeholder="Button (z. B. Don't ✕)"
+                          className="w-1/2 p-1.5 text-xs rounded border border-[#bbd1cd] bg-white text-[#3a352d]"
+                          title="Button-Beschriftung für diesen Eimer"
+                        />
+                        <input
+                          type="text"
+                          value={currentStation.bucketDontHeader || ""}
+                          onChange={(e) => handleUpdateStation("bucketDontHeader", e.target.value)}
+                          placeholder="Titel (z. B. 🔴 Vermeiden)"
+                          className="w-1/2 p-1.5 text-xs rounded border border-[#bbd1cd] bg-white text-[#3a352d]"
+                          title="Titel der Ablagezone"
+                        />
+                      </div>
+                    </div>
+                  </div>
                   {currentStation.bucketSortItems.map((item, bIdx) => (
                     <div key={item.id || bIdx} className="p-2.5 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] space-y-1.5">
                       <div className="flex items-center justify-between gap-2">
@@ -1502,7 +1639,396 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
                 className="w-full text-xs p-2.5 rounded-lg border border-[#bbd1cd] bg-white focus:ring-2 focus:ring-[#247a6d] focus:outline-none"
               />
             </div>
+          </>
+        )}
+
+        {editorSection === "result" && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="p-4 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                  <Award className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1b5c53]">
+                    Ergebnis-Station (Abschlussseite) bearbeiten
+                  </h3>
+                  <p className="text-xs text-[#6e6c70]">
+                    Passen Sie Titel, Fazit, Rückmeldungen je nach Punktestand und Button-Texte an.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Basis-Texte */}
+            <div className="p-4 bg-white rounded-xl border border-[#bbd1cd] space-y-3">
+              <h4 className="text-xs font-bold uppercase text-[#1b5c53]">Allgemeine Abschluss-Texte</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Standard-Haupttitel:
+                  </label>
+                  <input
+                    type="text"
+                    value={resultConfig.title || ""}
+                    onChange={(e) => setResultConfig((prev) => ({ ...prev, title: e.target.value }))}
+                    placeholder="Praxistest abgeschlossen"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Score-Box Überschrift:
+                  </label>
+                  <input
+                    type="text"
+                    value={resultConfig.scoreLabel || ""}
+                    onChange={(e) => setResultConfig((prev) => ({ ...prev, scoreLabel: e.target.value }))}
+                    placeholder="Ihr Praxistest-Ergebnis:"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                  Unterzeile / Fachlicher Praxistipp (Fazit):
+                </label>
+                <textarea
+                  rows={2}
+                  value={resultConfig.subtitle || ""}
+                  onChange={(e) => setResultConfig((prev) => ({ ...prev, subtitle: e.target.value }))}
+                  placeholder="Allgemeine didaktische Zusammenfassung..."
+                  className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Dynamische Auswertungen nach Score */}
+            <div className="p-4 bg-white rounded-xl border border-[#bbd1cd] space-y-4">
+              <div>
+                <h4 className="text-xs font-bold uppercase text-[#1b5c53] mb-0.5">
+                  Rückmeldungen nach Leistung (Platzhalter: &#123;total&#125;, &#123;solved&#125;, &#123;percent&#125;)
+                </h4>
+                <p className="text-[11px] text-[#6e6c70]">
+                  Hier können Sie Begrifflichkeiten wie „ZQP-Leitlinien“ durch passgenaue Formulierungen für dieses Quiz ersetzen.
+                </p>
+              </div>
+
+              {/* 0 Stationen gelöst (0%) */}
+              <div className="p-3 bg-stone-50 rounded-lg border border-stone-200 space-y-2">
+                <span className="text-xs font-bold text-stone-700 block">
+                  🔴 0 Stationen gelöst (0 %):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Überschrift:</label>
+                    <input
+                      type="text"
+                      value={resultConfig.zeroScoreTitle || ""}
+                      onChange={(e) => setResultConfig((prev) => ({ ...prev, zeroScoreTitle: e.target.value }))}
+                      placeholder="Praxistest durchlaufen"
+                      className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Hinweistext (z. B. ohne starres „ZQP-Leitlinien“):</label>
+                    <input
+                      type="text"
+                      value={resultConfig.zeroScoreText || ""}
+                      onChange={(e) => setResultConfig((prev) => ({ ...prev, zeroScoreText: e.target.value }))}
+                      placeholder="Keine Station eigenständig gelöst. Wiederholen Sie das Training, um das Wissen zu festigen."
+                      className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Teil-Erfolg (> 0%) */}
+              <div className="p-3 bg-amber-50/60 rounded-lg border border-amber-200 space-y-2">
+                <span className="text-xs font-bold text-amber-800 block">
+                  🟡 Einige Stationen gelöst (&gt; 0 %):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Überschrift:</label>
+                    <input
+                      type="text"
+                      value={resultConfig.lowScoreTitle || ""}
+                      onChange={(e) => setResultConfig((prev) => ({ ...prev, lowScoreTitle: e.target.value }))}
+                      placeholder="Praxistest abgeschlossen"
+                      className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Hinweistext:</label>
+                    <input
+                      type="text"
+                      value={resultConfig.lowScoreText || ""}
+                      onChange={(e) => setResultConfig((prev) => ({ ...prev, lowScoreText: e.target.value }))}
+                      placeholder="{solved} von {total} Stationen gelöst ({percent}%). Nutzen Sie die Erklärungen zur Vertiefung."
+                      className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Solides Ergebnis (>= 60%) */}
+              <div className="p-3 bg-teal-50/60 rounded-lg border border-teal-200 space-y-2">
+                <span className="text-xs font-bold text-[#1b5c53] block">
+                  🟢 Gutes Ergebnis (&gt;= 60 %):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Überschrift:</label>
+                    <input
+                      type="text"
+                      value={resultConfig.goodScoreTitle || ""}
+                      onChange={(e) => setResultConfig((prev) => ({ ...prev, goodScoreTitle: e.target.value }))}
+                      placeholder="Gutes Ergebnis im Praxistest"
+                      className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Hinweistext:</label>
+                    <input
+                      type="text"
+                      value={resultConfig.goodScoreText || ""}
+                      onChange={(e) => setResultConfig((prev) => ({ ...prev, goodScoreText: e.target.value }))}
+                      placeholder="Solide Leistung: {solved} von {total} Stationen eigenständig gelöst ({percent}%)."
+                      className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Voller Erfolg (100%) */}
+              <div className="p-3 bg-emerald-50/60 rounded-lg border border-emerald-200 space-y-2">
+                <span className="text-xs font-bold text-emerald-800 block">
+                  🏆 Perfektes Ergebnis (100 %):
+                </span>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div>
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Überschrift:</label>
+                    <input
+                      type="text"
+                      value={resultConfig.perfectScoreTitle || ""}
+                      onChange={(e) => setResultConfig((prev) => ({ ...prev, perfectScoreTitle: e.target.value }))}
+                      placeholder="Hervorragend! Alle Aufgaben gelöst"
+                      className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Hinweistext:</label>
+                    <input
+                      type="text"
+                      value={resultConfig.perfectScoreText || ""}
+                      onChange={(e) => setResultConfig((prev) => ({ ...prev, perfectScoreText: e.target.value }))}
+                      placeholder="Perfektes Ergebnis: Alle {total} Stationen eigenständig gemeistert (100%)."
+                      className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons auf Abschlussseite */}
+            <div className="p-4 bg-white rounded-xl border border-[#bbd1cd] space-y-3">
+              <h4 className="text-xs font-bold uppercase text-[#1b5c53]">Buttons auf der Abschlussseite</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Wiederholen-Button:
+                  </label>
+                  <input
+                    type="text"
+                    value={resultConfig.restartButtonText || ""}
+                    onChange={(e) => setResultConfig((prev) => ({ ...prev, restartButtonText: e.target.value }))}
+                    placeholder="Praxistest wiederholen"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    PDF-Druck-Button:
+                  </label>
+                  <input
+                    type="text"
+                    value={resultConfig.printButtonText || ""}
+                    onChange={(e) => setResultConfig((prev) => ({ ...prev, printButtonText: e.target.value }))}
+                    placeholder="Ergebnis als PDF drucken"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
+        )}
+
+        {editorSection === "labels" && (
+          <div className="space-y-4 animate-in fade-in duration-150">
+            <div className="p-4 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-[#247a6d] text-white flex items-center justify-center shadow-xs">
+                  <Sliders className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-[#1b5c53]">
+                    Text-Bausteine & UI-Labels für dieses Quiz anpassen
+                  </h3>
+                  <p className="text-xs text-[#6e6c70]">
+                    Überschreiben Sie Begrifflichkeiten wie „Ansicht ansehen“, „Warum richtig / Warum falsch“ oder „Do / Don't“.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Feedback Drawer */}
+            <div className="p-4 bg-white rounded-xl border border-[#bbd1cd] space-y-3">
+              <h4 className="text-xs font-bold uppercase text-[#1b5c53]">Rückmeldungen & Feedback-Schublade</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Schließen-Button (Drawer):
+                  </label>
+                  <input
+                    type="text"
+                    value={customLabels.feedbackCloseLabel || ""}
+                    onChange={(e) => setCustomLabels((prev) => ({ ...prev, feedbackCloseLabel: e.target.value }))}
+                    placeholder="Ansicht ansehen ✕"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Feedback-Box 1 (Erklärung):
+                  </label>
+                  <input
+                    type="text"
+                    value={customLabels.feedbackWhyLabel || ""}
+                    onChange={(e) => setCustomLabels((prev) => ({ ...prev, feedbackWhyLabel: e.target.value }))}
+                    placeholder="Warum richtig / Warum falsch:"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Feedback-Box 2 (Hintergrund):
+                  </label>
+                  <input
+                    type="text"
+                    value={customLabels.feedbackKnowledgeLabel || ""}
+                    onChange={(e) => setCustomLabels((prev) => ({ ...prev, feedbackKnowledgeLabel: e.target.value }))}
+                    placeholder="ZQP-Praxiswissen:"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Buttons & Navigation */}
+            <div className="p-4 bg-white rounded-xl border border-[#bbd1cd] space-y-3">
+              <h4 className="text-xs font-bold uppercase text-[#1b5c53]">Navigation & Buttons</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Button Nächste Station:
+                  </label>
+                  <input
+                    type="text"
+                    value={customLabels.nextStationLabel || ""}
+                    onChange={(e) => setCustomLabels((prev) => ({ ...prev, nextStationLabel: e.target.value }))}
+                    placeholder="Nächste Station"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Button Letzte Station (Abschluss):
+                  </label>
+                  <input
+                    type="text"
+                    value={customLabels.finishStationLabel || ""}
+                    onChange={(e) => setCustomLabels((prev) => ({ ...prev, finishStationLabel: e.target.value }))}
+                    placeholder="Zur Gesamtauswertung"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-[#3a352d] mb-1">
+                    Button Neustart:
+                  </label>
+                  <input
+                    type="text"
+                    value={customLabels.restartQuizLabel || ""}
+                    onChange={(e) => setCustomLabels((prev) => ({ ...prev, restartQuizLabel: e.target.value }))}
+                    placeholder="Praxistest wiederholen"
+                    className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white text-[#3a352d] outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Dos & Don'ts Defaults */}
+            <div className="p-4 bg-white rounded-xl border border-[#bbd1cd] space-y-3">
+              <h4 className="text-xs font-bold uppercase text-[#1b5c53]">Dos & Don'ts (Standard für dieses Quiz)</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="p-3 bg-emerald-50/50 rounded-lg border border-emerald-200 space-y-2">
+                  <span className="text-xs font-bold text-emerald-800 block">Positiver Bereich (Do)</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Button-Beschriftung:</label>
+                      <input
+                        type="text"
+                        value={customLabels.bucketDoLabel || ""}
+                        onChange={(e) => setCustomLabels((prev) => ({ ...prev, bucketDoLabel: e.target.value }))}
+                        placeholder="Do ✓"
+                        className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Ablage-Titel:</label>
+                      <input
+                        type="text"
+                        value={customLabels.bucketDoHeader || ""}
+                        onChange={(e) => setCustomLabels((prev) => ({ ...prev, bucketDoHeader: e.target.value }))}
+                        placeholder="Empfohlen (Do)"
+                        className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-3 bg-rose-50/50 rounded-lg border border-rose-200 space-y-2">
+                  <span className="text-xs font-bold text-rose-800 block">Negativer Bereich (Don't)</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Button-Beschriftung:</label>
+                      <input
+                        type="text"
+                        value={customLabels.bucketDontLabel || ""}
+                        onChange={(e) => setCustomLabels((prev) => ({ ...prev, bucketDontLabel: e.target.value }))}
+                        placeholder="Don't ✕"
+                        className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] font-semibold text-gray-500 mb-0.5">Ablage-Titel:</label>
+                      <input
+                        type="text"
+                        value={customLabels.bucketDontHeader || ""}
+                        onChange={(e) => setCustomLabels((prev) => ({ ...prev, bucketDontHeader: e.target.value }))}
+                        placeholder="Vermeiden (Don't)"
+                        className="w-full text-xs p-1.5 rounded border border-[#bbd1cd] bg-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
           {/* Footer */}
           <div className="bg-[#f3f8f7] border-t border-[#bbd1cd] px-5 py-3 flex items-center justify-between shrink-0 gap-2">

@@ -932,15 +932,17 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
               </button>
             )}
 
-            {onEditStation && !completed && (
+            {onEditStation && (
               <button
                 type="button"
-                onClick={() => onEditStation(currentStationIdx)}
+                onClick={() => onEditStation(completed ? -1 : currentStationIdx)}
                 className="flex items-center gap-1 h-7 px-2.5 text-xs font-semibold text-[#1b5c53] bg-white hover:bg-[#e3eeec] rounded-lg border border-[#bbd1cd] hover:border-[#247a6d] shadow-2xs transition-colors cursor-pointer"
-                title="Diese Station direkt im WYSIWYG-Editor anpassen"
+                title={completed ? "Ergebnis-Station und Abschluss-Texte bearbeiten" : "Diese Station direkt im WYSIWYG-Editor anpassen"}
               >
                 <Edit3 className="w-3.5 h-3.5 text-[#247a6d]" />
-                <span className="hidden sm:inline">Station bearbeiten</span>
+                <span className="hidden sm:inline">
+                  {completed ? "Ergebnis-Station bearbeiten" : "Station bearbeiten"}
+                </span>
               </button>
             )}
 
@@ -1536,7 +1538,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                         }`}
                       >
                         <span className="text-[10px] font-bold text-emerald-900 uppercase block mb-1">
-                          🟢 Empfohlen (Do)
+                          {currentStation.bucketDoHeader || quiz.customLabels?.bucketDoHeader || "🟢 Empfohlen (Do)"}
                         </span>
                         <div className="text-[10px] text-emerald-700 font-semibold">
                           {Object.values(bucketAssignments).filter((b) => b === "do").length} zugeordnet
@@ -1564,7 +1566,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                         }`}
                       >
                         <span className="text-[10px] font-bold text-rose-900 uppercase block mb-1">
-                          🔴 Vermeiden (Don't)
+                          {currentStation.bucketDontHeader || quiz.customLabels?.bucketDontHeader || "🔴 Vermeiden (Don't)"}
                         </span>
                         <div className="text-[10px] text-rose-700 font-semibold">
                           {Object.values(bucketAssignments).filter((b) => b === "dont").length} zugeordnet
@@ -1576,6 +1578,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                     <div className="space-y-1.5 pt-1">
                       {currentStation.bucketSortItems.map((item) => {
                         const assigned = bucketAssignments[item.id];
+                        const doLabel = currentStation.bucketDoLabel || quiz.customLabels?.bucketDoLabel || "Do ✓";
+                        const dontLabel = currentStation.bucketDontLabel || quiz.customLabels?.bucketDontLabel || "Don't ✕";
                         return (
                           <div
                             key={item.id}
@@ -1608,7 +1612,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                                     : "bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-50"
                                 }`}
                               >
-                                Do ✓
+                                {doLabel}
                               </button>
                               <button
                                 type="button"
@@ -1620,7 +1624,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                                     : "bg-white border border-rose-300 text-rose-800 hover:bg-rose-50"
                                 }`}
                               >
-                                Don't ✕
+                                {dontLabel}
                               </button>
                             </div>
                           </div>
@@ -2022,33 +2026,44 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                   const totalCount = quiz.stations.length;
                   const percentage = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
 
-                  let headline = "Praxistest abgeschlossen";
-                  let subtext = `Sie haben ${solvedCount} von ${totalCount} Stationen erfolgreich gelöst (${percentage}%).`;
+                  const resCfg = quiz.resultScreen || {};
+                  const customLabels = quiz.customLabels || {};
+
+                  let headline = resCfg.title || "Praxistest abgeschlossen";
+                  let subtext = resCfg.subtitle || `Sie haben ${solvedCount} von ${totalCount} Stationen erfolgreich gelöst (${percentage}%).`;
                   let badgeBg = "bg-teal-50 text-[#1b5c53] border-teal-300";
                   let iconBg = "bg-[#e3eeec] border-[#247a6d]";
                   let iconColor = "text-[#247a6d]";
 
                   if (solvedCount === totalCount) {
-                    headline = "Hervorragend! Alle Aufgaben gelöst";
-                    subtext = `Perfektes Ergebnis: Alle ${totalCount} Stationen eigenständig gemeistert (100%).`;
+                    headline = resCfg.perfectScoreTitle || "Hervorragend! Alle Aufgaben gelöst";
+                    subtext = resCfg.perfectScoreText
+                      ? resCfg.perfectScoreText.replace(/{total}/g, String(totalCount)).replace(/{solved}/g, String(solvedCount)).replace(/{percent}/g, String(percentage))
+                      : `Perfektes Ergebnis: Alle ${totalCount} Stationen eigenständig gemeistert (100%).`;
                     badgeBg = "bg-emerald-50 text-emerald-800 border-emerald-300";
                     iconBg = "bg-emerald-50 border-emerald-600";
                     iconColor = "text-emerald-700";
                   } else if (solvedCount >= Math.ceil(totalCount * 0.6)) {
-                    headline = "Gutes Ergebnis im Praxistest";
-                    subtext = `Solide Leistung: ${solvedCount} von ${totalCount} Stationen eigenständig gelöst (${percentage}%).`;
+                    headline = resCfg.goodScoreTitle || "Gutes Ergebnis im Praxistest";
+                    subtext = resCfg.goodScoreText
+                      ? resCfg.goodScoreText.replace(/{total}/g, String(totalCount)).replace(/{solved}/g, String(solvedCount)).replace(/{percent}/g, String(percentage))
+                      : `Solide Leistung: ${solvedCount} von ${totalCount} Stationen eigenständig gelöst (${percentage}%).`;
                     badgeBg = "bg-teal-50 text-[#1b5c53] border-[#247a6d]/40";
                     iconBg = "bg-[#e3eeec] border-[#247a6d]";
                     iconColor = "text-[#247a6d]";
                   } else if (solvedCount > 0) {
-                    headline = "Praxistest abgeschlossen";
-                    subtext = `${solvedCount} von ${totalCount} Stationen gelöst (${percentage}%). Nutzen Sie die ZQP-Erklärungen zur Vertiefung.`;
+                    headline = resCfg.lowScoreTitle || "Praxistest abgeschlossen";
+                    subtext = resCfg.lowScoreText
+                      ? resCfg.lowScoreText.replace(/{total}/g, String(totalCount)).replace(/{solved}/g, String(solvedCount)).replace(/{percent}/g, String(percentage))
+                      : `${solvedCount} von ${totalCount} Stationen gelöst (${percentage}%). Nutzen Sie die ZQP-Erklärungen zur Vertiefung.`;
                     badgeBg = "bg-amber-50 text-amber-900 border-amber-300";
                     iconBg = "bg-amber-50 border-amber-500";
                     iconColor = "text-amber-700";
                   } else {
-                    headline = "Praxistest durchlaufen";
-                    subtext = `Keine Station eigenständig gelöst. Wiederholen Sie das Training, um die ZQP-Leitlinien zu festigen.`;
+                    headline = resCfg.zeroScoreTitle || "Praxistest durchlaufen";
+                    subtext = resCfg.zeroScoreText
+                      ? resCfg.zeroScoreText.replace(/{total}/g, String(totalCount)).replace(/{solved}/g, String(solvedCount)).replace(/{percent}/g, String(percentage))
+                      : `Keine Station eigenständig gelöst. Wiederholen Sie das Training, um das Wissen zu festigen.`;
                     badgeBg = "bg-stone-50 text-stone-800 border-stone-300";
                     iconBg = "bg-stone-100 border-stone-400";
                     iconColor = "text-stone-600";
@@ -2066,10 +2081,19 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                         {subtext}
                       </p>
 
+                      {/* Optional Subtitle / Advice */}
+                      {resCfg.subtitle && resCfg.subtitle !== subtext && (
+                        <div className="text-[10px] text-[#1b5c53] bg-[#edf7f4] border border-[#bbd1cd] px-3 py-1.5 rounded-lg mb-2 text-center w-full">
+                          {resCfg.subtitle}
+                        </div>
+                      )}
+
                       {/* Score & Evaluation Box (2 Columns for compact fit) */}
                       <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-2 sm:p-2.5 rounded-xl text-left text-xs text-[#444] w-full shadow-xs">
                         <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[#bbd1cd]/50">
-                          <span className="font-bold text-[#1b5c53] text-xs">Ihr Praxistest-Ergebnis:</span>
+                          <span className="font-bold text-[#1b5c53] text-xs">
+                            {resCfg.scoreLabel || "Ihr Praxistest-Ergebnis:"}
+                          </span>
                           <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] border ${badgeBg}`}>
                             {solvedCount} von {totalCount} gelöst ({percentage}%)
                           </span>
@@ -2108,7 +2132,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                           className="px-4 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Praxistest wiederholen</span>
+                          <span>{resCfg.restartButtonText || customLabels.restartQuizLabel || "Praxistest wiederholen"}</span>
                         </button>
                         {quiz.enablePrintSummary && (
                           <button
@@ -2117,7 +2141,17 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                             title="Ergebnis und Merkzettel drucken oder als PDF speichern"
                           >
                             <Printer className="w-3.5 h-3.5 text-[#247a6d]" />
-                            <span>Ergebnis als PDF drucken</span>
+                            <span>{resCfg.printButtonText || "Ergebnis als PDF drucken"}</span>
+                          </button>
+                        )}
+                        {onEditStation && (
+                          <button
+                            onClick={() => onEditStation(-1)}
+                            className="px-3.5 py-1.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] text-[#1b5c53] hover:bg-[#f3f8f7] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
+                            title="Ergebnis-Station und Formulierungen anpassen"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-[#247a6d]" />
+                            <span>Ergebnis anpassen</span>
                           </button>
                         )}
                       </div>
@@ -2254,8 +2288,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                   >
                     <span>
                       {currentStationIdx === quiz.stations.length - 1
-                        ? "Zur Gesamtauswertung"
-                        : "Nächste Station"}
+                        ? (quiz.customLabels?.finishStationLabel || "Zur Gesamtauswertung")
+                        : (quiz.customLabels?.nextStationLabel || "Nächste Station")}
                     </span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -2291,7 +2325,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                 className="text-[11px] font-bold text-[#6e6c70] hover:text-[#1b5c53] px-2 py-0.5 rounded hover:bg-[#e3eeec] transition-colors"
                 title="Erklärung schließen und Spielfeld betrachten"
               >
-                Ansicht ansehen ✕
+                {quiz.customLabels?.feedbackCloseLabel || "Ansicht ansehen ✕"}
               </button>
             </div>
 
@@ -2299,7 +2333,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
             <div className="p-3 sm:p-4 text-xs text-[#444] space-y-2.5 flex-1 min-h-0 overflow-y-auto zqp-scrollbar">
               <div className="bg-[#faf8f5] p-2.5 rounded-lg border border-[#e2ddd5]">
                 <span className="font-bold text-[#1b5c53] block text-[11px] mb-0.5">
-                  Warum richtig / Warum falsch:
+                  {quiz.customLabels?.feedbackWhyLabel || "Warum richtig / Warum falsch:"}
                 </span>
                 <p className="text-[11px] leading-relaxed text-[#3a352d]">
                   {feedback?.selectionExplanation}
@@ -2308,7 +2342,7 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
 
               <div className="bg-[#edf7f4] p-2.5 rounded-lg border border-[#bbd1cd]">
                 <span className="font-bold text-[#1b5c53] block text-[11px] mb-0.5">
-                  ZQP-Praxiswissen:
+                  {quiz.customLabels?.feedbackKnowledgeLabel || "ZQP-Praxiswissen:"}
                 </span>
                 <p className="text-[11px] leading-relaxed text-[#1b5c53]">
                   {feedback?.zqpBackground}
@@ -2326,8 +2360,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
               >
                 <span>
                   {currentStationIdx === quiz.stations.length - 1
-                    ? "Zur Gesamtauswertung"
-                    : "Nächste Station"}
+                    ? (quiz.customLabels?.finishStationLabel || "Zur Gesamtauswertung")
+                    : (quiz.customLabels?.nextStationLabel || "Nächste Station")}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>

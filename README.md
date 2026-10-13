@@ -14,6 +14,21 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.3.2 (Anpassbare Textbausteine, UI-Labels & Editierbare Ergebnis-Station)
+
+- **Vollständig anpassbare Textbausteine & Micro-Copy**:
+  - Sämtliche Schaltflächen- und Feedback-Texte im Drawer („Ansicht ansehen“, „Warum richtig / Warum falsch:“, „ZQP-Praxiswissen:“, „Nächste Station“, „Zur Gesamtauswertung“, „Praxistest wiederholen“) können nun nach Belieben angepasst werden.
+  - Sortierstationen (Bucket Sort) verfügen über konfigurierbare Kategorietitel und Zuweisungs-Buttons („Do ✓“ / „Don't ✕“ bzw. individualisierbar wie z. B. „Empfohlen“ / „Vermeiden“ oder themenspezifische Labels), sowohl quizweit als auch pro Station überschreibbar.
+- **Editierbare Ergebnis-Station (Auswertungs-Screen)**:
+  - Titel, Untertitel und Punktestand-Texte (100 %, ab 70 %, unter 70 % sowie 0 %) sind frei editierbar.
+  - Der starre Verweis auf „ZQP-Leitlinien“ bei 0 % gelösten Aufgaben wurde durch neutrale, frei konfigurierbare Formulierungen ersetzt.
+  - Dynamische Platzhalter wie `{total}`, `{solved}` und `{percent}` werden in der Vorschau und im exportierten HTML automatisch berechnet und eingesetzt.
+  - In der Vorschau kann die Ergebnis-Station nun direkt über die obere Toolbar („Ergebnis bearbeiten“) geöffnet und editiert werden.
+- **Globale Standardwerte in den Einstellungen**:
+  - Neuer Einstellungs-Tab *„Standard-Textbausteine“*: Einmal global im ZQP Quiz-Generator hinterlegt, dienen die gewünschten Formulierungen als Standard für alle künftigen Quiz-Generierungen.
+- **Export-Compiler-Synchronisation**:
+  - Der eigenständige HTML/CSS/JS-Compiler injiziert sämtliche Labels und Ergebnis-Konfigurationen direkt in den barrierefreien Standalone-Player.
+
 ## Neu in v0.3.1 (Studio-Modus & Station-Editor Live-Drawer)
 
 - **Station-Editor als Live-Drawer (Vorschlag B)**: Der WYSIWYG-Stationseditor öffnet sich nun standardmäßig als eleganter Schiebe-Drawer von der rechten Seite. Die interaktive Quiz-Vorschau bleibt im Hintergrund sichtbar und orientiert die Bearbeitung räumlich direkt am fertigen Quiz.

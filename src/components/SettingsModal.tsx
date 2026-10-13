@@ -13,12 +13,18 @@ import {
   Plus,
   Trash2,
   RotateCcw,
+  Sliders,
+  MessageSquare,
+  Layers,
+  Award,
 } from "lucide-react";
-import { AppSettings, GlossaryEntry } from "../types";
+import { AppSettings, GlossaryEntry, QuizCustomLabels, QuizResultScreenConfig } from "../types";
 import {
   fetchAvailableModels,
   defaultEditorialRules,
   defaultGlossary,
+  defaultCustomLabels,
+  defaultResultScreen,
   isInvalidGeminiModel,
 } from "../services/geminiService";
 import { checkForAppUpdates, installAppUpdate } from "../services/updaterService";
@@ -37,7 +43,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   onSave,
 }) => {
-  const [activeTab, setActiveTab] = useState<"api" | "editorial">("api");
+  const [activeTab, setActiveTab] = useState<"api" | "editorial" | "labels">("api");
 
   // API State
   const [apiKey, setApiKey] = useState<string>(settings.geminiApiKey);
@@ -187,6 +193,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }, 0);
   };
 
+  // Global Default Labels & Result State
+  const [defaultLabels, setDefaultLabels] = useState<QuizCustomLabels>(() =>
+    JSON.parse(JSON.stringify(settings.defaultCustomLabels || defaultCustomLabels))
+  );
+  const [defaultResultConfig, setDefaultResultConfig] = useState<QuizResultScreenConfig>(() =>
+    JSON.parse(JSON.stringify(settings.defaultResultScreen || defaultResultScreen))
+  );
+
   const handleDeleteGlossaryEntry = (id: string) => {
     setGlossary((prev) => prev.filter((item) => item.id !== id));
   };
@@ -195,6 +209,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     if (confirm("Möchten Sie die Redaktionsregeln und das Glossar auf die ZQP-Standardwerte zurücksetzen?")) {
       setEditorialRules(defaultEditorialRules);
       setGlossary(JSON.parse(JSON.stringify(defaultGlossary)));
+    }
+  };
+
+  const handleResetLabels = () => {
+    if (confirm("Möchten Sie die Standard-Textbausteine und Ergebnis-Formulierungen auf die ZQP-Standardwerte zurücksetzen?")) {
+      setDefaultLabels(JSON.parse(JSON.stringify(defaultCustomLabels)));
+      setDefaultResultConfig(JSON.parse(JSON.stringify(defaultResultScreen)));
     }
   };
 
@@ -215,6 +236,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       autoUpdate,
       editorialRules,
       glossary,
+      defaultCustomLabels: defaultLabels,
+      defaultResultScreen: defaultResultConfig,
     });
     onClose();
   };
@@ -273,6 +296,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <span className="px-1.5 py-0.2 rounded-full bg-[#247a6d] text-white text-[10px] font-bold">
               {glossary.length}
             </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("labels")}
+            className={`px-3.5 py-1.5 text-xs font-semibold rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "labels"
+                ? "bg-[#f3f8f7] text-[#1b5c53] border-t border-x border-[#bbd1cd] shadow-2xs"
+                : "text-[#6e6c70] hover:text-[#1b5c53]"
+            }`}
+          >
+            <Sliders className="w-3.5 h-3.5 text-[#247a6d]" />
+            <span>Standard-Textbausteine</span>
           </button>
         </div>
 
@@ -587,6 +622,229 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <Plus className="w-3.5 h-3.5" />
                       <span>Hinzufügen</span>
                     </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {activeTab === "labels" && (
+            <>
+              {/* Info banner */}
+              <div className="flex items-start gap-3 p-3.5 rounded-xl bg-[#e6f2f0] border border-[#247a6d]/20 text-[#1b5c53] text-xs leading-relaxed">
+                <Sliders className="w-4 h-4 shrink-0 mt-0.5 text-[#247a6d]" />
+                <div className="flex-1">
+                  <p className="font-semibold text-[#1b5c53] mb-0.5">
+                    Globale Standard-Textbausteine & Ergebnis-Formulierungen
+                  </p>
+                  <p className="text-[#1b5c53]/80">
+                    Diese Texte werden als Voreinstellung für jedes neu generierte Quiz verwendet. Im Quiz-Editor können die Texte für jedes einzelne Quiz individuell angepasst und überschrieben werden.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleResetLabels}
+                  className="px-2.5 py-1 text-[11px] font-semibold text-[#8b3232] hover:bg-[#8b3232]/10 rounded border border-[#8b3232]/30 transition-colors shrink-0 cursor-pointer"
+                >
+                  Standard wiederherstellen
+                </button>
+              </div>
+
+              {/* Rückmeldungen & Drawer */}
+              <div className="p-4 rounded-xl bg-[#f2f7f6] border border-[#bbd1cd] space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#1b5c53] flex items-center gap-1.5">
+                  <MessageSquare className="w-3.5 h-3.5" /> Rückmeldungen & Auswertung (Drawer)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Schließen-Button (z. B. "Ansicht ansehen")
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.feedbackCloseLabel}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, feedbackCloseLabel: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Warum-Abschnitt ("Warum richtig / falsch")
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.feedbackWhyLabel}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, feedbackWhyLabel: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Wissens-Abschnitt ("ZQP-Praxiswissen")
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.feedbackKnowledgeLabel}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, feedbackKnowledgeLabel: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Button: Nächste Station
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.nextStationLabel}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, nextStationLabel: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Button: Zur Gesamtauswertung
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.finishStationLabel}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, finishStationLabel: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Button: Quiz wiederholen
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.restartQuizLabel}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, restartQuizLabel: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Sortierstationen (Bucket Sort) Standard-Begriffe */}
+              <div className="p-4 rounded-xl bg-[#f2f7f6] border border-[#bbd1cd] space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#1b5c53] flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5" /> Sortierstationen (Do / Don't Standard-Begriffe)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Kategorie 1 Header (Standard: "Empfehlenswert (Do)")
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.bucketDoHeader}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, bucketDoHeader: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Kategorie 1 Button ("Do")
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.bucketDoLabel}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, bucketDoLabel: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Kategorie 2 Header (Standard: "Nicht empfehlenswert (Don't)")
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.bucketDontHeader}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, bucketDontHeader: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Kategorie 2 Button ("Don't")
+                    </label>
+                    <input
+                      type="text"
+                      value={defaultLabels.bucketDontLabel}
+                      onChange={(e) => setDefaultLabels({ ...defaultLabels, bucketDontLabel: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Standard Ergebnis-Station */}
+              <div className="p-4 rounded-xl bg-[#f2f7f6] border border-[#bbd1cd] space-y-3">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-[#1b5c53] flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5" /> Standard-Ergebnis-Station
+                </h4>
+                <div className="space-y-3 text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">Titel der Ergebnis-Station</label>
+                      <input
+                        type="text"
+                        value={defaultResultConfig.title}
+                        onChange={(e) => setDefaultResultConfig({ ...defaultResultConfig, title: e.target.value })}
+                        className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">Untertitel</label>
+                      <input
+                        type="text"
+                        value={defaultResultConfig.subtitle}
+                        onChange={(e) => setDefaultResultConfig({ ...defaultResultConfig, subtitle: e.target.value })}
+                        className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">
+                      Text bei 0% / noch keinen richtigen Antworten (neutral ohne Zwang zu "ZQP-Leitlinien")
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={defaultResultConfig.zeroScoreText}
+                      onChange={(e) => setDefaultResultConfig({ ...defaultResultConfig, zeroScoreText: e.target.value })}
+                      className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">Feedback 100%</label>
+                      <textarea
+                        rows={2}
+                        value={defaultResultConfig.perfectScoreText}
+                        onChange={(e) => setDefaultResultConfig({ ...defaultResultConfig, perfectScoreText: e.target.value })}
+                        className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">Feedback ab 70%</label>
+                      <textarea
+                        rows={2}
+                        value={defaultResultConfig.goodScoreText}
+                        onChange={(e) => setDefaultResultConfig({ ...defaultResultConfig, goodScoreText: e.target.value })}
+                        className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-[#1b5c53] mb-1">Feedback unter 70%</label>
+                      <textarea
+                        rows={2}
+                        value={defaultResultConfig.lowScoreText}
+                        onChange={(e) => setDefaultResultConfig({ ...defaultResultConfig, lowScoreText: e.target.value })}
+                        className="w-full rounded-lg border border-[#bbd1cd] p-2 text-xs bg-white focus:ring-1 focus:ring-[#247a6d] outline-none"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>

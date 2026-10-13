@@ -1,4 +1,4 @@
-import { AppSettings, QuizGenerationResult, TargetAudience, StationType, QuizStation, GlossaryEntry } from "../types";
+import { AppSettings, QuizGenerationResult, TargetAudience, StationType, QuizStation, GlossaryEntry, QuizCustomLabels, QuizResultScreenConfig } from "../types";
 import { compileQuizToBundle } from "./exportCompiler";
 
 const SETTINGS_STORAGE_KEY = "zqp_quiz_generator_settings";
@@ -17,6 +17,35 @@ export const defaultGlossary: GlossaryEntry[] = [
   { id: "g6", term: "Bettlägerige", preferred: "im Bett versorgte Personen", explanation: "Aktivierender Sprachgebrauch" },
 ];
 
+export const defaultCustomLabels: QuizCustomLabels = {
+  feedbackWhyLabel: "Warum richtig / Warum falsch:",
+  feedbackKnowledgeLabel: "ZQP-Praxiswissen:",
+  feedbackCloseLabel: "Ansicht ansehen ✕",
+  bucketDoLabel: "Do ✓",
+  bucketDontLabel: "Don't ✕",
+  bucketDoHeader: "Empfohlen (Do)",
+  bucketDontHeader: "Vermeiden (Don't)",
+  nextStationLabel: "Nächste Station",
+  finishStationLabel: "Zur Gesamtauswertung",
+  restartQuizLabel: "Praxistest wiederholen",
+};
+
+export const defaultResultScreen: QuizResultScreenConfig = {
+  title: "Praxistest abgeschlossen",
+  subtitle: "",
+  scoreLabel: "Ihr Praxistest-Ergebnis:",
+  perfectScoreTitle: "Hervorragend! Alle Aufgaben gelöst",
+  perfectScoreText: "Perfektes Ergebnis: Alle {total} Stationen eigenständig gemeistert (100%).",
+  goodScoreTitle: "Gutes Ergebnis im Praxistest",
+  goodScoreText: "Solide Leistung: {solved} von {total} Stationen eigenständig gelöst ({percent}%).",
+  lowScoreTitle: "Praxistest abgeschlossen",
+  lowScoreText: "{solved} von {total} Stationen gelöst ({percent}%). Nutzen Sie die ZQP-Erklärungen zur Vertiefung.",
+  zeroScoreTitle: "Praxistest durchlaufen",
+  zeroScoreText: "Keine Station eigenständig gelöst. Wiederholen Sie das Training, um das Wissen zu festigen.",
+  restartButtonText: "Praxistest wiederholen",
+  printButtonText: "Ergebnis als PDF drucken",
+};
+
 export const RECOMMENDED_GEMINI_MODELS = [
   "gemini-3.8-flash",
 ];
@@ -30,6 +59,8 @@ export const defaultSettings: AppSettings = {
   autoUpdate: true,
   editorialRules: defaultEditorialRules,
   glossary: defaultGlossary,
+  defaultCustomLabels: defaultCustomLabels,
+  defaultResultScreen: defaultResultScreen,
 };
 
 export function isInvalidGeminiModel(name?: string): boolean {
@@ -91,6 +122,14 @@ export function loadSettings(): AppSettings {
         availableModels,
         editorialRules: parsed.editorialRules || defaultEditorialRules,
         glossary: Array.isArray(parsed.glossary) && parsed.glossary.length > 0 ? parsed.glossary : defaultGlossary,
+        defaultCustomLabels: {
+          ...defaultCustomLabels,
+          ...(parsed.defaultCustomLabels || {}),
+        },
+        defaultResultScreen: {
+          ...defaultResultScreen,
+          ...(parsed.defaultResultScreen || {}),
+        },
       };
 
       if (modelChanged) {
@@ -368,6 +407,12 @@ ${referenceText ? `ZQP-Referenzinhalte / Wissensbasis:\n${referenceText}` : ""}`
 
   try {
     const parsed: QuizGenerationResult = JSON.parse(textOutput);
+    if (!parsed.customLabels) {
+      parsed.customLabels = { ...defaultCustomLabels };
+    }
+    if (!parsed.resultScreen) {
+      parsed.resultScreen = { ...defaultResultScreen, subtitle: parsed.summary || "" };
+    }
     const compiled = compileQuizToBundle(parsed);
     parsed.generatedHtml = compiled.html;
     parsed.generatedCss = compiled.css;
@@ -472,6 +517,8 @@ ${refinementPrompt}`;
 
   try {
     const parsed: QuizGenerationResult = JSON.parse(textOutput);
+    parsed.customLabels = existingQuiz.customLabels || { ...defaultCustomLabels };
+    parsed.resultScreen = existingQuiz.resultScreen || { ...defaultResultScreen, subtitle: parsed.summary || "" };
     const compiled = compileQuizToBundle(parsed);
     parsed.generatedHtml = compiled.html;
     parsed.generatedCss = compiled.css;
@@ -1363,6 +1410,8 @@ function generateLocalDemoQuiz(
 
   renderStation(0);
 })();`,
+    customLabels: { ...defaultCustomLabels },
+    resultScreen: { ...defaultResultScreen },
   };
 }
 

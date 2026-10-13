@@ -115,6 +115,35 @@ export interface FavoriteStation {
   station: QuizStation;
 }
 
+export interface QuizCustomLabels {
+  feedbackWhyLabel?: string;       // Default: "Warum richtig / Warum falsch:"
+  feedbackKnowledgeLabel?: string; // Default: "ZQP-Praxiswissen:"
+  feedbackCloseLabel?: string;     // Default: "Ansicht ansehen ✕"
+  bucketDoLabel?: string;          // Default: "Do ✓"
+  bucketDontLabel?: string;        // Default: "Don't ✕"
+  bucketDoHeader?: string;         // Default: "Empfohlen (Do)"
+  bucketDontHeader?: string;       // Default: "Vermeiden (Don't)"
+  nextStationLabel?: string;       // Default: "Nächste Station"
+  finishStationLabel?: string;     // Default: "Zur Gesamtauswertung"
+  restartQuizLabel?: string;       // Default: "Praxistest wiederholen"
+}
+
+export interface QuizResultScreenConfig {
+  title?: string;                  // Default: "Praxistest abgeschlossen"
+  subtitle?: string;               // Optionaler Rat / Auswertungstext
+  scoreLabel?: string;             // Default: "Ihr Praxistest-Ergebnis:"
+  perfectScoreTitle?: string;      // Default: "Hervorragend! Alle Aufgaben gelöst"
+  perfectScoreText?: string;       // Default: "Perfektes Ergebnis: Alle {total} Stationen eigenständig gemeistert (100%)."
+  goodScoreTitle?: string;         // Default: "Gutes Ergebnis im Praxistest"
+  goodScoreText?: string;          // Default: "Solide Leistung: {solved} von {total} Stationen eigenständig gelöst ({percent}%)."
+  lowScoreTitle?: string;          // Default: "Praxistest abgeschlossen"
+  lowScoreText?: string;           // Default: "{solved} von {total} Stationen gelöst ({percent}%). Nutzen Sie die ZQP-Erklärungen zur Vertiefung."
+  zeroScoreTitle?: string;         // Default: "Praxistest durchlaufen"
+  zeroScoreText?: string;          // Default: "Keine Station eigenständig gelöst. Wiederholen Sie das Training, um das Wissen zu festigen."
+  restartButtonText?: string;      // Default: "Praxistest wiederholen"
+  printButtonText?: string;        // Default: "Ergebnis als PDF drucken"
+}
+
 export interface QuizStation {
   id: string;
   type: StationType;
@@ -128,6 +157,10 @@ export interface QuizStation {
   options?: QuizQuestionOption[];
   mythFactItems?: MythFactItem[];
   bucketSortItems?: BucketSortItem[];
+  bucketDoLabel?: string;      // Optional override per station
+  bucketDontLabel?: string;    // Optional override per station
+  bucketDoHeader?: string;     // Optional override per station
+  bucketDontHeader?: string;   // Optional override per station
   dilemmaReactions?: DilemmaReaction[];
   checklistItems?: ChecklistItem[];
   fillInSentence?: string;
@@ -153,6 +186,8 @@ export interface QuizGenerationResult {
   referenceSourceText?: string; // Full original uploaded/input text for verification
   editorialStatus?: EditorialStatus;
   editorialNotes?: string;
+  customLabels?: QuizCustomLabels;
+  resultScreen?: QuizResultScreenConfig;
 }
 
 export interface AppSettings {
@@ -162,4 +197,7 @@ export interface AppSettings {
   autoUpdate: boolean;
   editorialRules?: string;
   glossary?: GlossaryEntry[];
+  defaultCustomLabels?: QuizCustomLabels;
+  defaultResultScreen?: QuizResultScreenConfig;
 }
+

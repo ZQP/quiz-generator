@@ -583,7 +583,7 @@ tailwind.config = {
     </div>
     <div id="zqp-footer-actions">
       <button id="zqp-btn-action" type="button" class="zqp-btn-primary" disabled>
-        ${targetCount === 1 ? "Zur Gesamtauswertung ➔" : "Nächste Station ➔"}
+        ${targetCount === 1 ? (quiz.customLabels?.finishStationLabel || "Zur Gesamtauswertung") + " ➔" : (quiz.customLabels?.nextStationLabel || "Nächste Station") + " ➔"}
       </button>
     </div>
   </footer>
@@ -597,13 +597,13 @@ tailwind.config = {
     <div class="zqp-drawer-header">
       <div id="zqp-drawer-title" class="zqp-drawer-title">✓ Auswertung</div>
       <button id="zqp-btn-close-drawer" type="button" class="zqp-btn-close-drawer">
-        Ansicht ansehen ✕
+        ${quiz.customLabels?.feedbackCloseLabel || "Ansicht ansehen ✕"}
       </button>
     </div>
     <div id="zqp-drawer-body" class="zqp-drawer-body"></div>
     <div class="zqp-drawer-actions">
       <button id="zqp-btn-drawer-next" type="button" class="zqp-btn-primary">
-        ${targetCount === 1 ? "Zur Gesamtauswertung ➔" : "Nächste Station ➔"}
+        ${targetCount === 1 ? (quiz.customLabels?.finishStationLabel || "Zur Gesamtauswertung") + " ➔" : (quiz.customLabels?.nextStationLabel || "Nächste Station") + " ➔"}
       </button>
     </div>
   </div>
@@ -622,6 +622,8 @@ tailwind.config = {
   var stationResults = {}; // idx -> "solved" | "unsolved"
   var canAdvance = false;
   var enablePrintSummary = ${quiz.enablePrintSummary ? "true" : "false"};
+  var customLabels = ${JSON.stringify(quiz.customLabels || {})};
+  var resultScreenConfig = ${JSON.stringify(quiz.resultScreen || {})};
 
   // Station specific state
   var selectedThreat = null;
@@ -674,12 +676,12 @@ tailwind.config = {
     if (drawerBody) {
       drawerBody.innerHTML = 
         '<div class="zqp-drawer-card zqp-drawer-card-explanation">' +
-          '<strong style="color:#1b5c53; display:block; margin-bottom:0.25rem;">Warum richtig / Warum falsch:</strong>' +
+          '<strong style="color:#1b5c53; display:block; margin-bottom:0.25rem;">' + (customLabels.feedbackWhyLabel || 'Warum richtig / Warum falsch:') + '</strong>' +
           '<p style="margin:0;">' + (explanation || "") + '</p>' +
         '</div>' +
         (zqpInfo ? (
           '<div class="zqp-drawer-card zqp-drawer-card-zqp">' +
-            '<strong style="color:#1b5c53; display:block; margin-bottom:0.25rem;">ZQP-Praxiswissen:</strong>' +
+            '<strong style="color:#1b5c53; display:block; margin-bottom:0.25rem;">' + (customLabels.feedbackKnowledgeLabel || 'ZQP-Praxiswissen:') + '</strong>' +
             '<p style="margin:0; color:#1b5c53;">' + zqpInfo + '</p>' +
           '</div>'
         ) : '');
@@ -689,12 +691,15 @@ tailwind.config = {
   function markStationCompleted(mode, explanation, zqpInfo) {
     canAdvance = true;
     stationResults[currentStation] = mode;
+    var nextText = (currentStation === totalStations - 1)
+      ? ((customLabels.finishStationLabel || "Zur Gesamtauswertung") + " ➔")
+      : ((customLabels.nextStationLabel || "Nächste Station") + " ➔");
     if (btnAction) {
       btnAction.disabled = false;
-      btnAction.textContent = (currentStation === totalStations - 1) ? "Zur Gesamtauswertung ➔" : "Nächste Station ➔";
+      btnAction.textContent = nextText;
     }
     if (btnDrawerNext) {
-      btnDrawerNext.textContent = (currentStation === totalStations - 1) ? "Zur Gesamtauswertung ➔" : "Nächste Station ➔";
+      btnDrawerNext.textContent = nextText;
     }
     if (btnReveal) btnReveal.textContent = "💡 Erklärung anzeigen";
     openDrawer(mode === "solved" ? "correct" : "revealed", mode === "solved" ? "Richtig gelöst!" : "Lösung aufgedeckt", explanation, zqpInfo);
@@ -990,17 +995,41 @@ tailwind.config = {
     }
   };
 
+  window.zqpAssignBucket = function(itemId, bucket) {
+    if (canAdvance) return;
+    bucketAssignments[itemId] = bucket;
+    var st = stationsData[currentStation];
+    var items = st.bucketSortItems || [];
+    var assignedCount = Object.keys(bucketAssignments).length;
+    if (assignedCount === items.length) {
+      var allCorrect = items.every(function(it) {
+        return bucketAssignments[it.id] === it.targetBucket;
+      });
+      if (allCorrect) {
+        markStationCompleted("solved", st.solutionExplanation || "Sie haben alle Verhaltensweisen treffsicher zugeordnet.", st.zqpRationale);
+      } else {
+        openDrawer("incorrect", "Nicht ganz richtig", st.solutionExplanation || "Einige Zuordnungen waren nicht optimal.", st.zqpRationale);
+      }
+    }
+    renderBucketSort(st);
+  };
+
   // 6. BUCKET SORT RENDERER
   function renderBucketSort(st) {
     var items = st.bucketSortItems || [];
+    var doHeader = st.bucketDoHeader || customLabels.bucketDoHeader || '🟢 EMPFOHLEN (DO)';
+    var dontHeader = st.bucketDontHeader || customLabels.bucketDontHeader || '🔴 VERMEIDEN (DON\'T)';
+    var doBtnLabel = st.bucketDoLabel || customLabels.bucketDoLabel || 'Do ✓';
+    var dontBtnLabel = st.bucketDontLabel || customLabels.bucketDontLabel || 'Don\'t ✕';
+
     var html = '<h3 class="zqp-prompt-instruction">' + st.promptOrInstruction + '</h3>' +
       '<div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.75rem;">' +
         '<div class="zqp-papercut-card" data-drop-bucket="do" style="background:#f0fdf4; border-color:#86efac; min-height:80px; padding:0.5rem;">' +
-          '<div class="zqp-papercut-tag" style="background:#dcfce7; color:#166534;">🟢 EMPFOHLEN (DO)</div>' +
+          '<div class="zqp-papercut-tag" style="background:#dcfce7; color:#166534;">' + doHeader + '</div>' +
           '<div id="zqp-bucket-do-items" style="display:flex; flex-direction:column; gap:0.25rem; margin-top:0.35rem;"></div>' +
         '</div>' +
         '<div class="zqp-papercut-card" data-drop-bucket="dont" style="background:#fef2f2; border-color:#fca5a5; min-height:80px; padding:0.5rem;">' +
-          '<div class="zqp-papercut-tag" style="background:#fee2e2; color:#991b1b;">🔴 VERMEIDEN (DON\'T)</div>' +
+          '<div class="zqp-papercut-tag" style="background:#fee2e2; color:#991b1b;">' + dontHeader + '</div>' +
           '<div id="zqp-bucket-dont-items" style="display:flex; flex-direction:column; gap:0.25rem; margin-top:0.35rem;"></div>' +
         '</div>' +
       '</div>' +
@@ -1008,15 +1037,38 @@ tailwind.config = {
 
     items.forEach(function(it) {
       var assigned = bucketAssignments[it.id];
-      if (!assigned) {
-        html += '<div class="zqp-papercut-card" onpointerdown="window.zqpStartDrag(event, \'bucket_sort\', \'' + it.id + '\', \'' + it.text.replace(/'/g, "\\'") + '\')">' +
-          '<div style="font-size:0.75rem; font-weight:600; color:#3a352d;">' + it.text + '</div>' +
-        '</div>';
-      }
+      html += '<div class="zqp-papercut-card" style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;" onpointerdown="window.zqpStartDrag(event, \'bucket_sort\', \'' + it.id + '\', \'' + it.text.replace(/'/g, "\\'") + '\')">' +
+        '<div style="font-size:0.75rem; font-weight:600; color:#3a352d; flex:1;">' + it.text + '</div>' +
+        '<div style="display:flex; gap:0.25rem; flex-shrink:0;">' +
+          '<button type="button" class="zqp-btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.6875rem; font-weight:700; ' + (assigned === "do" ? 'background:#16a34a; color:#fff; border-color:#16a34a;' : 'color:#166534; border-color:#86efac;') + '" onclick="event.stopPropagation(); window.zqpAssignBucket(\'' + it.id + '\', \'do\')">' + doBtnLabel + '</button>' +
+          '<button type="button" class="zqp-btn-secondary" style="padding:0.2rem 0.5rem; font-size:0.6875rem; font-weight:700; ' + (assigned === "dont" ? 'background:#e11d48; color:#fff; border-color:#e11d48;' : 'color:#991b1b; border-color:#fca5a5;') + '" onclick="event.stopPropagation(); window.zqpAssignBucket(\'' + it.id + '\', \'dont\')">' + dontBtnLabel + '</button>' +
+        '</div>' +
+      '</div>';
     });
 
     html += '</div>';
     content.innerHTML = html;
+
+    var doContainer = document.getElementById("zqp-bucket-do-items");
+    var dontContainer = document.getElementById("zqp-bucket-dont-items");
+    items.forEach(function(it) {
+      var assigned = bucketAssignments[it.id];
+      if (assigned === "do" && doContainer) {
+        var el = document.createElement("div");
+        el.className = "zqp-papercut-card";
+        el.style.fontSize = "0.6875rem";
+        el.style.padding = "0.25rem 0.4rem";
+        el.textContent = "✓ " + it.text;
+        doContainer.appendChild(el);
+      } else if (assigned === "dont" && dontContainer) {
+        var el = document.createElement("div");
+        el.className = "zqp-papercut-card";
+        el.style.fontSize = "0.6875rem";
+        el.style.padding = "0.25rem 0.4rem";
+        el.textContent = "✕ " + it.text;
+        dontContainer.appendChild(el);
+      }
+    });
   }
 
   // 7. CHECKLIST RENDERER
@@ -1236,32 +1288,68 @@ tailwind.config = {
       if (stationResults[i] === "solved") solvedCount++;
     }
 
+    var percentage = totalStations > 0 ? Math.round((solvedCount / totalStations) * 100) : 0;
+    var headline = "Praxistest abgeschlossen";
+    var subtext = "";
+
+    if (solvedCount === totalStations) {
+      headline = resultScreenConfig.perfectScoreTitle || "Hervorragend! Alle Aufgaben gelöst";
+      subtext = resultScreenConfig.perfectScoreText
+        ? resultScreenConfig.perfectScoreText.replace(/{total}/g, totalStations).replace(/{solved}/g, solvedCount).replace(/{percent}/g, percentage)
+        : ("Perfektes Ergebnis: Alle " + totalStations + " Stationen eigenständig gemeistert (100%).");
+    } else if (solvedCount >= Math.ceil(totalStations * 0.6)) {
+      headline = resultScreenConfig.goodScoreTitle || "Gutes Ergebnis im Praxistest";
+      subtext = resultScreenConfig.goodScoreText
+        ? resultScreenConfig.goodScoreText.replace(/{total}/g, totalStations).replace(/{solved}/g, solvedCount).replace(/{percent}/g, percentage)
+        : ("Solide Leistung: " + solvedCount + " von " + totalStations + " Stationen eigenständig gelöst (" + percentage + "%).");
+    } else if (solvedCount > 0) {
+      headline = resultScreenConfig.lowScoreTitle || "Praxistest abgeschlossen";
+      subtext = resultScreenConfig.lowScoreText
+        ? resultScreenConfig.lowScoreText.replace(/{total}/g, totalStations).replace(/{solved}/g, solvedCount).replace(/{percent}/g, percentage)
+        : (solvedCount + " von " + totalStations + " Stationen gelöst (" + percentage + "%). Nutzen Sie die ZQP-Erklärungen zur Vertiefung.");
+    } else {
+      headline = resultScreenConfig.zeroScoreTitle || "Praxistest durchlaufen";
+      subtext = resultScreenConfig.zeroScoreText
+        ? resultScreenConfig.zeroScoreText.replace(/{total}/g, totalStations).replace(/{solved}/g, solvedCount).replace(/{percent}/g, percentage)
+        : "Keine Station eigenständig gelöst. Wiederholen Sie das Training, um das Wissen zu festigen.";
+    }
+
+    var scoreBoxLabel = resultScreenConfig.scoreLabel || "Ihr Praxistest-Ergebnis:";
+    var restartBtnText = resultScreenConfig.restartButtonText || customLabels.restartQuizLabel || "Praxistest wiederholen";
+    var printBtnText = resultScreenConfig.printButtonText || "Ergebnis als PDF drucken";
+    var adviceSubtitle = resultScreenConfig.subtitle || '${quiz.summary ? quiz.summary.replace(/'/g, "\\'").replace(/\n/g, " ") : ""}';
+
     var html = '<div style="text-align:center; padding:1rem 0.5rem;">' +
       '<div style="font-size:2.5rem; margin-bottom:0.35rem;">🏆</div>' +
-      '<h3 style="font-size:1.125rem; font-weight:700; color:#1b5c53; margin-bottom:0.25rem;">' +
-        (solvedCount === totalStations ? "Hervorragend! Alle Stationen gemeistert!" : solvedCount + " von " + totalStations + " Aufgaben erfolgreich gelöst") +
-      '</h3>' +
-      '<p style="font-size:0.75rem; color:#6e6c70; margin-bottom:1rem;">' +
-        '${quiz.summary || "Erfolgreich abgeschlossen."}' +
-      '</p>' +
-      '<div style="display:flex; flex-direction:column; gap:0.35rem; max-width:400px; margin:0 auto 1.25rem auto; text-align:left;">';
+      '<h3 style="font-size:1.125rem; font-weight:700; color:#1b5c53; margin-bottom:0.25rem;">' + headline + '</h3>' +
+      '<p style="font-size:0.75rem; color:#6e6c70; margin-bottom:0.75rem; max-width:440px; margin-left:auto; margin-right:auto;">' + subtext + '</p>' +
+      (adviceSubtitle ? '<p style="font-size:0.6875rem; color:#1b5c53; background:#f0fdfa; border:1px solid #ccfbf1; padding:0.4rem 0.6rem; border-radius:0.5rem; max-width:440px; margin:0 auto 0.75rem auto; line-height:1.4;">' + adviceSubtitle + '</p>' : '') +
+      '<div style="background:#f3f8f7; border:1px solid #bbd1cd; border-radius:0.75rem; padding:0.75rem; max-width:440px; margin:0 auto 1.25rem auto; text-align:left;">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.4rem; margin-bottom:0.5rem; border-bottom:1px solid rgba(187,209,205,0.6);">' +
+          '<span style="font-weight:700; color:#1b5c53; font-size:0.75rem;">' + scoreBoxLabel + '</span>' +
+          '<span class="zqp-papercut-tag" style="background:#dcfce7; color:#166534; font-weight:700;">' + solvedCount + ' von ' + totalStations + ' (' + percentage + '%)</span>' +
+        '</div>' +
+        '<div style="display:flex; flex-direction:column; gap:0.35rem;">';
 
     stationsData.forEach(function(st, idx) {
       var wasSolved = stationResults[idx] === "solved";
-      html += '<div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #e2ddd5; border-radius:0.5rem; padding:0.35rem 0.625rem; font-size:0.6875rem;">' +
-        '<span style="font-weight:600; color:#3a352d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:240px;">' + (st.title || ('Station ' + (idx + 1))) + '</span>' +
-        (wasSolved ? '<span class="zqp-papercut-tag" style="background:#ecfdf5; color:#064e3b; border-color:#a7f3d0;">✓ Gelöst</span>' : '<span class="zqp-papercut-tag" style="background:#fffbeb; color:#92400e; border-color:#fde68a;">💡 Aufgedeckt</span>') +
+      html += '<div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #e2ddd5; border-radius:0.375rem; padding:0.3rem 0.5rem; font-size:0.6875rem;">' +
+        '<span style="font-weight:600; color:#3a352d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:260px;">' +
+          '<strong style="color:#1b5c53; margin-right:0.35rem;">#' + (idx + 1) + '</strong>' +
+          (st.title ? st.title.replace(/^Station \\d+:\\s*/, '') : ('Station ' + (idx + 1))) +
+        '</span>' +
+        (wasSolved ? '<span class="zqp-papercut-tag" style="background:#ecfdf5; color:#064e3b; border-color:#a7f3d0; font-weight:700;">✓ Gelöst</span>' : '<span class="zqp-papercut-tag" style="background:#fffbeb; color:#92400e; border-color:#fde68a;">Nicht gelöst</span>') +
       '</div>';
     });
 
-    html += '</div>' +
+    html += '</div></div>' +
       '<div style="display:flex; justify-content:center; align-items:center; gap:0.5rem; flex-wrap:wrap;">' +
         '<button type="button" class="zqp-btn-primary" onclick="window.zqpRestartQuiz()">' +
-          '🔄 Quiz erneut starten' +
+          '🔄 ' + restartBtnText +
         '</button>' +
         (enablePrintSummary ? (
           '<button type="button" class="zqp-btn-secondary" onclick="window.print()" style="display:inline-flex; align-items:center; gap:0.4rem;">' +
-            '<span>🖨️</span><span>Ergebnis als PDF drucken</span>' +
+            '<span>🖨️</span><span>' + printBtnText + '</span>' +
           '</button>'
         ) : '') +
       '</div>' +
@@ -1314,6 +1402,9 @@ tailwind.config = {
         } else if (type === "myth_fact") {
           var dropEl = targetEl ? targetEl.closest("[data-drop-myth-target]") : null;
           hoverTarget = dropEl ? dropEl.getAttribute("data-drop-myth-target") : null;
+        } else if (type === "bucket_sort") {
+          var dropEl = targetEl ? targetEl.closest("[data-drop-bucket]") : null;
+          hoverTarget = dropEl ? dropEl.getAttribute("data-drop-bucket") : null;
         }
       }
     }
@@ -1331,6 +1422,8 @@ tailwind.config = {
           checkMatch(id, hoverTarget);
         } else if (type === "myth_fact" && hoverTarget) {
           window.zqpSelectMyth(hoverTarget === "fact");
+        } else if (type === "bucket_sort" && hoverTarget) {
+          window.zqpAssignBucket(id, hoverTarget);
         }
       } else {
         // Simple click fallback
