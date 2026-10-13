@@ -2088,33 +2088,40 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                         </div>
                       )}
 
-                      {/* Score & Evaluation Box (2 Columns for compact fit) */}
-                      <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-2 sm:p-2.5 rounded-xl text-left text-xs text-[#444] w-full shadow-xs">
-                        <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-[#bbd1cd]/50">
-                          <span className="font-bold text-[#1b5c53] text-xs">
+                      {/* Score & Evaluation Box (Vertical Stack for clear readability) */}
+                      <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-2.5 sm:p-3 rounded-xl text-left text-xs text-[#444] w-full shadow-xs">
+                        <div className="flex items-center justify-between pb-2 mb-2 border-b border-[#bbd1cd]/60">
+                          <span className="font-bold text-[#1b5c53] text-xs sm:text-sm">
                             {resCfg.scoreLabel || "Ihr Praxistest-Ergebnis:"}
                           </span>
-                          <span className={`font-bold px-2 py-0.5 rounded-full text-[10px] sm:text-[11px] border ${badgeBg}`}>
+                          <span className={`font-bold px-2.5 py-0.5 rounded-full text-xs border ${badgeBg}`}>
                             {solvedCount} von {totalCount} gelöst ({percentage}%)
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-x-2 gap-y-1 max-h-[170px] overflow-y-auto zqp-scrollbar pr-0.5">
+                        <div className="flex flex-col gap-1.5 max-h-[200px] overflow-y-auto zqp-scrollbar pr-1">
                           {quiz.stations.map((st, sIdx) => {
                             const isSolved = stationResults[sIdx] === "solved";
                             return (
                               <div
                                 key={st.id || sIdx}
-                                className="flex items-center justify-between text-[10px] sm:text-[11px] px-2 py-1 rounded bg-white/85 border border-[#e2ddd5]"
+                                className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-lg bg-white/95 border border-[#e2ddd5] gap-2 shadow-2xs hover:border-[#247a6d]/40 transition-colors"
                               >
-                                <span className="truncate pr-1.5 font-medium text-[#3a352d]" title={st.title}>
-                                  <span className="font-bold text-[#1b5c53] mr-1">#{sIdx + 1}</span>
-                                  {st.title.replace(/^Station \d+:\s*/, "")}
-                                </span>
+                                <div className="flex items-center gap-2 min-w-0 flex-1">
+                                  <span className="font-bold text-[#1b5c53] shrink-0 text-xs">
+                                    #{sIdx + 1}
+                                  </span>
+                                  <span className="text-xs shrink-0 p-0.5 rounded bg-[#edf7f4]" title={st.type}>
+                                    {getStationIcon(st.type)}
+                                  </span>
+                                  <span className="truncate font-medium text-[#2d2a26] text-xs" title={st.title}>
+                                    {st.title.replace(/^Station \d+:\s*/, "")}
+                                  </span>
+                                </div>
                                 <span
-                                  className={`font-semibold shrink-0 px-1.5 py-0.2 rounded text-[9px] ${
+                                  className={`font-semibold shrink-0 px-2 py-0.5 rounded text-[10px] whitespace-nowrap ${
                                     isSolved
-                                      ? "bg-emerald-100 text-emerald-800 font-bold"
+                                      ? "bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold"
                                       : "bg-amber-100 text-amber-900 border border-amber-200"
                                   }`}
                                 >

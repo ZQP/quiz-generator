@@ -1324,21 +1324,23 @@ tailwind.config = {
       '<h3 style="font-size:1.125rem; font-weight:700; color:#1b5c53; margin-bottom:0.25rem;">' + headline + '</h3>' +
       '<p style="font-size:0.75rem; color:#6e6c70; margin-bottom:0.75rem; max-width:440px; margin-left:auto; margin-right:auto;">' + subtext + '</p>' +
       (adviceSubtitle ? '<p style="font-size:0.6875rem; color:#1b5c53; background:#f0fdfa; border:1px solid #ccfbf1; padding:0.4rem 0.6rem; border-radius:0.5rem; max-width:440px; margin:0 auto 0.75rem auto; line-height:1.4;">' + adviceSubtitle + '</p>' : '') +
-      '<div style="background:#f3f8f7; border:1px solid #bbd1cd; border-radius:0.75rem; padding:0.75rem; max-width:440px; margin:0 auto 1.25rem auto; text-align:left;">' +
+      '<div style="background:#f3f8f7; border:1px solid #bbd1cd; border-radius:0.75rem; padding:0.75rem; max-width:480px; margin:0 auto 1.25rem auto; text-align:left;">' +
         '<div style="display:flex; justify-content:space-between; align-items:center; padding-bottom:0.4rem; margin-bottom:0.5rem; border-bottom:1px solid rgba(187,209,205,0.6);">' +
-          '<span style="font-weight:700; color:#1b5c53; font-size:0.75rem;">' + scoreBoxLabel + '</span>' +
+          '<span style="font-weight:700; color:#1b5c53; font-size:0.8125rem;">' + scoreBoxLabel + '</span>' +
           '<span class="zqp-papercut-tag" style="background:#dcfce7; color:#166534; font-weight:700;">' + solvedCount + ' von ' + totalStations + ' (' + percentage + '%)</span>' +
         '</div>' +
-        '<div style="display:flex; flex-direction:column; gap:0.35rem;">';
+        '<div style="display:flex; flex-direction:column; gap:0.4rem; max-height:220px; overflow-y:auto; padding-right:0.25rem;">';
 
     stationsData.forEach(function(st, idx) {
       var wasSolved = stationResults[idx] === "solved";
-      html += '<div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #e2ddd5; border-radius:0.375rem; padding:0.3rem 0.5rem; font-size:0.6875rem;">' +
-        '<span style="font-weight:600; color:#3a352d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:260px;">' +
-          '<strong style="color:#1b5c53; margin-right:0.35rem;">#' + (idx + 1) + '</strong>' +
-          (st.title ? st.title.replace(/^Station \\d+:\\s*/, '') : ('Station ' + (idx + 1))) +
-        '</span>' +
-        (wasSolved ? '<span class="zqp-papercut-tag" style="background:#ecfdf5; color:#064e3b; border-color:#a7f3d0; font-weight:700;">✓ Gelöst</span>' : '<span class="zqp-papercut-tag" style="background:#fffbeb; color:#92400e; border-color:#fde68a;">Nicht gelöst</span>') +
+      html += '<div style="display:flex; justify-content:space-between; align-items:center; background:#ffffff; border:1px solid #e2ddd5; border-radius:0.375rem; padding:0.35rem 0.6rem; font-size:0.75rem; gap:0.5rem;">' +
+        '<div style="display:flex; align-items:center; gap:0.4rem; min-width:0; flex:1;">' +
+          '<strong style="color:#1b5c53; flex-shrink:0;">#' + (idx + 1) + '</strong>' +
+          '<span style="font-weight:600; color:#3a352d; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="' + (st.title ? st.title.replace(/"/g, '&quot;') : '') + '">' +
+            (st.title ? st.title.replace(/^Station \\d+:\\s*/, '') : ('Station ' + (idx + 1))) +
+          '</span>' +
+        '</div>' +
+        (wasSolved ? '<span class="zqp-papercut-tag" style="background:#ecfdf5; color:#064e3b; border-color:#a7f3d0; font-weight:700; flex-shrink:0;">✓ Gelöst</span>' : '<span class="zqp-papercut-tag" style="background:#fffbeb; color:#92400e; border-color:#fde68a; flex-shrink:0;">Nicht gelöst</span>') +
       '</div>';
     });
 
