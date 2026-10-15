@@ -14,6 +14,27 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.4.0 (Authentisches ZQP Theme-System, Formular-Synchronisation & 6 differenzierte Vorlagen)
+
+- **Authentisches ZQP Theme-System**:
+  - **6 integrierte Farbschemata** basierend auf den Original-Farben der ZQP-Webseite (`zqp.de`):
+    - *ZQP Petrol (Standard)*: Markenfarben Dunkelpetrol (`#247a6d`) & Tiefpetrol (`#1b5c53`) mit Akzent `#38b2ac`
+    - *ZQP Weinrot (Aufklärung)*: Authentisches ZQP-Kontrastrot (`#722b28`) & `#55201e` mit Bernsteinton
+    - *ZQP Sirocco (Salbei & Evidenz)*: Gediegenes ZQP-Salbeigrün (`#688283`) mit Petrol-Akzenten
+    - *ZQP Sand & Creme (Wohnumfeld & Wärme)*: Authentisches ZQP-Creme (`#ded2b8`) mit sanftem Schwarz (`#444444`)
+    - *ZQP Minze (Frische & Beratung)*: Helles ZQP-Mintgrün (`#f3f8f7`) als Grundton mit Petrol-Akzenten
+    - *ZQP Schiefer (Barrierearm & Klartext)*: Kontraststarkes ZQP Soft-Black (`#444444`) für maximale Textschärfe
+  - **Schnell-Auswahl in der Vorschau-Toolbar**: Farbschemata lassen sich per 1-Klick-Dropdown direkt in der Quiz-Vorschau umschalten.
+  - **Eigener visueller Theme-Editor**: Neue eigene Themes können über native Colorpicker angelegt oder vorhandene Vorlagen mit 1 Klick als Basis dupliziert werden – inklusive interaktiver Miniatur-Live-Vorschau.
+  - **Vollständige Export-Fidelität**: Gewählte Theme-Farben werden direkt in die kompilierte Standalone-Ausgabe (`HTML`, `CSS`, `JS`) übernommen.
+  - **Standard-Theme in Einstellungen**: Neuer Tab „🎨 Design & Farbschemata“ in den App-Einstellungen zur Festlegung des Standard-Themes für neue Quizze.
+- **Zweiseitige Formular- & Einstellungs-Synchronisation**:
+  - Beim Laden oder Wechseln eines Quiz synchronisieren sich alle Formularfelder (Prompt, Zielgruppe, Stationsanzahl, Formate) automatisch mit dem aktiven Quiz-Stand.
+  - Das erste Beispielkachel der Themen-Inspirationen spiegelt dynamisch die aktuellen App-Einstellungen wider.
+- **Erweiterte Themen-Inspirationen & UI-Verfeinerungen**:
+  - 6 differenzierte ZQP-Vorlagenkacheln mit variierender Stationsanzahl (3 bis 6 Stationen) und gezielten didaktischen Formatkombinationen.
+  - Umbenennung von „Erlaube Spielformate“ in das prägnante und aufgeräumte „Formate“.
+
 ## Neu in v0.3.6 (Zentrierter Stations-Dialog im Vordergrund, beruhigte Tabs & Quiz-Ergebnisbereinigung)
 
 - **Stations-Auswahldialog garantiert im Vordergrund (`z-[100]`)**:
