@@ -173,6 +173,8 @@ export interface QuizStation {
 
 export interface QuizGenerationResult {
   title: string;
+  topicPrompt?: string;
+  allowedMechanics?: StationType[];
   targetAudience: TargetAudience;
   stations: QuizStation[];
   needsTailwind: boolean;

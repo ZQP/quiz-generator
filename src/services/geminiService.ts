@@ -259,7 +259,7 @@ export async function generateQuizWithGemini(
 
   // Fallback demo generation if no API key is set yet
   if (!apiKey || apiKey.trim() === "") {
-    const demo = generateLocalDemoQuiz(topicPrompt, questionCount, targetAudience);
+    const demo = generateLocalDemoQuiz(topicPrompt, questionCount, targetAudience, mechanics);
     demo.title = `[Offline-Demo] ${demo.title}`;
     demo.summary = `Hinweis: Dies ist ein vordefiniertes Offline-Demo-Quiz (Sturzprävention), da kein Gemini API-Schlüssel eingetragen war. Tragen Sie in den Einstellungen Ihren API-Schlüssel ein, um echte KI-Inhalte zu generieren.`;
     demo.referenceSourceText = referenceText || "";
@@ -420,6 +420,8 @@ ${referenceText ? `ZQP-Referenzinhalte / Wissensbasis:\n${referenceText}` : ""}`
     parsed.tailwindConfig = compiled.tailwindConfig;
     parsed.referenceSourceText = referenceText || "";
     parsed.editorialStatus = "draft";
+    parsed.topicPrompt = topicPrompt;
+    parsed.allowedMechanics = mechanics;
     return parsed;
   } catch (err) {
     console.error("Failed to parse Gemini JSON:", err, textOutput);
@@ -527,6 +529,8 @@ ${refinementPrompt}`;
     parsed.referenceSourceText = existingQuiz.referenceSourceText || "";
     parsed.editorialStatus = existingQuiz.editorialStatus || "draft";
     parsed.editorialNotes = existingQuiz.editorialNotes || "";
+    parsed.topicPrompt = existingQuiz.topicPrompt || existingQuiz.title;
+    parsed.allowedMechanics = existingQuiz.allowedMechanics;
     return parsed;
   } catch (err) {
     console.error("Failed to parse Gemini JSON:", err, textOutput);
@@ -538,7 +542,8 @@ ${refinementPrompt}`;
 function generateLocalDemoQuiz(
   topic: string,
   count: number,
-  audience: TargetAudience
+  audience: TargetAudience,
+  mechanics?: StationType[]
 ): QuizGenerationResult {
   const allDemoStations: QuizStation[] = [
     {
@@ -881,6 +886,8 @@ function generateLocalDemoQuiz(
 
   return {
     title: topic.trim() ? topic : "Sturzprävention im Alltag: Interaktive ZQP-Lernreise",
+    topicPrompt: topic.trim() || undefined,
+    allowedMechanics: mechanics,
     targetAudience: audience,
     summary: "Rund 80 % der Stürze im häuslichen Umfeld lassen sich durch einfache Wohnraumanpassungen und passendes Schuhwerk vermeiden. Informieren Sie sich in unserem ZQP-Ratgeber 'Sturzprävention' auf zqp.de.",
     needsTailwind: true,

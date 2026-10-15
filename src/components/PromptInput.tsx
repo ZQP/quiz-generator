@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Sparkles, FileText, Upload, ChevronDown, ChevronRight, CheckSquare, Layers, Globe, Download } from "lucide-react";
-import { TargetAudience, StationType } from "../types";
+import { TargetAudience, StationType, QuizGenerationResult } from "../types";
 import { parseDocumentFile, ParsedDocumentResult } from "../services/documentParser";
 import { fetchWebContentFromUrl } from "../services/webScraperService";
 
@@ -14,6 +14,7 @@ interface PromptInputProps {
   }) => void;
   isLoading: boolean;
   loadingStepText: string;
+  currentQuiz?: QuizGenerationResult | null;
 }
 
 interface ZqpTemplate {
@@ -25,19 +26,19 @@ interface ZqpTemplate {
   mechanics: StationType[];
 }
 
-const ZQP_TEMPLATES: ZqpTemplate[] = [
+export const ZQP_TEMPLATES: ZqpTemplate[] = [
   {
     title: "Sturzprävention in der Häuslichkeit",
     badge: "Sturzschutz",
-    topic: "Sturzprävention im Alltag: Stolperfallen im Wohnbereich, sicheres Schuhwerk und Bewegungssicherheit",
+    topic: "Erstelle ein abwechslungsreiches Lern-Quiz zur Sturzprävention für pflegende Angehörige. Mit Zuordnungs-Puzzle für Gefahrenstellen, einer Ablauf-Sortierung für das Aufstehen und einem A/B-Situationsvergleich.",
     audience: "angehoerige",
-    count: 4,
+    count: 5,
     mechanics: ["matching", "ordering", "myth_fact", "bucket_sort", "comparison"],
   },
   {
     title: "Demenz: Verstehender Umgang",
     badge: "Demenz",
-    topic: "Demenz im Alltag: Empathische Kommunikation und verstehendes Handeln bei herausforderndem Verhalten",
+    topic: "Demenz im Alltag: Empathische Kommunikation, Deeskalation und verstehendes Handeln bei herausforderndem Verhalten",
     audience: "angehoerige",
     count: 4,
     mechanics: ["dilemma", "comparison", "myth_fact", "single_choice"],
@@ -53,18 +54,26 @@ const ZQP_TEMPLATES: ZqpTemplate[] = [
   {
     title: "Medikationssicherheit",
     badge: "Medikation",
-    topic: "Medikationssicherheit in der häuslichen Pflege: Richten, Einnahmehilfen und Wechselwirkungen vermeiden",
+    topic: "Medikationssicherheit in der häuslichen Pflege: Richten, Einnahmehilfen, Wechselwirkungen vermeiden und Nebenwirkungen erkennen",
     audience: "angehoerige",
-    count: 4,
-    mechanics: ["checklist", "ordering", "myth_fact", "bucket_sort"],
+    count: 6,
+    mechanics: ["checklist", "ordering", "myth_fact", "bucket_sort", "matching", "single_choice"],
   },
   {
     title: "Selbstfürsorge & Entlastung",
     badge: "Selbstfürsorge",
-    topic: "Entlastung & Selbstfürsorge: Physische und psychische Gesundheit für pflegende Angehörige stärken",
+    topic: "Entlastung & Selbstfürsorge: Physische und psychische Gesundheit für pflegende Angehörige stärken und Pausen einplanen",
     audience: "angehoerige",
-    count: 3,
-    mechanics: ["dilemma", "myth_fact", "bucket_sort", "checklist"],
+    count: 2,
+    mechanics: ["dilemma", "checklist"],
+  },
+  {
+    title: "Notfallhandeln & Erste Hilfe",
+    badge: "Notfallhilfe",
+    topic: "Erste Hilfe & Notfallhandeln in der häuslichen Pflege: Ruhe bewahren, Notruf absetzen, stabile Seitenlage und Verhalten nach einem Sturz",
+    audience: "angehoerige",
+    count: 7,
+    mechanics: ["ordering", "checklist", "myth_fact", "dilemma", "single_choice", "matching", "branching_scenario"],
   },
 ];
 
@@ -201,17 +210,85 @@ export const PromptInput: React.FC<PromptInputProps> = ({
   onGenerate,
   isLoading,
   loadingStepText,
+  currentQuiz,
 }) => {
-  const [topicPrompt, setTopicPrompt] = useState<string>(
-    "Erstelle ein abwechslungsreiches Lern-Quiz zur Sturzprävention für pflegende Angehörige. Mit Zuordnungs-Puzzle für Gefahrenstellen, einer Ablauf-Sortierung für das Aufstehen und einem A/B-Situationsvergleich."
-  );
-  const [referenceText, setReferenceText] = useState<string>("");
+  const DEFAULT_TEMPLATE = ZQP_TEMPLATES[0];
+
+  const [topicPrompt, setTopicPrompt] = useState<string>(() => {
+    if (currentQuiz?.topicPrompt) return currentQuiz.topicPrompt;
+    if (currentQuiz?.title) return currentQuiz.title;
+    return DEFAULT_TEMPLATE.topic;
+  });
+  const [referenceText, setReferenceText] = useState<string>(() => {
+    return currentQuiz?.referenceSourceText || "";
+  });
   const [isRefOpen, setIsRefOpen] = useState<boolean>(false);
   const [isMechanicsOpen, setIsMechanicsOpen] = useState<boolean>(false);
   const [isTemplatesOpen, setIsTemplatesOpen] = useState<boolean>(false);
-  const [questionCount, setQuestionCount] = useState<number>(3);
-  const [targetAudience, setTargetAudience] = useState<TargetAudience>("angehoerige");
+  const [questionCount, setQuestionCount] = useState<number>(() => {
+    if (currentQuiz?.stations && currentQuiz.stations.length > 0) {
+      return Math.max(1, Math.min(10, currentQuiz.stations.length));
+    }
+    return DEFAULT_TEMPLATE.count;
+  });
+  const [targetAudience, setTargetAudience] = useState<TargetAudience>(() => {
+    if (currentQuiz?.targetAudience) return currentQuiz.targetAudience;
+    return DEFAULT_TEMPLATE.audience;
+  });
   const [templateLoadedMsg, setTemplateLoadedMsg] = useState<string | null>(null);
+
+  const [mechanics, setMechanics] = useState<StationType[]>(() => {
+    if (currentQuiz?.allowedMechanics && currentQuiz.allowedMechanics.length > 0) {
+      return currentQuiz.allowedMechanics;
+    }
+    if (currentQuiz?.stations && currentQuiz.stations.length > 0) {
+      const types = Array.from(new Set(currentQuiz.stations.map((s) => s.type)));
+      if (types.length > 0) return types;
+    }
+    return [...DEFAULT_TEMPLATE.mechanics];
+  });
+
+  const lastSyncedQuizRef = React.useRef<QuizGenerationResult | null>(currentQuiz ?? null);
+
+  useEffect(() => {
+    if (currentQuiz !== lastSyncedQuizRef.current) {
+      lastSyncedQuizRef.current = currentQuiz ?? null;
+
+      if (currentQuiz) {
+        if (currentQuiz.stations && currentQuiz.stations.length > 0) {
+          setQuestionCount(Math.max(1, Math.min(10, currentQuiz.stations.length)));
+        } else {
+          setQuestionCount(DEFAULT_TEMPLATE.count);
+        }
+        if (currentQuiz.targetAudience) {
+          setTargetAudience(currentQuiz.targetAudience);
+        }
+        if (currentQuiz.topicPrompt) {
+          setTopicPrompt(currentQuiz.topicPrompt);
+        } else if (currentQuiz.title) {
+          setTopicPrompt(currentQuiz.title);
+        }
+        if (typeof currentQuiz.referenceSourceText === "string") {
+          setReferenceText(currentQuiz.referenceSourceText);
+        }
+        if (currentQuiz.allowedMechanics && currentQuiz.allowedMechanics.length > 0) {
+          setMechanics(currentQuiz.allowedMechanics);
+        } else if (currentQuiz.stations && currentQuiz.stations.length > 0) {
+          const types = Array.from(new Set(currentQuiz.stations.map((s) => s.type)));
+          if (types.length > 0) {
+            setMechanics(types);
+          }
+        }
+      } else {
+        // Quiz was cleared / new empty project -> reset to first default template
+        setTopicPrompt(DEFAULT_TEMPLATE.topic);
+        setQuestionCount(DEFAULT_TEMPLATE.count);
+        setTargetAudience(DEFAULT_TEMPLATE.audience);
+        setMechanics([...DEFAULT_TEMPLATE.mechanics]);
+        setReferenceText("");
+      }
+    }
+  }, [currentQuiz]);
 
   const applyTemplate = (tpl: ZqpTemplate) => {
     setTopicPrompt(tpl.topic);
@@ -221,8 +298,6 @@ export const PromptInput: React.FC<PromptInputProps> = ({
     setTemplateLoadedMsg(tpl.badge);
     setTimeout(() => setTemplateLoadedMsg(null), 2500);
   };
-
-  const [mechanics, setMechanics] = useState<StationType[]>([...ALL_MECHANICS]);
 
   const toggleMechanic = (type: StationType) => {
     setMechanics((prev) =>
@@ -366,14 +441,12 @@ export const PromptInput: React.FC<PromptInputProps> = ({
 
               {isTemplatesOpen && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-2 pt-1 animate-in fade-in duration-150">
-                  {ZQP_TEMPLATES.map((tpl, idx) => (
+                  {ZQP_TEMPLATES.map((tpl) => (
                     <button
                       key={tpl.badge}
                       type="button"
                       onClick={() => applyTemplate(tpl)}
-                      className={`text-left p-2.5 rounded-lg bg-[#f3f8f7] hover:bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] transition-all flex flex-col justify-between gap-1 group cursor-pointer shadow-2xs ${
-                        idx === 4 ? "sm:col-span-2" : ""
-                      }`}
+                      className="text-left p-2.5 rounded-lg bg-[#f3f8f7] hover:bg-[#e3eeec] border border-[#bbd1cd] hover:border-[#247a6d] transition-all flex flex-col justify-between gap-1 group cursor-pointer shadow-2xs"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-[10px] font-bold text-[#1b5c53] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] whitespace-nowrap">
@@ -403,7 +476,7 @@ export const PromptInput: React.FC<PromptInputProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <Layers className="w-4 h-4 text-[#247a6d] shrink-0" />
                 <span className="font-semibold text-xs text-[#1b5c53]">
-                  Erlaubte Spielformate
+                  Formate
                 </span>
               </div>
 

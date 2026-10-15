@@ -237,8 +237,15 @@ export const App: React.FC = () => {
       clearTimeout(stepTimer1);
       clearTimeout(stepTimer2);
 
+      const quizWithParams: QuizGenerationResult = {
+        ...quiz,
+        topicPrompt: quiz.topicPrompt || params.topicPrompt,
+        allowedMechanics: quiz.allowedMechanics || params.mechanics,
+        referenceSourceText: params.referenceText,
+      };
+
       // Create new project in library
-      const proj = createNewProject(quiz, {
+      const proj = createNewProject(quizWithParams, {
         referenceSourceText: params.referenceText,
         editorialStatus: "draft",
       });
@@ -246,7 +253,7 @@ export const App: React.FC = () => {
       setActiveProjectId(proj.id);
 
       // Add to history
-      const newHistory = [quiz];
+      const newHistory = [quizWithParams];
       setQuizHistory(newHistory);
       setHistoryIndex(0);
       if (autoSwitchToRefine) {
@@ -293,8 +300,15 @@ export const App: React.FC = () => {
 
       clearTimeout(stepTimer);
 
+      const updatedWithMeta: QuizGenerationResult = {
+        ...updatedQuiz,
+        topicPrompt: currentQuiz.topicPrompt || currentQuiz.title,
+        allowedMechanics: currentQuiz.allowedMechanics,
+        referenceSourceText: currentQuiz.referenceSourceText,
+      };
+
       // Push new version to history
-      const newHistory = [...quizHistory.slice(0, historyIndex + 1), updatedQuiz];
+      const newHistory = [...quizHistory.slice(0, historyIndex + 1), updatedWithMeta];
       setQuizHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
       setActiveMainTab("preview");
@@ -582,6 +596,7 @@ export const App: React.FC = () => {
                   onGenerate={handleGenerateNewQuiz}
                   isLoading={isLoading}
                   loadingStepText={loadingStepText}
+                  currentQuiz={currentQuiz}
                 />
               )}
             </div>
