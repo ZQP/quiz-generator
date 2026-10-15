@@ -171,11 +171,37 @@ export interface QuizStation {
   sourceQuote?: string; // Direct citation from source document (anti-hallucination)
 }
 
+export interface QuizThemeColors {
+  primary: string;
+  primaryDark: string;
+  primaryDeep: string;
+  primaryLight: string;
+  accent: string;
+  bgRoot: string;
+  bgStage?: string;
+  cardBg: string;
+  border: string;
+  textMain: string;
+  textMuted: string;
+  headerText: string;
+}
+
+export interface QuizTheme {
+  id: string;
+  name: string;
+  description: string;
+  badge?: string;
+  isBuiltin: boolean;
+  colors: QuizThemeColors;
+}
+
 export interface QuizGenerationResult {
   title: string;
   topicPrompt?: string;
   allowedMechanics?: StationType[];
   targetAudience: TargetAudience;
+  themeId?: string;
+  customTheme?: QuizTheme;
   stations: QuizStation[];
   needsTailwind: boolean;
   needsFontAwesome: boolean;
@@ -197,6 +223,7 @@ export interface AppSettings {
   selectedModel: string;
   availableModels: string[];
   autoUpdate: boolean;
+  defaultThemeId?: string;
   editorialRules?: string;
   glossary?: GlossaryEntry[];
   defaultCustomLabels?: QuizCustomLabels;

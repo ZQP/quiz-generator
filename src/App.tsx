@@ -10,7 +10,8 @@ import { QualityAuditModal } from "./components/QualityAuditModal";
 import { StationEditorModal } from "./components/StationEditorModal";
 import { SourceInspectorModal } from "./components/SourceInspectorModal";
 import { FavoritesLibraryModal } from "./components/FavoritesLibraryModal";
-import { AppSettings, QuizGenerationResult, TargetAudience, StationType, EditorialStatus, QuizStation } from "./types";
+import { ThemeEditorModal } from "./components/ThemeEditorModal";
+import { AppSettings, QuizGenerationResult, TargetAudience, StationType, EditorialStatus, QuizStation, QuizTheme } from "./types";
 import { loadSettings, saveSettings, generateQuizWithGemini, refineQuizWithGemini } from "./services/geminiService";
 import { compileQuizToBundle } from "./services/exportCompiler";
 import {
@@ -56,6 +57,9 @@ export const App: React.FC = () => {
   const [stationEditorIndex, setStationEditorIndex] = useState<number>(0);
   const [isSourceInspectorOpen, setIsSourceInspectorOpen] = useState<boolean>(false);
   const [isFavoritesLibraryOpen, setIsFavoritesLibraryOpen] = useState<boolean>(false);
+  const [isThemeEditorOpen, setIsThemeEditorOpen] = useState<boolean>(false);
+  const [themeEditorBase, setThemeEditorBase] = useState<QuizTheme | undefined>(undefined);
+  const [themeEditorEdit, setThemeEditorEdit] = useState<QuizTheme | undefined>(undefined);
 
   const [activeMainTab, setActiveMainTab] = useState<"preview" | "code">("preview");
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -242,10 +246,20 @@ export const App: React.FC = () => {
         topicPrompt: quiz.topicPrompt || params.topicPrompt,
         allowedMechanics: quiz.allowedMechanics || params.mechanics,
         referenceSourceText: params.referenceText,
+        themeId: quiz.themeId || settings.defaultThemeId || "zqp-petrol",
+      };
+
+      const bundle = compileQuizToBundle(quizWithParams);
+      const fullQuizWithParams: QuizGenerationResult = {
+        ...quizWithParams,
+        generatedHtml: bundle.html,
+        generatedCss: bundle.css,
+        generatedJs: bundle.js,
+        tailwindConfig: bundle.tailwindConfig,
       };
 
       // Create new project in library
-      const proj = createNewProject(quizWithParams, {
+      const proj = createNewProject(fullQuizWithParams, {
         referenceSourceText: params.referenceText,
         editorialStatus: "draft",
       });
@@ -253,7 +267,7 @@ export const App: React.FC = () => {
       setActiveProjectId(proj.id);
 
       // Add to history
-      const newHistory = [quizWithParams];
+      const newHistory = [fullQuizWithParams];
       setQuizHistory(newHistory);
       setHistoryIndex(0);
       if (autoSwitchToRefine) {
@@ -302,13 +316,25 @@ export const App: React.FC = () => {
 
       const updatedWithMeta: QuizGenerationResult = {
         ...updatedQuiz,
+        themeId: currentQuiz.themeId,
+        customTheme: currentQuiz.customTheme,
         topicPrompt: currentQuiz.topicPrompt || currentQuiz.title,
         allowedMechanics: currentQuiz.allowedMechanics,
         referenceSourceText: currentQuiz.referenceSourceText,
+        editorialStatus: currentQuiz.editorialStatus,
+      };
+
+      const bundle = compileQuizToBundle(updatedWithMeta);
+      const fullUpdatedWithMeta: QuizGenerationResult = {
+        ...updatedWithMeta,
+        generatedHtml: bundle.html,
+        generatedCss: bundle.css,
+        generatedJs: bundle.js,
+        tailwindConfig: bundle.tailwindConfig,
       };
 
       // Push new version to history
-      const newHistory = [...quizHistory.slice(0, historyIndex + 1), updatedWithMeta];
+      const newHistory = [...quizHistory.slice(0, historyIndex + 1), fullUpdatedWithMeta];
       setQuizHistory(newHistory);
       setHistoryIndex(newHistory.length - 1);
       setActiveMainTab("preview");
@@ -325,6 +351,62 @@ export const App: React.FC = () => {
     const newHistory = [...quizHistory.slice(0, historyIndex + 1), updatedQuiz];
     setQuizHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
+  };
+
+  // Theme selection and editing handlers
+  const handleSelectTheme = (themeId: string, customTheme?: QuizTheme) => {
+    if (!currentQuiz) return;
+    const updated: QuizGenerationResult = {
+      ...currentQuiz,
+      themeId,
+      customTheme: customTheme || currentQuiz.customTheme,
+    };
+    const bundle = compileQuizToBundle(updated);
+    const fullUpdated: QuizGenerationResult = {
+      ...updated,
+      generatedHtml: bundle.html,
+      generatedCss: bundle.css,
+      generatedJs: bundle.js,
+      tailwindConfig: bundle.tailwindConfig,
+    };
+    handleSaveStationEdit(fullUpdated);
+  };
+
+  const handleOpenCreateTheme = () => {
+    setThemeEditorBase(undefined);
+    setThemeEditorEdit(undefined);
+    setIsThemeEditorOpen(true);
+  };
+
+  const handleOpenDuplicateTheme = (baseTheme: QuizTheme) => {
+    setThemeEditorBase(baseTheme);
+    setThemeEditorEdit(undefined);
+    setIsThemeEditorOpen(true);
+  };
+
+  const handleOpenEditTheme = (themeToEdit: QuizTheme) => {
+    setThemeEditorBase(undefined);
+    setThemeEditorEdit(themeToEdit);
+    setIsThemeEditorOpen(true);
+  };
+
+  const handleThemeSaved = (savedTheme: QuizTheme) => {
+    if (currentQuiz) {
+      const updated: QuizGenerationResult = {
+        ...currentQuiz,
+        themeId: savedTheme.id,
+        customTheme: savedTheme,
+      };
+      const bundle = compileQuizToBundle(updated);
+      const fullUpdated: QuizGenerationResult = {
+        ...updated,
+        generatedHtml: bundle.html,
+        generatedCss: bundle.css,
+        generatedJs: bundle.js,
+        tailwindConfig: bundle.tailwindConfig,
+      };
+      handleSaveStationEdit(fullUpdated);
+    }
   };
 
   // Editorial status change
@@ -671,6 +753,11 @@ export const App: React.FC = () => {
                     onOpenSourceInspector={() => setIsSourceInspectorOpen(true)}
                     onOpenFavorites={() => setIsFavoritesLibraryOpen(true)}
                     onOpenAudit={() => setIsAuditOpen(true)}
+                    currentThemeId={currentQuiz.themeId}
+                    onSelectTheme={handleSelectTheme}
+                    onOpenCreateTheme={handleOpenCreateTheme}
+                    onOpenDuplicateTheme={handleOpenDuplicateTheme}
+                    onOpenEditTheme={handleOpenEditTheme}
                   />
                 ) : (
                   <CodeExport
@@ -755,6 +842,17 @@ export const App: React.FC = () => {
         onClose={() => setIsFavoritesLibraryOpen(false)}
         onInsertStation={handleInsertFavoriteStation}
       />
+
+      {/* Theme Editor Modal */}
+      {isThemeEditorOpen && (
+        <ThemeEditorModal
+          isOpen={isThemeEditorOpen}
+          onClose={() => setIsThemeEditorOpen(false)}
+          baseTheme={themeEditorBase}
+          themeToEdit={themeEditorEdit}
+          onThemeSaved={handleThemeSaved}
+        />
+      )}
     </div>
   );
 };

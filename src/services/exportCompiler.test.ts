@@ -293,4 +293,17 @@ describe("exportCompiler - compileQuizToBundle", () => {
     expect(bundle.js).toContain('st.type === "branching_scenario"');
     expect(bundle.fullStandaloneHtml).toContain("Unruhe am Abend");
   });
+
+  it("applies active theme colors to CSS variables and tailwindConfig", () => {
+    const wineQuiz: QuizGenerationResult = {
+      ...sampleQuiz,
+      themeId: "zqp-wine-red",
+    };
+
+    const bundle = compileQuizToBundle(wineQuiz);
+    expect(bundle.css).toContain("--zqp-primary: #722b28;");
+    expect(bundle.css).toContain("--zqp-primary-dark: #581f1d;");
+    expect(bundle.tailwindConfig).toContain('#722b28');
+    expect(bundle.tailwindConfig).toContain("ZQP Weinrot");
+  });
 });

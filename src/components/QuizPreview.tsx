@@ -30,11 +30,14 @@ import {
   EditorialStatus,
 } from "../types";
 import { EditorialStatusDropdown } from "./EditorialStatusDropdown";
+import { ThemeSelectorDropdown } from "./ThemeSelectorDropdown";
+import { getThemeById, buildThemeCssVariables } from "../services/themeService";
 import {
   saveFavoriteStation,
   loadFavoriteStations,
   deleteFavoriteStation,
 } from "../services/projectStorage";
+import { QuizTheme } from "../types";
 
 interface QuizPreviewProps {
   quiz: QuizGenerationResult;
@@ -45,6 +48,11 @@ interface QuizPreviewProps {
   onOpenSourceInspector?: () => void;
   onOpenFavorites?: () => void;
   onOpenAudit?: () => void;
+  currentThemeId?: string;
+  onSelectTheme?: (themeId: string, customTheme?: QuizTheme) => void;
+  onOpenCreateTheme?: () => void;
+  onOpenDuplicateTheme?: (baseTheme: QuizTheme) => void;
+  onOpenEditTheme?: (themeToEdit: QuizTheme) => void;
 }
 
 export const QuizPreview: React.FC<QuizPreviewProps> = ({
@@ -56,7 +64,16 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
   onOpenSourceInspector,
   onOpenFavorites,
   onOpenAudit,
+  currentThemeId,
+  onSelectTheme,
+  onOpenCreateTheme,
+  onOpenDuplicateTheme,
+  onOpenEditTheme,
 }) => {
+  const activeThemeId = currentThemeId || quiz.themeId || "zqp-petrol";
+  const activeTheme = getThemeById(activeThemeId, quiz.customTheme);
+  const themeCssVars = buildThemeCssVariables(activeTheme);
+
   const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
   const [fontSizeScale, setFontSizeScale] = useState<"normal" | "large">("normal");
   const [currentStationIdx, setCurrentStationIdx] = useState<number>(0);
@@ -862,6 +879,18 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
               />
             )}
 
+            {/* Theme Selector Dropdown */}
+            {onSelectTheme && (
+              <ThemeSelectorDropdown
+                currentThemeId={activeThemeId}
+                customTheme={quiz.customTheme}
+                onSelectTheme={onSelectTheme}
+                onOpenCreateModal={onOpenCreateTheme || (() => {})}
+                onOpenDuplicateModal={onOpenDuplicateTheme || (() => {})}
+                onOpenEditModal={onOpenEditTheme || (() => {})}
+              />
+            )}
+
             {/* Segmented Editorial Tools Group */}
             <div className="inline-flex items-center rounded-lg border border-[#bbd1cd] bg-white divide-x divide-[#bbd1cd] shadow-2xs overflow-hidden h-7 text-xs font-semibold text-[#1b5c53]">
               {onOpenSourceInspector && (
@@ -1121,21 +1150,39 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
       {/* Main Responsive Quiz Viewport with STABLE HEIGHT & ZERO SCROLLBARS */}
       <div className="flex-1 flex justify-center items-center overflow-hidden py-1 px-1">
         <div
-          className={`w-full bg-[#fbf9f5] border border-[#d8d2c7] rounded-2xl shadow-md overflow-hidden transition-all duration-300 relative flex flex-col ${
+          id="zqp-game-root"
+          style={{
+            ...(themeCssVars as React.CSSProperties),
+            backgroundColor: activeTheme.colors.bgRoot,
+            borderColor: activeTheme.colors.border,
+          }}
+          className={`w-full border rounded-2xl shadow-md overflow-hidden transition-all duration-300 relative flex flex-col ${
             viewport === "mobile"
               ? "max-w-[390px] h-[570px] max-h-[85vh]"
               : "max-w-2xl h-[570px] max-h-[85vh]"
           } ${fontSizeScale === "large" ? "zqp-font-large text-[15px]" : ""}`}
         >
           {/* 1. FIXED HEADER (shrink-0) */}
-          <header className="bg-gradient-to-r from-[#247a6d] to-[#1b5c53] text-white px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm shrink-0">
+          <header
+            style={{
+              background: `linear-gradient(to right, ${activeTheme.colors.primary}, ${activeTheme.colors.primaryDark})`,
+              color: activeTheme.colors.headerText,
+            }}
+            className="text-white px-4 py-3 sm:px-5 sm:py-3.5 shadow-sm shrink-0"
+          >
             <div className="flex items-center justify-between text-[11px] text-[#bbd1cd] font-semibold uppercase tracking-wider mb-1">
               <span className="flex items-center gap-1.5">
-                <Puzzle className="w-3.5 h-3.5 text-emerald-400" />
+                <Puzzle className="w-3.5 h-3.5" style={{ color: activeTheme.colors.accent }} />
                 ZQP Interaktiver Praxistest
               </span>
               <div className="flex items-center gap-2">
-                <div className="inline-flex items-center bg-[#00473d]/50 border border-[#bbd1cd]/30 rounded p-0.5 gap-0.5">
+                <div
+                  className="inline-flex items-center border rounded p-0.5 gap-0.5"
+                  style={{
+                    backgroundColor: `${activeTheme.colors.primaryDark}80`,
+                    borderColor: `${activeTheme.colors.border}40`,
+                  }}
+                >
                   <button
                     type="button"
                     onClick={() => setFontSizeScale("normal")}
@@ -1173,10 +1220,14 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
             </h2>
 
             {/* Stepper Progress Bar */}
-            <div className="w-full bg-[#00473d] h-1.5 rounded-full mt-2.5 overflow-hidden shadow-inner">
+            <div
+              className="w-full h-1.5 rounded-full mt-2.5 overflow-hidden shadow-inner"
+              style={{ backgroundColor: `${activeTheme.colors.primaryDark}80` }}
+            >
               <div
-                className="bg-emerald-400 h-full transition-all duration-500 rounded-full"
+                className="h-full transition-all duration-500 rounded-full"
                 style={{
+                  backgroundColor: activeTheme.colors.accent,
                   width: `${
                     completed
                       ? 100
@@ -2136,7 +2187,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                       <div className="flex items-center gap-2 mt-2.5 flex-wrap justify-center">
                         <button
                           onClick={handleReset}
-                          className="px-4 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+                          style={{ backgroundColor: activeTheme.colors.primary }}
+                          className="px-4 py-1.5 rounded-lg text-white text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm hover:brightness-110"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           <span>{resCfg.restartButtonText || customLabels.restartQuizLabel || "Praxistest wiederholen"}</span>
@@ -2187,7 +2239,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                   <button
                     type="button"
                     onClick={handleReset}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm flex items-center gap-1 transition-colors"
+                    style={{ backgroundColor: activeTheme.colors.primary }}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shadow-sm flex items-center gap-1 transition-colors hover:brightness-110"
                   >
                     <RotateCcw className="w-3.5 h-3.5" />
                     <span>Test neu starten</span>
@@ -2226,7 +2279,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                     <button
                       type="button"
                       onClick={handleCheckOrder}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm transition-colors"
+                      style={{ backgroundColor: activeTheme.colors.primary }}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shadow-sm transition-colors hover:brightness-110"
                     >
                       Reihenfolge prüfen
                     </button>
@@ -2237,7 +2291,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                       type="button"
                       disabled={!selectedScenarioId}
                       onClick={handleCheckComparison}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                      style={{ backgroundColor: activeTheme.colors.primary }}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shadow-sm disabled:opacity-40 transition-colors hover:brightness-110"
                     >
                       Szenario prüfen
                     </button>
@@ -2248,7 +2303,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                       type="button"
                       disabled={checkedItemIds.length !== 3}
                       onClick={handleCheckChecklist}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                      style={{ backgroundColor: activeTheme.colors.primary }}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shadow-sm disabled:opacity-40 transition-colors hover:brightness-110"
                     >
                       Checkliste prüfen
                     </button>
@@ -2259,7 +2315,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                       type="button"
                       disabled={Object.keys(filledBlanks).length < (currentStation.fillInBlanks?.length || 2)}
                       onClick={handleCheckFillIn}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                      style={{ backgroundColor: activeTheme.colors.primary }}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shadow-sm disabled:opacity-40 transition-colors hover:brightness-110"
                     >
                       Lösung prüfen
                     </button>
@@ -2270,7 +2327,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                       type="button"
                       disabled={selectedOptionIdx === null}
                       onClick={handleCheckChoice}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 transition-colors"
+                      style={{ backgroundColor: activeTheme.colors.primary }}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shadow-sm disabled:opacity-40 transition-colors hover:brightness-110"
                     >
                       Antwort prüfen
                     </button>
@@ -2281,7 +2339,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                     type="button"
                     onClick={handleNextStation}
                     disabled={!canAdvance}
-                    className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 flex items-center gap-1 transition-colors"
+                    style={{ backgroundColor: activeTheme.colors.primary }}
+                    className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shadow-sm disabled:opacity-40 flex items-center gap-1 transition-colors hover:brightness-110"
                   >
                     <span>
                       {currentStationIdx === quiz.stations.length - 1
@@ -2297,7 +2356,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
 
           {/* 5. SLIDE-UP DRAWER (OVERLAY WITHIN FIXED CONTAINER) */}
           <div
-            className={`absolute inset-x-0 bottom-0 max-h-[82%] bg-[#fdfcf9] border-t-2 border-[#247a6d] shadow-2xl transition-transform duration-300 ease-out z-20 flex flex-col ${
+            style={{ borderTopColor: activeTheme.colors.primary }}
+            className={`absolute inset-x-0 bottom-0 max-h-[82%] bg-[#fdfcf9] border-t-2 shadow-2xl transition-transform duration-300 ease-out z-20 flex flex-col ${
               isDrawerOpen && feedback ? "translate-y-0" : "translate-y-full"
             }`}
           >
@@ -2353,7 +2413,8 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                 type="button"
                 onClick={handleNextStation}
                 disabled={!canAdvance}
-                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-[#247a6d] hover:bg-[#1b5c53] text-white shadow-sm disabled:opacity-40 flex items-center gap-1 transition-colors"
+                style={{ backgroundColor: activeTheme.colors.primary }}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white shadow-sm disabled:opacity-40 flex items-center gap-1 transition-colors hover:brightness-110"
               >
                 <span>
                   {currentStationIdx === quiz.stations.length - 1

@@ -17,6 +17,8 @@ import {
   MessageSquare,
   Layers,
   Award,
+  Palette,
+  Check,
 } from "lucide-react";
 import { AppSettings, GlossaryEntry, QuizCustomLabels, QuizResultScreenConfig } from "../types";
 import {
@@ -27,6 +29,7 @@ import {
   defaultResultScreen,
   isInvalidGeminiModel,
 } from "../services/geminiService";
+import { BUILTIN_THEMES, loadCustomThemes } from "../services/themeService";
 import { checkForAppUpdates, installAppUpdate } from "../services/updaterService";
 import { APP_VERSION } from "../version";
 
@@ -43,7 +46,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   onSave,
 }) => {
-  const [activeTab, setActiveTab] = useState<"api" | "editorial" | "labels">("api");
+  const [activeTab, setActiveTab] = useState<"api" | "editorial" | "labels" | "themes">("api");
+  const [defaultThemeId, setDefaultThemeId] = useState<string>(settings.defaultThemeId || "zqp-petrol");
+  const [allThemes, setAllThemes] = useState(() => [...BUILTIN_THEMES, ...loadCustomThemes()]);
 
   // API State
   const [apiKey, setApiKey] = useState<string>(settings.geminiApiKey);
@@ -84,6 +89,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           // Silent fallback on modal open
         });
     }
+
+    setAllThemes([...BUILTIN_THEMES, ...loadCustomThemes()]);
   }, [isOpen]);
 
   // Editorial Guidelines & Glossary State
@@ -238,6 +245,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       glossary,
       defaultCustomLabels: defaultLabels,
       defaultResultScreen: defaultResultConfig,
+      defaultThemeId,
     });
     onClose();
   };
@@ -308,6 +316,18 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           >
             <Sliders className="w-3.5 h-3.5 text-[#247a6d]" />
             <span>Standard-Textbausteine</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("themes")}
+            className={`px-3.5 py-1.5 text-xs font-semibold rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+              activeTab === "themes"
+                ? "bg-[#f3f8f7] text-[#1b5c53] border-t border-x border-[#bbd1cd] shadow-2xs"
+                : "text-[#6e6c70] hover:text-[#1b5c53]"
+            }`}
+          >
+            <Palette className="w-3.5 h-3.5 text-[#247a6d]" />
+            <span>Design & Farbschemata</span>
           </button>
         </div>
 
@@ -849,6 +869,91 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
             </>
+          )}
+
+          {/* TAB 4: THEMES & DESIGN */}
+          {activeTab === "themes" && (
+            <div className="space-y-4">
+              <div className="bg-[#f3f8f7] border border-[#bbd1cd] p-3 rounded-xl flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold text-[#1b5c53]">
+                    Standard-Farbschema für neue Quizze
+                  </h4>
+                  <p className="text-[11px] text-[#6e6c70]">
+                    Legen Sie fest, mit welchem Design neu generierte Quizze standardmäßig starten. Alle integrierten Farbschemata basieren auf dem offiziellen ZQP-Markenauftritt.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {allThemes.map((theme) => {
+                  const isSelected = defaultThemeId === theme.id;
+                  return (
+                    <div
+                      key={theme.id}
+                      onClick={() => setDefaultThemeId(theme.id)}
+                      className={`p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
+                        isSelected
+                          ? "bg-white border-[#247a6d] shadow-sm ring-2 ring-[#247a6d]/20"
+                          : "bg-white/90 border-[#bbd1cd] hover:border-[#247a6d]/60 hover:bg-white"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-[#1b5c53]">{theme.name}</span>
+                            {!theme.isBuiltin && (
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-purple-100 text-purple-700 font-bold">
+                                Eigener Entwurf
+                              </span>
+                            )}
+                          </div>
+                          {theme.description && (
+                            <p className="text-[11px] text-[#6e6c70] line-clamp-1">{theme.description}</p>
+                          )}
+                        </div>
+                        <div
+                          className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 border ${
+                            isSelected
+                              ? "bg-[#247a6d] border-[#247a6d] text-white"
+                              : "border-[#bbd1cd] bg-white"
+                          }`}
+                        >
+                          {isSelected && <Check className="w-3.5 h-3.5" />}
+                        </div>
+                      </div>
+
+                      {/* Color Palette Strip */}
+                      <div className="flex items-center gap-1.5 pt-2 border-t border-[#bbd1cd]/40">
+                        <span className="text-[10px] font-semibold text-[#6e6c70] mr-1">Farben:</span>
+                        <div className="flex items-center gap-1">
+                          <span
+                            className="w-5 h-5 rounded-md border border-black/10 shadow-2xs"
+                            style={{ backgroundColor: theme.colors.primary }}
+                            title={`Primär: ${theme.colors.primary}`}
+                          />
+                          <span
+                            className="w-5 h-5 rounded-md border border-black/10 shadow-2xs"
+                            style={{ backgroundColor: theme.colors.primaryDark }}
+                            title={`Dunkel: ${theme.colors.primaryDark}`}
+                          />
+                          <span
+                            className="w-5 h-5 rounded-md border border-black/10 shadow-2xs"
+                            style={{ backgroundColor: theme.colors.accent }}
+                            title={`Akzent: ${theme.colors.accent}`}
+                          />
+                          <span
+                            className="w-5 h-5 rounded-md border border-black/10 shadow-2xs"
+                            style={{ backgroundColor: theme.colors.bgRoot }}
+                            title={`Hintergrund: ${theme.colors.bgRoot}`}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
 

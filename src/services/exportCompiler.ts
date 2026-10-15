@@ -1,4 +1,5 @@
 import { QuizGenerationResult } from "../types";
+import { getThemeById, buildThemeCssVariablesString } from "./themeService";
 
 export interface CompiledBundle {
   html: string;
@@ -12,9 +13,11 @@ export function compileQuizToBundle(quiz: QuizGenerationResult): CompiledBundle 
   const currentYear = new Date().getFullYear();
   const targetCount = quiz.stations?.length || 1;
   const stationsJson = JSON.stringify(quiz.stations || []);
+  const activeTheme = getThemeById(quiz.themeId, quiz.customTheme);
+  const themeVarsCss = buildThemeCssVariablesString(activeTheme);
 
   const tailwindConfig = `/**
- * ZQP Corporate Design - Tailwind CSS Konfiguration
+ * ZQP Corporate Design - Tailwind CSS Konfiguration (${activeTheme.name})
  * 
  * Für Tailwind Play CDN im HTML-Header:
  * <script src="https://cdn.tailwindcss.com"></script>
@@ -25,13 +28,13 @@ tailwind.config = {
     extend: {
       colors: {
         zqp: {
-          petrol: "#247a6d",
-          "petrol-dark": "#1b5c53",
-          "petrol-deep": "#00473d",
-          "bg-soft": "#f3f8f7",
-          "bg-accent": "#e3eeec",
-          border: "#bbd1cd",
-          text: "#444444",
+          petrol: "${activeTheme.colors.primary}",
+          "petrol-dark": "${activeTheme.colors.primaryDark}",
+          "petrol-deep": "${activeTheme.colors.primaryDeep}",
+          "bg-soft": "${activeTheme.colors.bgStage || activeTheme.colors.bgRoot}",
+          "bg-accent": "${activeTheme.colors.primaryLight}",
+          border: "${activeTheme.colors.border}",
+          text: "${activeTheme.colors.textMain}",
           alert: "#722b28",
         }
       },
@@ -64,20 +67,21 @@ tailwind.config = {
 }
 
 #zqp-game-root {
+${themeVarsCss}
   width: 100%;
   max-width: 672px;
   height: 570px;
   max-height: 85vh;
   margin: 1.5rem auto;
-  background-color: #fbf9f5;
-  border: 1px solid #d8d2c7;
+  background-color: var(--zqp-bg-root, #fbf9f5);
+  border: 1px solid var(--zqp-border, #d8d2c7);
   border-radius: 1rem;
   box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
-  color: #444444;
+  color: var(--zqp-text-main, #444444);
 }
 
 @media (max-width: 640px) {
@@ -93,8 +97,8 @@ tailwind.config = {
 /* 1. HEADER (PETROL-VERLAUF) */
 #zqp-game-root .zqp-header {
   flex-shrink: 0;
-  background: linear-gradient(135deg, #247a6d 0%, #1b5c53 100%) !important;
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--zqp-primary, #247a6d) 0%, var(--zqp-primary-dark, #1b5c53) 100%) !important;
+  color: var(--zqp-header-text, #ffffff);
   padding: 0.875rem 1.25rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.06);
 }
@@ -195,7 +199,7 @@ tailwind.config = {
 #zqp-game-root .zqp-progress-bar {
   width: 100%;
   height: 6px;
-  background: #00473d;
+  background: var(--zqp-primary-deep, #00473d);
   border-radius: 9999px;
   margin-top: 0.625rem;
   overflow: hidden;
@@ -203,7 +207,7 @@ tailwind.config = {
 
 #zqp-game-root .zqp-progress-fill {
   height: 100%;
-  background: #34d399;
+  background: var(--zqp-accent, #3d998c);
   border-radius: 9999px;
   transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -223,17 +227,17 @@ tailwind.config = {
   width: 6px;
 }
 #zqp-game-root .zqp-stage::-webkit-scrollbar-track {
-  background: #f3f8f7;
+  background: var(--zqp-bg-stage, #f3f8f7);
 }
 #zqp-game-root .zqp-stage::-webkit-scrollbar-thumb {
-  background: #bbd1cd;
+  background: var(--zqp-border, #bbd1cd);
   border-radius: 4px;
 }
 
 #zqp-game-root .zqp-prompt-instruction {
   font-size: 0.8125rem;
   font-weight: 700;
-  color: #1b5c53;
+  color: var(--zqp-primary-dark, #1b5c53);
   line-height: 1.35;
   margin-bottom: 0.625rem;
 }
@@ -332,8 +336,8 @@ tailwind.config = {
 }
 
 #zqp-game-root .zqp-btn-primary {
-  background-color: #247a6d;
-  color: #ffffff;
+  background-color: var(--zqp-primary, #247a6d);
+  color: var(--zqp-header-text, #ffffff);
   border: none;
   border-radius: 0.5rem;
   padding: 0.45rem 0.875rem;
@@ -347,7 +351,7 @@ tailwind.config = {
 }
 
 #zqp-game-root .zqp-btn-primary:hover:not(:disabled) {
-  background-color: #1b5c53;
+  background-color: var(--zqp-primary-dark, #1b5c53);
 }
 
 #zqp-game-root .zqp-btn-primary:disabled {
@@ -356,9 +360,9 @@ tailwind.config = {
 }
 
 #zqp-game-root .zqp-btn-secondary {
-  background-color: #f3f8f7;
-  color: #1b5c53;
-  border: 1px solid #bbd1cd;
+  background-color: var(--zqp-bg-stage, #f3f8f7);
+  color: var(--zqp-primary-dark, #1b5c53);
+  border: 1px solid var(--zqp-border, #bbd1cd);
   border-radius: 0.5rem;
   padding: 0.4rem 0.75rem;
   font-size: 0.75rem;
