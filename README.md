@@ -14,6 +14,17 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.3.5 (Interaktiver Auswahldialog für Lernstationen & WYSIWYG-Erweiterung)
+
+- **Zentrierter Auswahldialog für neue Lernstationen**:
+  - Behoben: Beim Klick auf den Button zum Hinzufügen einer Station passierte bisher nichts, da das Dropdown-Menü durch die scrollbare Navigationsleiste vertikal abgeschnitten wurde (`overflow-x-auto` führte zu vertikalem Clipping).
+  - Das Menü wurde durch ein vollwertiges modales Fenster (`z-60`) ersetzt, das alle 10 didaktischen ZQP-Spielformate übersichtlich mit Icon, Titel, Didaktik-Badge, Kernaussage und Kurzbeschreibung präsentiert.
+- **Ergonomische Button-Beschriftung & Zweiter Einstiegspunkt**:
+  - Doppeltes Plus-Symbol (`+ + Station`) in der Navigationsleiste entfernt und sauber beschriftet (`[+ Station hinzufügen]`).
+  - Zusätzlicher Schnellzugriff `[+ Neue Station]` direkt in der Bearbeitungs-Toolbar neben „Duplizieren“ und „Löschen“.
+- **WYSIWYG-Editor für alle 10 Spielformate komplettiert**:
+  - Vollständige Formulare zur Bearbeitung von *Situationsvergleich (A vs. B)* und *Lückentext* im Stations-Editor integriert.
+
 ## Neu in v0.3.4 (Stabilität, White-Screen-Fix & Error Boundary)
 
 - **Behebung des White-Screen-Absturzes beim Öffnen der Einstellungen**:

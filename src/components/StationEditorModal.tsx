@@ -61,6 +61,98 @@ const getStationIcon = (type?: string) => {
   }
 };
 
+interface StationFormatMeta {
+  type: StationType;
+  title: string;
+  badge: string;
+  icon: string;
+  tagline: string;
+  description: string;
+}
+
+const STATION_FORMATS: StationFormatMeta[] = [
+  {
+    type: "single_choice",
+    title: "Single Choice",
+    badge: "Wissensfrage",
+    icon: "💡",
+    tagline: "Klassische Multiple-Choice-Frage mit Fachbegründung",
+    description: "3 Antwortoptionen mit fundierten Erklärungen für richtige und unzutreffende Optionen.",
+  },
+  {
+    type: "matching",
+    title: "Zuordnungs-Puzzle",
+    badge: "Assoziation",
+    icon: "🧩",
+    tagline: "Gefahrenstellen und Schutzmaßnahmen miteinander verbinden",
+    description: "Schult das Erkennen von Risiken und deren Entschärfung im häuslichen Wohnumfeld.",
+  },
+  {
+    type: "ordering",
+    title: "Ablauf / Reihenfolge",
+    badge: "Prozesskette",
+    icon: "🔢",
+    tagline: "Chronologische Schritte eines Pflegeablaufs sortieren",
+    description: "Verankert handlungssichere Notfall- und Pflegeketten in der richtigen zeitlichen Abfolge.",
+  },
+  {
+    type: "myth_fact",
+    title: "Mythos vs. Fakt",
+    badge: "Aufklärung",
+    icon: "❌",
+    tagline: "Weit verbreitete Pflege-Irrtümer evidenzbasiert entlarven",
+    description: "Konfrontiert mit Vorurteilen und korrigiert diese mit wissenschaftlichen Fakten der ZQP-Praxisleitlinien.",
+  },
+  {
+    type: "bucket_sort",
+    title: "Dos & Don'ts",
+    badge: "Sortierung",
+    icon: "📥",
+    tagline: "Verhaltensweisen in zwei Kategorien einteilen",
+    description: "Trennt empfohlene Handlungsmuster („Do“) von riskanten oder überlastenden Gewohnheiten („Don't“).",
+  },
+  {
+    type: "comparison",
+    title: "Situationsvergleich (A vs. B)",
+    badge: "Gegenüberstellung",
+    icon: "⚖️",
+    tagline: "Zwei Alltagsszenarien vergleichen und bewerten",
+    description: "Gegenüberstellung zweier Handlungsansätze (empfohlen vs. riskant) mit detaillierter Begründung.",
+  },
+  {
+    type: "dilemma",
+    title: "Praxis-Dilemma",
+    badge: "Entscheidung",
+    icon: "🎭",
+    tagline: "Herausfordernde Alltagssituationen empathisch lösen",
+    description: "Fokussiert personenzentrierte Kommunikation und Deeskalation bei herausforderndem Verhalten.",
+  },
+  {
+    type: "checklist",
+    title: "Checkliste",
+    badge: "Mehrfachauswahl",
+    icon: "📋",
+    tagline: "Sicherheits- und Pflegemaßnahmen abhaken",
+    description: "Erfordert das Identifizieren aller zutreffenden Schutzmaßnahmen aus einer Auswahlliste.",
+  },
+  {
+    type: "fill_in_the_blank",
+    title: "Lückentext",
+    badge: "Fachwortschatz",
+    icon: "✍️",
+    tagline: "Schlüsselbegriffe in didaktische Merksätze einsetzen",
+    description: "Festigt zentrale ZQP-Kernbegriffe und Handlungsgrundsätze durch aktives Einsetzen.",
+  },
+  {
+    type: "branching_scenario",
+    title: "Verzweigtes Fallbeispiel",
+    badge: "Interaktiv",
+    icon: "🌿",
+    tagline: "Entscheidungsszenario mit Konsequenzen in mehreren Schritten",
+    description: "Simuliert reale Pflegeinteraktionen Schritt für Schritt mit Ursache, Wirkung und alternativen Pfaden.",
+  },
+];
+
 function createDefaultStation(type: StationType, index: number): QuizStation {
   const base = {
     id: "station-" + Date.now(),
@@ -266,7 +358,7 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
     }))
   );
   const [isVariantsModalOpen, setIsVariantsModalOpen] = useState<boolean>(false);
-  const [isAddMenuOpen, setIsAddMenuOpen] = useState<boolean>(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [savedFavMsg, setSavedFavMsg] = useState<string | null>(null);
 
   const [displayMode, setDisplayMode] = useState<"drawer" | "modal">(() => {
@@ -391,7 +483,7 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
     setStations((prev) => [...prev, newStation]);
     setActiveStationIdx(stations.length);
     setEditorSection("station");
-    setIsAddMenuOpen(false);
+    setIsAddModalOpen(false);
   };
 
   const handleSaveToFavorites = () => {
@@ -557,36 +649,15 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
               ))}
 
               {/* Add New Station Button */}
-              <div className="relative shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsAddMenuOpen(!isAddMenuOpen)}
-                  className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-dashed border-[#247a6d] text-[#1b5c53] hover:bg-[#e3eeec] transition-colors flex items-center gap-1 cursor-pointer"
-                  title="Neue Station hinzufügen"
-                >
-                  <Plus className="w-3.5 h-3.5 text-[#247a6d]" />
-                  <span>+ Station</span>
-                </button>
-
-                {isAddMenuOpen && (
-                  <div className="absolute left-0 mt-1.5 w-56 bg-white border border-[#bbd1cd] rounded-xl shadow-xl z-20 p-1.5 space-y-0.5 animate-in fade-in duration-100">
-                    <span className="block px-2 py-1 text-[10px] font-bold uppercase text-[#1b5c53]">
-                      Spielformat auswählen:
-                    </span>
-                    {(Object.keys(STATION_TYPE_LABELS) as StationType[]).map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => handleAddNewStation(type)}
-                        className="w-full text-left px-2 py-1.5 text-xs text-[#3a352d] hover:bg-[#f3f8f7] hover:text-[#1b5c53] rounded-lg transition-colors flex items-center justify-between cursor-pointer"
-                      >
-                        <span>{STATION_TYPE_LABELS[type]}</span>
-                        <span className="text-[10px] text-gray-400 font-mono">{type}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-2.5 py-1 text-xs font-semibold rounded-lg border border-dashed border-[#247a6d] text-[#1b5c53] hover:bg-[#e3eeec] transition-colors flex items-center gap-1 cursor-pointer shrink-0"
+                title="Neue Lernstation zum Quiz hinzufügen"
+              >
+                <Plus className="w-3.5 h-3.5 text-[#247a6d]" />
+                <span>Station hinzufügen</span>
+              </button>
 
               <div className="h-4 w-px bg-gray-300 mx-1 shrink-0" />
 
@@ -685,6 +756,16 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
                 >
                   <Copy className="w-3.5 h-3.5 text-[#247a6d]" />
                   <span>Duplizieren</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="px-2.5 py-1 rounded-lg border border-dashed border-[#247a6d] bg-white text-[#1b5c53] text-xs font-semibold hover:bg-[#e3eeec] flex items-center gap-1.5 cursor-pointer"
+                  title="Neue Lernstation zum Quiz hinzufügen"
+                >
+                  <Plus className="w-3.5 h-3.5 text-[#247a6d]" />
+                  <span>Neue Station</span>
                 </button>
 
                 <button
@@ -1669,6 +1750,154 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
                   </div>
                 </div>
               )}
+
+              {/* COMPARISON (Situationsvergleich) */}
+              {currentStation.type === "comparison" && currentStation.comparisonScenarios && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-[#e3eeec]/60 rounded-xl border border-[#bbd1cd] text-xs text-[#1b5c53]">
+                    <span className="font-bold">Situationsvergleich:</span> Wählen Sie die fachlich empfohlene bzw. sichere Situation aus und begründen Sie den Unterschied.
+                  </div>
+                  {currentStation.comparisonScenarios.map((sc, scIdx) => (
+                    <div key={sc.id || scIdx} className="p-3 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] space-y-2 relative">
+                      <div className="flex items-center justify-between">
+                        <label className="flex items-center gap-2 text-xs font-bold text-[#1b5c53] cursor-pointer">
+                          <input
+                            type="radio"
+                            name="comparison_correct"
+                            checked={sc.isCorrect}
+                            onChange={() => {
+                              const newScenarios = currentStation.comparisonScenarios!.map((s, idx) => ({
+                                ...s,
+                                isCorrect: idx === scIdx,
+                                badge: idx === scIdx ? "Empfohlen" : "Riskant",
+                              }));
+                              handleUpdateStation("comparisonScenarios", newScenarios);
+                            }}
+                            className="text-[#247a6d] focus:ring-[#247a6d]"
+                          />
+                          <span>{sc.title || `Situation ${sc.id}`} ({sc.isCorrect ? "EMPFOHLEN / SICHER" : "RISKANT / UNGEEIGNET"})</span>
+                        </label>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700">Titel der Situation</label>
+                          <input
+                            type="text"
+                            value={sc.title}
+                            onChange={(e) => {
+                              const newSc = [...currentStation.comparisonScenarios!];
+                              newSc[scIdx] = { ...sc, title: e.target.value };
+                              handleUpdateStation("comparisonScenarios", newSc);
+                            }}
+                            className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700">Badge / Kennzeichnung</label>
+                          <input
+                            type="text"
+                            value={sc.badge}
+                            onChange={(e) => {
+                              const newSc = [...currentStation.comparisonScenarios!];
+                              newSc[scIdx] = { ...sc, badge: e.target.value };
+                              handleUpdateStation("comparisonScenarios", newSc);
+                            }}
+                            className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700">Situationsbeschreibung</label>
+                        <textarea
+                          rows={2}
+                          value={sc.description}
+                          onChange={(e) => {
+                            const newSc = [...currentStation.comparisonScenarios!];
+                            newSc[scIdx] = { ...sc, description: e.target.value };
+                            handleUpdateStation("comparisonScenarios", newSc);
+                          }}
+                          className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-semibold text-slate-700">Fachliche Begründung</label>
+                        <input
+                          type="text"
+                          value={sc.explanation}
+                          onChange={(e) => {
+                            const newSc = [...currentStation.comparisonScenarios!];
+                            newSc[scIdx] = { ...sc, explanation: e.target.value };
+                            handleUpdateStation("comparisonScenarios", newSc);
+                          }}
+                          placeholder="Warum ist diese Situation sicher bzw. riskant?"
+                          className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* FILL IN THE BLANK (Lückentext) */}
+              {currentStation.type === "fill_in_the_blank" && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-[#f3f8f7] rounded-xl border border-[#bbd1cd] space-y-2">
+                    <label className="block text-xs font-bold text-[#1b5c53]">
+                      Lückensatz (nutzen Sie [BLANK_1], [BLANK_2] als Platzhalter)
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={currentStation.fillInSentence || ""}
+                      onChange={(e) => handleUpdateStation("fillInSentence", e.target.value)}
+                      placeholder="z. B. Bei der Pflege ist [BLANK_1] besonders wichtig, um [BLANK_2] zu vermeiden."
+                      className="w-full text-xs p-2.5 rounded-lg border border-[#bbd1cd] bg-white"
+                    />
+                  </div>
+
+                  {(currentStation.fillInBlanks || []).map((blank, bIdx) => (
+                    <div key={blank.id || bIdx} className="p-3 bg-white rounded-xl border border-[#bbd1cd] space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[#1b5c53]">
+                          Lücke {bIdx + 1} ({blank.id})
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700">Richtiges Wort</label>
+                          <input
+                            type="text"
+                            value={blank.correctWord}
+                            onChange={(e) => {
+                              const newBlanks = [...(currentStation.fillInBlanks || [])];
+                              newBlanks[bIdx] = { ...blank, correctWord: e.target.value };
+                              handleUpdateStation("fillInBlanks", newBlanks);
+                            }}
+                            className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-700">Auswahloptionen (kommagetrennt)</label>
+                          <input
+                            type="text"
+                            value={(blank.options || []).join(", ")}
+                            onChange={(e) => {
+                              const opts = e.target.value.split(",").map((s) => s.trim()).filter(Boolean);
+                              const newBlanks = [...(currentStation.fillInBlanks || [])];
+                              newBlanks[bIdx] = { ...blank, options: opts };
+                              handleUpdateStation("fillInBlanks", newBlanks);
+                            }}
+                            className="w-full text-xs p-2 rounded-lg border border-[#bbd1cd] bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Redaktionelle Notizen / Fachlicher Prüfvermerk */}
@@ -2128,6 +2357,94 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
           settings={settings}
           onSelectVariant={handleApplyVariant}
         />
+      )}
+
+      {/* Modal: Neue Station hinzufügen (Format-Auswahl) */}
+      {isAddModalOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="add-station-title"
+          className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-150"
+        >
+          {/* Backdrop overlay */}
+          <div
+            className="absolute inset-0 cursor-default"
+            onClick={() => setIsAddModalOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="relative bg-white border border-[#bbd1cd] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden z-10 animate-in zoom-in-95 duration-150">
+            {/* Header */}
+            <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-5 py-3.5 flex items-center justify-between shrink-0">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-[#247a6d] text-white flex items-center justify-center shadow-xs shrink-0">
+                  <Plus className="w-4.5 h-4.5" />
+                </div>
+                <div className="min-w-0">
+                  <h3 id="add-station-title" className="text-base font-bold text-[#1b5c53] truncate">
+                    Neue Lernstation hinzufügen
+                  </h3>
+                  <p className="text-xs text-[#6e6c70] truncate">
+                    Wählen Sie das didaktische Spielformat für Station {stations.length + 1} aus (10 ZQP-Formate):
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-[#e3eeec] transition-colors cursor-pointer"
+                title="Abbrechen"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Grid of formats */}
+            <div className="p-4 sm:p-6 overflow-y-auto flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3 zqp-scrollbar">
+              {STATION_FORMATS.map((fmt) => (
+                <button
+                  key={fmt.type}
+                  type="button"
+                  onClick={() => handleAddNewStation(fmt.type)}
+                  className="text-left p-3.5 rounded-xl border border-[#bbd1cd] hover:border-[#247a6d] hover:bg-[#f3f8f7] bg-white transition-all shadow-2xs hover:shadow-sm cursor-pointer flex items-start gap-3 group focus:outline-none focus:ring-2 focus:ring-[#247a6d]"
+                >
+                  <div className="w-9 h-9 rounded-lg bg-[#e3eeec] group-hover:bg-[#247a6d] group-hover:text-white flex items-center justify-center text-lg shrink-0 transition-colors">
+                    <span>{fmt.icon}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1 mb-0.5">
+                      <span className="text-xs font-bold text-[#1b5c53] group-hover:text-[#144740] truncate">
+                        {fmt.title}
+                      </span>
+                      <span className="text-[10px] font-semibold text-[#6e6c70] bg-[#e3eeec]/80 px-1.5 py-0.5 rounded shrink-0">
+                        {fmt.badge}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#3a352d] font-medium leading-tight line-clamp-1 mb-0.5">
+                      {fmt.tagline}
+                    </p>
+                    <p className="text-[10px] text-[#6e6c70] leading-snug line-clamp-2">
+                      {fmt.description}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div className="bg-[#fcfaf8] border-t border-[#e2ddd5] px-5 py-3 flex items-center justify-end shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsAddModalOpen(false)}
+                className="px-4 py-1.5 rounded-lg border border-[#bbd1cd] bg-white text-xs font-semibold text-[#6e6c70] hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
