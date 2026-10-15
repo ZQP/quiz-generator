@@ -2151,16 +2151,6 @@ export const QuizPreview: React.FC<QuizPreviewProps> = ({
                             <span>{resCfg.printButtonText || "Ergebnis als PDF drucken"}</span>
                           </button>
                         )}
-                        {onEditStation && (
-                          <button
-                            onClick={() => onEditStation(-1)}
-                            className="px-3.5 py-1.5 rounded-lg bg-white border border-[#bbd1cd] hover:border-[#247a6d] text-[#1b5c53] hover:bg-[#f3f8f7] text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer"
-                            title="Ergebnis-Station und Formulierungen anpassen"
-                          >
-                            <Edit3 className="w-3.5 h-3.5 text-[#247a6d]" />
-                            <span>Ergebnis anpassen</span>
-                          </button>
-                        )}
                       </div>
                     </div>
                   );
