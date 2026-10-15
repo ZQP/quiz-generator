@@ -516,15 +516,15 @@ export const App: React.FC = () => {
           /* Left Column: Input, Customization & Refinement */
           <div className="w-full lg:w-[420px] xl:w-[460px] shrink-0 flex flex-col min-h-0 bg-white rounded-xl border border-[#bbd1cd] shadow-2xs overflow-hidden transition-all duration-200">
             {/* Mode Switcher Tab Header (Aligned with Right Column) */}
-            <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-center justify-between shrink-0">
-              <div className="flex items-center gap-1">
+            <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-end justify-between shrink-0">
+              <div className="flex items-center gap-1.5 -mb-px">
                 <button
                   type="button"
                   onClick={() => setLeftPanelMode("create")}
-                  className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                  className={`px-3.5 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-all cursor-pointer ${
                     leftPanelMode === "create"
-                      ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs"
-                      : "text-[#6e6c70] hover:text-[#1b5c53]"
+                      ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] font-bold shadow-2xs relative z-10"
+                      : "border-t border-x border-transparent text-[#6e6c70] hover:text-[#1b5c53] hover:bg-black/[0.03]"
                   }`}
                 >
                   <PlusCircle className="w-3.5 h-3.5 text-[#247a6d]" />
@@ -535,12 +535,12 @@ export const App: React.FC = () => {
                   type="button"
                   onClick={() => currentQuiz && setLeftPanelMode("refine")}
                   disabled={!currentQuiz}
-                  className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors ${
+                  className={`px-3.5 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-all ${
                     leftPanelMode === "refine"
-                      ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs cursor-pointer"
+                      ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] font-bold shadow-2xs relative z-10 cursor-pointer"
                       : currentQuiz
-                      ? "text-[#6e6c70] hover:text-[#1b5c53] cursor-pointer"
-                      : "text-gray-400 opacity-40 cursor-not-allowed"
+                      ? "border-t border-x border-transparent text-[#6e6c70] hover:text-[#1b5c53] hover:bg-black/[0.03] cursor-pointer"
+                      : "border-t border-x border-transparent text-gray-400 opacity-40 cursor-not-allowed"
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5 text-[#247a6d]" />
@@ -548,17 +548,14 @@ export const App: React.FC = () => {
                 </button>
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-[11px] text-[#6e6c70] hidden sm:inline font-medium">
-                  {leftPanelMode === "create" ? "Themenwahl & Vorlagen" : "KI-Anpassung"}
-                </span>
+              <div className="flex items-center pb-2">
                 <button
                   type="button"
                   onClick={() => setIsLeftPanelCollapsed(true)}
                   className="hidden lg:flex p-1 text-[#6e6c70] hover:text-[#1b5c53] hover:bg-[#e3eeec] rounded transition-colors cursor-pointer"
                   title="Seitenleiste einklappen (Studio-Modus für maximale Vorschau)"
                 >
-                  <PanelLeftClose className="w-3.5 h-3.5" />
+                  <PanelLeftClose className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -594,14 +591,14 @@ export const App: React.FC = () => {
         {/* Right Column: Preview & Code Export */}
         <div className="flex-1 flex flex-col min-h-0 bg-white rounded-xl border border-[#bbd1cd] shadow-2xs overflow-hidden">
           {/* Tab Navigation Header (Matched with Left Column) */}
-          <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-1">
+          <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-3.5 pt-2 flex items-end justify-between shrink-0">
+            <div className="flex items-center gap-1.5 -mb-px">
               <button
                 onClick={() => setActiveMainTab("preview")}
-                className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`px-3.5 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-all cursor-pointer ${
                   activeMainTab === "preview"
-                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs"
-                    : "text-[#6e6c70] hover:text-[#1b5c53]"
+                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] font-bold shadow-2xs relative z-10"
+                    : "border-t border-x border-transparent text-[#6e6c70] hover:text-[#1b5c53] hover:bg-black/[0.03]"
                 }`}
               >
                 <Eye className="w-3.5 h-3.5 text-[#247a6d]" />
@@ -610,10 +607,10 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => setActiveMainTab("code")}
-                className={`px-3 py-1.5 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-colors cursor-pointer ${
+                className={`px-3.5 py-2 font-semibold text-xs rounded-t-lg flex items-center gap-1.5 transition-all cursor-pointer ${
                   activeMainTab === "code"
-                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] shadow-2xs"
-                    : "text-[#6e6c70] hover:text-[#1b5c53]"
+                    ? "bg-white border-t border-x border-[#bbd1cd] text-[#1b5c53] font-bold shadow-2xs relative z-10"
+                    : "border-t border-x border-transparent text-[#6e6c70] hover:text-[#1b5c53] hover:bg-black/[0.03]"
                 }`}
               >
                 <Code2 className="w-3.5 h-3.5 text-[#247a6d]" />
@@ -622,7 +619,7 @@ export const App: React.FC = () => {
             </div>
 
             {/* Persistence & Revision Indicator */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 pb-2">
               {quizHistory.length > 0 && (
                 <span className="text-[11px] text-[#247a6d] bg-white px-2 py-0.5 rounded border border-[#bbd1cd] hidden sm:inline-flex items-center gap-1 font-medium shadow-2xs">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>

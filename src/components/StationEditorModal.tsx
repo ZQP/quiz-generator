@@ -428,6 +428,18 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
     );
   }, [isOpen]);
 
+  // Handle escape key to close add modal if open
+  useEffect(() => {
+    if (!isAddModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsAddModalOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isAddModalOpen]);
+
   if (!isOpen) return null;
 
   const currentStation = stations[activeStationIdx] || stations[0];
@@ -2365,7 +2377,8 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
           role="dialog"
           aria-modal="true"
           aria-labelledby="add-station-title"
-          className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-150"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-3 sm:p-5 backdrop-blur-xs animate-in fade-in duration-150"
+          style={{ zIndex: 100 }}
         >
           {/* Backdrop overlay */}
           <div
@@ -2374,7 +2387,10 @@ export const StationEditorModal: React.FC<StationEditorModalProps> = ({
             aria-hidden="true"
           />
 
-          <div className="relative bg-white border border-[#bbd1cd] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden z-10 animate-in zoom-in-95 duration-150">
+          <div
+            className="relative bg-white border border-[#bbd1cd] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden z-[101] animate-in zoom-in-95 duration-150"
+            style={{ zIndex: 101 }}
+          >
             {/* Header */}
             <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-5 py-3.5 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5 min-w-0">

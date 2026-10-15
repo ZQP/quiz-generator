@@ -60,8 +60,14 @@ export const StationVariantsModal: React.FC<StationVariantsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-50 flex items-center justify-center p-3 md:p-6 animate-in fade-in duration-150">
-      <div className="bg-white rounded-2xl border border-[#bbd1cd] max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col overflow-hidden">
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[100] flex items-center justify-center p-3 md:p-6 animate-in fade-in duration-150"
+      style={{ zIndex: 100 }}
+    >
+      <div
+        className="bg-white rounded-2xl border border-[#bbd1cd] max-w-4xl w-full max-h-[90vh] shadow-2xl flex flex-col overflow-hidden relative z-[101]"
+        style={{ zIndex: 101 }}
+      >
         {/* Header */}
         <div className="bg-[#f3f8f7] border-b border-[#bbd1cd] px-5 py-3 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
