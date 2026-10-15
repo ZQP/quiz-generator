@@ -14,6 +14,18 @@ Ein Windows-Desktop-Werkzeug zur KI-gestützten Erstellung barrierearmer HTML5-Q
   - JavaScript (barrierefreie Interaktionslogik)
 - **Bibliotheks-Statusanzeige**: Klare Kennzeichnung, ob für das Quiz Tailwind CSS und/oder Font Awesome auf der Webseite zugeschaltet werden müssen.
 
+## Neu in v0.3.6 (Zentrierter Stations-Dialog im Vordergrund, beruhigte Tabs & Quiz-Ergebnisbereinigung)
+
+- **Stations-Auswahldialog garantiert im Vordergrund (`z-[100]`)**:
+  - Behoben: Der neue Stations-Auswahldialog öffnete sich zuvor hinter dem Editor bzw. Drawer, da Tailwind standardmäßig keine `z-60`-Klasse generiert.
+  - Mit `z-[100]` und Inline-Styles sitzt das Fenster nun verlässlich im Vordergrund vor allen Modals und Drawern.
+  - Tastatur-Bedienbarkeit: Das Auswahlfenster lässt sich nun auch intuitiv mit der <kbd>Esc</kbd>-Taste schließen.
+- **Ruhige, pixelgenaue Tabs & bereinigte Leiste**:
+  - Höhenspringen beim Umschalten zwischen „1. Neues Thema“ und „2. Quiz verfeinern“ behoben (`items-end`, `-mb-px` und identische 1px-Rahmen bei aktiven und inaktiven Tabs).
+  - Überflüssige kleine Beschriftungen („Themenwahl & Vorlagen“ sowie „KI-Anpassung“) vollständig entfernt für ein klares, aufgeräumtes Erscheinungsbild.
+- **Ergebnis-Station bereinigt**:
+  - Der redaktionelle Button „Ergebnis anpassen“ wurde aus der interaktiven Quiz-Karte entfernt, damit Teilnehmende des Quiz keine Bearbeitungsfunktionen sehen. Die Konfiguration erfolgt weiterhin sauber über die Editor-Werkzeugleiste.
+
 ## Neu in v0.3.5 (Interaktiver Auswahldialog für Lernstationen & WYSIWYG-Erweiterung)
 
 - **Zentrierter Auswahldialog für neue Lernstationen**:
